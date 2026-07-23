@@ -3112,80 +3112,63 @@ mod cast {
 
     use crate::schema::{Atomic, Schema, NULLISH};
 
+    macro_rules! test_constant_fold_cast_literal {
+        ($func_name:ident, expected_expr = $expected:expr, input_expr = $input:expr, input_to = $input_to:expr, $(schema_env = $schema_env:expr,)?) => {
+            test_constant_fold! {
+                $func_name,
+                expected = Stage::Array(ArraySource {
+                    alias: "".into(),
+                    array: vec![$expected],
+                    cache: SchemaCache::new(),
+                }),
+                expected_changed = true,
+                input = Stage::Array(ArraySource {
+                    alias: "".into(),
+                    array: vec![Expression::Cast(CastExpr {
+                        expr: $input.into(),
+                        to: $input_to,
+                        on_null: Expression::Literal(LiteralValue::String("null".into())).into(),
+                        on_error: Expression::Literal(LiteralValue::String("error".into())).into(),
+                        is_nullable: false,
+                    })],
+                    cache: SchemaCache::new(),
+                }),
+                $(schema_env = $schema_env,)?
+            }
+        };
+    }
+
     // Regardless of target type, casting from null literal folds to the on_null branch
-    test_constant_fold!(
+    test_constant_fold_cast_literal!(
         from_null_literal,
-        expected = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Literal(LiteralValue::String("null".into()))],
-            cache: SchemaCache::new(),
-        }),
-        expected_changed = true,
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Cast(CastExpr {
-                expr: Expression::Literal(LiteralValue::Null).into(),
-                to: Type::Int32,
-                on_null: Expression::Literal(LiteralValue::String("null".into())).into(),
-                on_error: Expression::Literal(LiteralValue::String("error".into())).into(),
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        expected_expr = Expression::Literal(LiteralValue::String("null".into())),
+        input_expr = Expression::Literal(LiteralValue::Null),
+        input_to = Type::Int32,
     );
 
     // Regardless of target type, casting from an exactly nullish expr folds to the on_null
     // branch
-    test_constant_fold!(
+    test_constant_fold_cast_literal!(
         from_exactly_nullish_expr,
-        expected = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Literal(LiteralValue::String("null".into()))],
-            cache: SchemaCache::new(),
-        }),
-        expected_changed = true,
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Cast(CastExpr {
-                expr: Expression::Reference(("bar", 0u16).into()).into(),
-                to: Type::Int32,
-                on_null: Expression::Literal(LiteralValue::String("null".into())).into(),
-                on_error: Expression::Literal(LiteralValue::String("error".into())).into(),
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        expected_expr = Expression::Literal(LiteralValue::String("null".into())),
+        input_expr = Expression::Reference(("bar", 0u16).into()),
+        input_to = Type::Int32,
         schema_env = map! {
             ("bar", 0u16).into() => NULLISH.clone(),
         },
     );
 
-    test_constant_fold!(
+    test_constant_fold_cast_literal!(
         valid_nested_casts,
-        expected = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Literal(LiteralValue::Decimal128(*STRING_DEC))],
-            cache: SchemaCache::new(),
+        expected_expr = Expression::Literal(LiteralValue::Decimal128(*STRING_DEC)),
+        input_expr = Expression::Cast(CastExpr {
+            expr: Expression::Literal(LiteralValue::String("3.14159265".into())).into(),
+            to: Type::String,
+            on_null: Expression::Literal(LiteralValue::Null).into(),
+            on_error: Expression::Literal(LiteralValue::Null).into(),
+            is_nullable: true,
         }),
-        expected_changed = true,
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Cast(CastExpr {
-                expr: Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("3.14159265".into())).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })
-                .into(),
-                to: Type::Decimal128,
-                on_null: Expression::Literal(LiteralValue::Null).into(),
-                on_error: Expression::Literal(LiteralValue::Null).into(),
-                is_nullable: true,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        input_to = Type::Decimal128,
     );
 
     test_constant_fold_no_op!(
@@ -3212,51 +3195,20 @@ mod cast {
     mod to_array {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_array,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Array(
-                    vec![Expression::Literal(LiteralValue::Boolean(true))].into()
-                )],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Array(
-                        vec![Expression::Literal(LiteralValue::Boolean(true))].into()
-                    )
-                    .into(),
-                    to: Type::Array,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr =
+                Expression::Array(vec![Expression::Literal(LiteralValue::Boolean(true))].into()),
+            input_expr =
+                Expression::Array(vec![Expression::Literal(LiteralValue::Boolean(true))].into()),
+            input_to = Type::Array,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_non_array,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String("error".into()))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Integer(0)).into(),
-                    to: Type::Array,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".into())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Integer(0)),
+            input_to = Type::Array,
         );
     }
 
@@ -3266,57 +3218,28 @@ mod cast {
     mod to_document {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_document,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Document(
-                    unchecked_unique_linked_hash_map! {
-                        "a".into() => Expression::Literal(LiteralValue::Integer(1))
-                    }
-                    .into()
-                )],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Document(
-                        unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(1))
-                        }
-                        .into()
-                    )
-                    .into(),
-                    to: Type::Document,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Document(
+                unchecked_unique_linked_hash_map! {
+                    "a".into() => Expression::Literal(LiteralValue::Integer(1))
+                }
+                .into()
+            ),
+            input_expr = Expression::Document(
+                unchecked_unique_linked_hash_map! {
+                    "a".into() => Expression::Literal(LiteralValue::Integer(1))
+                }
+                .into()
+            ),
+            input_to = Type::Document,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_non_document,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String("error".into()))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Integer(0)).into(),
-                    to: Type::Document,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".into())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Integer(0)),
+            input_to = Type::Document,
         );
     }
 
@@ -3325,518 +3248,188 @@ mod cast {
     mod to_boolean {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_non_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Reference(("bar", 0u16).into())],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Reference(("bar", 0u16).into()).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Reference(("bar", 0u16).into()),
+            input_expr = Expression::Reference(("bar", 0u16).into()),
+            input_to = Type::Boolean,
             schema_env = map! {
                 ("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean),
             },
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_array_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Array(ArrayExpr { array: vec![] }).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Array(ArrayExpr { array: vec![] }),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_bindata_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Binary(bson::Binary {
-                        bytes: vec![],
-                        subtype: bson::spec::BinarySubtype::Generic,
-                    }))
-                    .into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::Binary(bson::Binary {
+                bytes: vec![],
+                subtype: bson::spec::BinarySubtype::Generic,
+            })),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_true_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(true)).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_false_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(false))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(false)).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_date_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::DateTime(bson::DateTime::now())).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::DateTime(bson::DateTime::now())),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_zero_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(false))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str("0.0").unwrap()
-                    ))
-                    .into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("0.0").unwrap()
+            )),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_non_zero_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str("1.0").unwrap()
-                    ))
-                    .into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("1.0").unwrap()
+            )),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_document_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Document(DocumentExpr {
+                document: unchecked_unique_linked_hash_map! {},
             }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Document(DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {},
-                    })
-                    .into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_zero_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(false))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(0.0)).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_expr = Expression::Literal(LiteralValue::Double(0.0)),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_non_zero_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(1.0)).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::Double(1.0)),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_int_zero_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(false))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Integer(0)).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_expr = Expression::Literal(LiteralValue::Integer(0)),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_int_non_zero_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Integer(1)).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::Integer(1)),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_javascript_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::JavaScriptCode("".to_string())).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::JavaScriptCode("".to_string())),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_javascript_with_scope_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::JavaScriptCodeWithScope(
-                        bson::JavaScriptCodeWithScope {
-                            code: "".to_string(),
-                            scope: bson::Document::new(),
-                        }
-                    ))
-                    .into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::JavaScriptCodeWithScope(
+                bson::JavaScriptCodeWithScope {
+                    code: "".to_string(),
+                    scope: bson::Document::new(),
+                }
+            )),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_zero_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(false))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(0)).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_expr = Expression::Literal(LiteralValue::Long(0)),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_non_zero_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(1)).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::Long(1)),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_max_key_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::MaxKey).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::MaxKey),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_min_key_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::MinKey).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::MinKey),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_object_id_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::ObjectId(bson::oid::ObjectId::new()))
-                        .into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::ObjectId(bson::oid::ObjectId::new())),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_regex_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::RegularExpression(bson::Regex {
-                        pattern: "".to_string(),
-                        options: "".to_string(),
-                    }))
-                    .into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::RegularExpression(bson::Regex {
+                pattern: "".to_string(),
+                options: "".to_string(),
+            })),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("".to_string())).into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::String("".to_string())),
+            input_to = Type::Boolean,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_timestamp_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Boolean(true))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Timestamp(bson::Timestamp {
-                        time: 0,
-                        increment: 0,
-                    }))
-                    .into(),
-                    to: Type::Boolean,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_expr = Expression::Literal(LiteralValue::Timestamp(bson::Timestamp {
+                time: 0,
+                increment: 0,
+            })),
+            input_to = Type::Boolean,
         );
     }
 
@@ -3845,579 +3438,200 @@ mod cast {
     mod to_int {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_integer_non_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Reference(("bar", 0u16).into())],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Reference(("bar", 0u16).into()).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Reference(("bar", 0u16).into()),
+            input_expr = Expression::Reference(("bar", 0u16).into()),
+            input_to = Type::Int32,
             schema_env = map! {
                 ("bar", 0u16).into() => Schema::Atomic(Atomic::Integer),
             },
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_false_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(0))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(false)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(0)),
+            input_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_true_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(1))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(true)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(1)),
+            input_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_to = Type::Int32,
         );
 
         // In general, for Decimal and Double, $convert truncates. The truncated value must be
         // within the range of a 32-bit signed integer, otherwise the onError value is returned.
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(1))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str("1.2").unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(1)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("1.2").unwrap()
+            )),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_max_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(i32::MAX))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}.9", i32::MAX).as_str()).unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(i32::MAX)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}.9", i32::MAX).as_str()).unwrap()
+            )),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_min_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(i32::MIN))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}.9", i32::MIN).as_str()).unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(i32::MIN)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}.9", i32::MIN).as_str()).unwrap()
+            )),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_greater_than_max_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}", i32::MAX as i64 + 1i64).as_str())
-                            .unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}", i32::MAX as i64 + 1i64).as_str()).unwrap()
+            )),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_less_than_min_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}", i32::MIN as i64 - 1i64).as_str())
-                            .unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}", i32::MIN as i64 - 1i64).as_str()).unwrap()
+            )),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(1))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(1.2)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(1)),
+            input_expr = Expression::Literal(LiteralValue::Double(1.2)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_max_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(i32::MAX))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(i32::MAX as f64 + 0.9)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(i32::MAX)),
+            input_expr = Expression::Literal(LiteralValue::Double(i32::MAX as f64 + 0.9)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_min_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(i32::MIN))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(i32::MIN as f64 - 0.9)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(i32::MIN)),
+            input_expr = Expression::Literal(LiteralValue::Double(i32::MIN as f64 - 0.9)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_greater_than_max_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(i32::MAX as f64 + 1.0)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Double(i32::MAX as f64 + 1.0)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_less_than_min_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(i32::MIN as f64 - 1.0)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Double(i32::MIN as f64 - 1.0)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(5))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(5)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(5)),
+            input_expr = Expression::Literal(LiteralValue::Long(5)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_max_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(i32::MAX))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(i32::MAX as i64)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(i32::MAX)),
+            input_expr = Expression::Literal(LiteralValue::Long(i32::MAX as i64)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_min_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(i32::MIN))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(i32::MIN as i64)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(i32::MIN)),
+            input_expr = Expression::Literal(LiteralValue::Long(i32::MIN as i64)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_greater_than_max_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(i32::MAX as i64 + 1)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Long(i32::MAX as i64 + 1)),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_less_than_min_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(i32::MIN as i64 - 1)).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Long(i32::MIN as i64 - 1)),
+            input_to = Type::Int32,
         );
-        test_constant_fold!(
+
+        test_constant_fold_cast_literal!(
             from_string_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(5))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("5".to_string())).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(5)),
+            input_expr = Expression::Literal(LiteralValue::String("5".to_string())),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_max_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(i32::MAX))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(i32::MAX.to_string())).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(i32::MAX)),
+            input_expr = Expression::Literal(LiteralValue::String(i32::MAX.to_string())),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_min_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Integer(i32::MIN))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(i32::MIN.to_string())).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Integer(i32::MIN)),
+            input_expr = Expression::Literal(LiteralValue::String(i32::MIN.to_string())),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_greater_than_max_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(format!(
-                        "{}",
-                        i32::MAX as i64 + 1i64
-                    )))
-                    .into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String(format!(
+                "{}",
+                i32::MAX as i64 + 1i64
+            ))),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_less_than_min_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(format!(
-                        "{}",
-                        i32::MIN as i64 - 1i64
-                    )))
-                    .into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String(format!(
+                "{}",
+                i32::MIN as i64 - 1i64
+            ))),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_not_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("5.5".to_string())).into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String("5.5".to_string())),
+            input_to = Type::Int32,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_not_a_number_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("not a number".to_string()))
-                        .into(),
-                    to: Type::Int32,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String("not a number".to_string())),
+            input_to = Type::Int32,
         );
     }
 
@@ -4426,207 +3640,80 @@ mod cast {
     mod to_decimal {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_non_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Reference(("bar", 0u16).into())],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Reference(("bar", 0u16).into()).into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Reference(("bar", 0u16).into()),
+            input_expr = Expression::Reference(("bar", 0u16).into()),
+            input_to = Type::Decimal128,
             schema_env = map! {
                 ("bar", 0u16).into() => Schema::Atomic(Atomic::Decimal),
             },
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_false_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Decimal128(
-                    bson::Decimal128::from_str("0").unwrap()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(false)).into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("0").unwrap()
+            )),
+            input_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_to = Type::Decimal128,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_true_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Decimal128(
-                    bson::Decimal128::from_str("1").unwrap()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(true)).into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("1").unwrap()
+            )),
+            input_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_to = Type::Decimal128,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Decimal128(*DOUBLE_DEC))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(std::f64::consts::PI)).into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Decimal128(*DOUBLE_DEC)),
+            input_expr = Expression::Literal(LiteralValue::Double(std::f64::consts::PI)),
+            input_to = Type::Decimal128,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Decimal128(*INT_DEC))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Integer(3)).into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Decimal128(*INT_DEC)),
+            input_expr = Expression::Literal(LiteralValue::Integer(3)),
+            input_to = Type::Decimal128,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Decimal128(*INT_DEC))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(3)).into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Decimal128(*INT_DEC)),
+            input_expr = Expression::Literal(LiteralValue::Long(3)),
+            input_to = Type::Decimal128,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_valid_string_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Decimal128(*STRING_DEC))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("3.14159265".into())).into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Decimal128(*STRING_DEC)),
+            input_expr = Expression::Literal(LiteralValue::String("3.14159265".into())),
+            input_to = Type::Decimal128,
         );
 
         // A string that cannot be parsed as a Decimal128 statically fails, so the cast
         // folds to its on_error branch.
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_invalid_string_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String("error".into()))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("hello".into())).into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".into())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String("hello".into())),
+            input_to = Type::Decimal128,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_date_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Decimal128(
-                    bson::Decimal128::from_str("1522039108044").unwrap()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::DateTime(bson::DateTime::from_millis(
-                        1522039108044
-                    )))
-                    .into(),
-                    to: Type::Decimal128,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("1522039108044").unwrap()
+            )),
+            input_expr = Expression::Literal(LiteralValue::DateTime(bson::DateTime::from_millis(
+                1522039108044
+            ))),
+            input_to = Type::Decimal128,
         );
     }
 
@@ -4635,354 +3722,127 @@ mod cast {
     mod to_double {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_non_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Reference(("bar", 0u16).into())],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Reference(("bar", 0u16).into()).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Reference(("bar", 0u16).into()),
+            input_expr = Expression::Reference(("bar", 0u16).into()),
+            input_to = Type::Double,
             schema_env = map! {
                 ("bar", 0u16).into() => Schema::Atomic(Atomic::Double),
             },
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_false_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(0.0))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(false)).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(0.0)),
+            input_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_true_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(1.0))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(true)).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(1.0)),
+            input_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(1.2))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str("1.2").unwrap()
-                    ))
-                    .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(1.2)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("1.2").unwrap()
+            )),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_max_f64_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(f64::MAX))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}", f64::MAX).as_str()).unwrap()
-                    ))
-                    .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(f64::MAX)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}", f64::MAX).as_str()).unwrap()
+            )),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_min_f64_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(f64::MIN))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}", f64::MIN).as_str()).unwrap()
-                    ))
-                    .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(f64::MIN)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}", f64::MIN).as_str()).unwrap()
+            )),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_greater_than_max_f64_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("1{}", f64::MAX).as_str()).unwrap()
-                    ))
-                    .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("1{}", f64::MAX).as_str()).unwrap()
+            )),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_less_than_min_f64_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(
-                            format!("{}", f64::MIN).replacen('1', "2", 1).as_str()
-                        )
-                        .unwrap()
-                    ))
-                    .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}", f64::MIN).replacen('1', "2", 1).as_str())
+                    .unwrap()
+            )),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(5.0))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Integer(5)).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(5.0)),
+            input_expr = Expression::Literal(LiteralValue::Integer(5)),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(10000.0))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(10000)).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(10000.0)),
+            input_expr = Expression::Literal(LiteralValue::Long(10000)),
+            input_to = Type::Double,
         );
 
         // MongoDB loses precision when converting from sufficiently large long values to double.
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_max_i64_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(i64::MAX as f64))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(i64::MAX)).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(i64::MAX as f64)),
+            input_expr = Expression::Literal(LiteralValue::Long(i64::MAX)),
+            input_to = Type::Double,
         );
 
         // MongoDB loses precision when converting from sufficiently large long values to double.
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_min_i64_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(i64::MIN as f64))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(i64::MIN)).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(i64::MIN as f64)),
+            input_expr = Expression::Literal(LiteralValue::Long(i64::MIN)),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(-5.5))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("-5.5".to_string())).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(-5.5)),
+            input_expr = Expression::Literal(LiteralValue::String("-5.5".to_string())),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_greater_than_max_f64_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(format!("1{}", f64::MAX)))
-                        .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String(format!("1{}", f64::MAX))),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_less_than_min_f64_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(
-                        format!("{}", f64::MIN).replacen('1', "2", 1)
-                    ))
-                    .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String(
+                format!("{}", f64::MIN).replacen('1', "2", 1)
+            )),
+            input_to = Type::Double,
         );
 
         // f64::NAN does not equal f64::NAN, so we can't use test_constant_fold! conveniently.
@@ -5038,115 +3898,41 @@ mod cast {
             assert!(folded_val.is_nan());
         }
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_inf_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(f64::INFINITY))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("inf".to_string())).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(f64::INFINITY)),
+            input_expr = Expression::Literal(LiteralValue::String("inf".to_string())),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_neg_inf_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(f64::NEG_INFINITY))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("-inf".to_string())).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(f64::NEG_INFINITY)),
+            input_expr = Expression::Literal(LiteralValue::String("-inf".to_string())),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_scientific_notation_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(50000000000.0))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("5e10".to_string())).into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(50000000000.0)),
+            input_expr = Expression::Literal(LiteralValue::String("5e10".to_string())),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_invalid_string_not_a_number_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("not a number".to_string()))
-                        .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String("not a number".to_string())),
+            input_to = Type::Double,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_date_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Double(1522039108044.0))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::DateTime(bson::DateTime::from_millis(
-                        1522039108044
-                    )))
-                    .into(),
-                    to: Type::Double,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Double(1522039108044.0)),
+            input_expr = Expression::Literal(LiteralValue::DateTime(bson::DateTime::from_millis(
+                1522039108044
+            ))),
+            input_to = Type::Double,
         );
     }
 
@@ -5155,516 +3941,181 @@ mod cast {
     mod to_long {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_non_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Reference(("bar", 0u16).into())],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Reference(("bar", 0u16).into()).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Reference(("bar", 0u16).into()),
+            input_expr = Expression::Reference(("bar", 0u16).into()),
+            input_to = Type::Int64,
             schema_env = map! {
                 ("bar", 0u16).into() => Schema::Atomic(Atomic::Long),
             },
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_false_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(0))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(false)).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(0)),
+            input_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_true_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(1))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(true)).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(1)),
+            input_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_to = Type::Int64,
         );
 
         // In general, for Decimal and Double, $convert truncates. The truncated value must be
         // within the range of a 64-bit signed integer, otherwise the onError value is returned.
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(1))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str("1.2").unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(1)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("1.2").unwrap()
+            )),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_max_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(i64::MAX))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}.9", i64::MAX).as_str()).unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(i64::MAX)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}.9", i64::MAX).as_str()).unwrap()
+            )),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_min_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(i64::MIN))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}.9", i64::MIN).as_str()).unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(i64::MIN)),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}.9", i64::MIN).as_str()).unwrap()
+            )),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_greater_than_max_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}", i64::MAX as f64 + 1.0).as_str())
-                            .unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}", i64::MAX as f64 + 1.0).as_str()).unwrap()
+            )),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_less_than_min_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str(format!("{}", i64::MIN as f64 - 1.0).as_str())
-                            .unwrap()
-                    ))
-                    .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str(format!("{}", i64::MIN as f64 - 1.0).as_str()).unwrap()
+            )),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(1))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(1.2)).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(1)),
+            input_expr = Expression::Literal(LiteralValue::Double(1.2)),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_max_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(i64::MAX))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(i64::MAX as f64 + 0.9)).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(i64::MAX)),
+            input_expr = Expression::Literal(LiteralValue::Double(i64::MAX as f64 + 0.9)),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_min_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(i64::MIN))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(i64::MIN as f64 - 0.9)).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(i64::MIN)),
+            input_expr = Expression::Literal(LiteralValue::Double(i64::MIN as f64 - 0.9)),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_greater_than_max_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(f64::MAX)).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Double(f64::MAX)),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_less_than_min_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(f64::MIN)).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::Double(f64::MIN)),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(5))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Integer(5)).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(5)),
+            input_expr = Expression::Literal(LiteralValue::Integer(5)),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(5))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("5".to_string())).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(5)),
+            input_expr = Expression::Literal(LiteralValue::String("5".to_string())),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_max_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(i64::MAX))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(i64::MAX.to_string())).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(i64::MAX)),
+            input_expr = Expression::Literal(LiteralValue::String(i64::MAX.to_string())),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_min_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(i64::MIN))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(i64::MIN.to_string())).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(i64::MIN)),
+            input_expr = Expression::Literal(LiteralValue::String(i64::MIN.to_string())),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_greater_than_max_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(format!(
-                        "{}",
-                        i64::MAX as f64 + 1.0
-                    )))
-                    .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String(format!(
+                "{}",
+                i64::MAX as f64 + 1.0
+            ))),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_less_than_min_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(format!(
-                        "{}",
-                        i64::MIN as f64 - 1.0
-                    )))
-                    .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String(format!(
+                "{}",
+                i64::MIN as f64 - 1.0
+            ))),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_not_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("5.5".to_string())).into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String("5.5".to_string())),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_not_a_number_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("not a number".to_string()))
-                        .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr = Expression::Literal(LiteralValue::String("not a number".to_string())),
+            input_to = Type::Int64,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_date_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::Long(1522039108044))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::DateTime(bson::DateTime::from_millis(
-                        1522039108044
-                    )))
-                    .into(),
-                    to: Type::Int64,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::Long(1522039108044)),
+            input_expr = Expression::Literal(LiteralValue::DateTime(bson::DateTime::from_millis(
+                1522039108044
+            ))),
+            input_to = Type::Int64,
         );
     }
 
@@ -5673,100 +4124,43 @@ mod cast {
     mod to_datetime {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_datetime_non_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Reference(("bar", 0u16).into())],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Reference(("bar", 0u16).into()).into(),
-                    to: Type::Datetime,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Reference(("bar", 0u16).into()),
+            input_expr = Expression::Reference(("bar", 0u16).into()),
+            input_to = Type::Datetime,
             schema_env = map! {
                 ("bar", 0u16).into() => Schema::Atomic(Atomic::Date),
             },
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::DateTime(
-                    bson::DateTime::from_millis(120000000000)
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(120000000000.5)).into(),
-                    to: Type::Datetime,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::DateTime(
+                bson::DateTime::from_millis(120000000000)
+            )),
+            input_expr = Expression::Literal(LiteralValue::Double(120000000000.5)),
+            input_to = Type::Datetime,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::DateTime(
-                    bson::DateTime::from_millis(1253372036000)
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str("1253372036000.50").unwrap()
-                    ))
-                    .into(),
-                    to: Type::Datetime,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::DateTime(
+                bson::DateTime::from_millis(1253372036000)
+            )),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("1253372036000.50").unwrap()
+            )),
+            input_to = Type::Datetime,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::DateTime(
-                    bson::DateTime::from_millis(1100000000000)
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(1100000000000)).into(),
-                    to: Type::Datetime,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::DateTime(
+                bson::DateTime::from_millis(1100000000000)
+            )),
+            input_expr = Expression::Literal(LiteralValue::Long(1100000000000)),
+            input_to = Type::Datetime,
         );
 
         test_constant_fold!(
@@ -5908,27 +4302,11 @@ mod cast {
             }),
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_with_date_without_time,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::DateTime(
-                    *DATE_WITHOUT_TIME
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String("2014-01-01".into())).into(),
-                    to: Type::Datetime,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                }),],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::DateTime(*DATE_WITHOUT_TIME)),
+            input_expr = Expression::Literal(LiteralValue::String("2014-01-01".into())),
+            input_to = Type::Datetime,
         );
 
         // An unparseable date string cannot be folded and is left as a Cast, to be
@@ -5951,25 +4329,11 @@ mod cast {
             })
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_object_id_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::DateTime(OID.timestamp()))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::ObjectId(*OID)).into(),
-                    to: Type::Datetime,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::DateTime(OID.timestamp())),
+            input_expr = Expression::Literal(LiteralValue::ObjectId(*OID)),
+            input_to = Type::Datetime,
         );
     }
 
@@ -5978,80 +4342,32 @@ mod cast {
     mod to_object_id {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_object_id_non_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Reference(("bar", 0u16).into())],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Reference(("bar", 0u16).into()).into(),
-                    to: Type::ObjectId,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Reference(("bar", 0u16).into()),
+            input_expr = Expression::Reference(("bar", 0u16).into()),
+            input_to = Type::ObjectId,
             schema_env = map! {
                 ("bar", 0u16).into() => Schema::Atomic(Atomic::ObjectId),
             },
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_valid_string,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::ObjectId(*OID))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(
-                        "507f1f77bcf86cd799439011".into()
-                    ))
-                    .into(),
-                    to: Type::ObjectId,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::ObjectId(*OID)),
+            input_expr =
+                Expression::Literal(LiteralValue::String("507f1f77bcf86cd799439011".into())),
+            input_to = Type::ObjectId,
         );
 
         // A string that cannot be parsed as an ObjectId statically fails, so the cast
         // folds to its on_error branch.
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_invalid_string,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "error".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::String(
-                        "57f1f77bcf86cd799439011".into()
-                    ))
-                    .into(),
-                    to: Type::ObjectId,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::String("error".to_string())).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("error".into())),
+            input_expr =
+                Expression::Literal(LiteralValue::String("57f1f77bcf86cd799439011".into())),
+            input_to = Type::ObjectId,
         );
     }
 
@@ -6060,209 +4376,74 @@ mod cast {
     mod to_string {
         use super::*;
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_string_non_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Reference(("bar", 0u16).into())],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Reference(("bar", 0u16).into()).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Reference(("bar", 0u16).into()),
+            input_expr = Expression::Reference(("bar", 0u16).into()),
+            input_to = Type::String,
             schema_env = map! {
                 ("bar", 0u16).into() => Schema::Atomic(Atomic::String),
             },
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_false_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "false".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(false)).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("false".to_string())),
+            input_expr = Expression::Literal(LiteralValue::Boolean(false)),
+            input_to = Type::String,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_boolean_true_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "true".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Boolean(true)).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("true".to_string())),
+            input_expr = Expression::Literal(LiteralValue::Boolean(true)),
+            input_to = Type::String,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_date_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    DATE_WITH_MS.to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::DateTime(*DATE_WITH_MS)).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String(DATE_WITH_MS.to_string())),
+            input_expr = Expression::Literal(LiteralValue::DateTime(*DATE_WITH_MS)),
+            input_to = Type::String,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_decimal_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String("1.2".to_string()))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Decimal128(
-                        bson::Decimal128::from_str("1.2").unwrap()
-                    ))
-                    .into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("1.2".to_string())),
+            input_expr = Expression::Literal(LiteralValue::Decimal128(
+                bson::Decimal128::from_str("1.2").unwrap()
+            )),
+            input_to = Type::String,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_double_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String("2.5".to_string()))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Double(2.5)).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("2.5".to_string())),
+            input_expr = Expression::Literal(LiteralValue::Double(2.5)),
+            input_to = Type::String,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_int_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String("2".to_string()))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Integer(2)).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("2".to_string())),
+            input_expr = Expression::Literal(LiteralValue::Integer(2)),
+            input_to = Type::String,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_long_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "1000".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::Long(1000)).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String("1000".to_string())),
+            input_expr = Expression::Literal(LiteralValue::Long(1000)),
+            input_to = Type::String,
         );
 
-        test_constant_fold!(
+        test_constant_fold_cast_literal!(
             from_objectid_literal,
-            expected = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Literal(LiteralValue::String(
-                    "507f1f77bcf86cd799439011".to_string()
-                ))],
-                cache: SchemaCache::new(),
-            }),
-            expected_changed = true,
-            input = Stage::Array(ArraySource {
-                alias: "".into(),
-                array: vec![Expression::Cast(CastExpr {
-                    expr: Expression::Literal(LiteralValue::ObjectId(*OID)).into(),
-                    to: Type::String,
-                    on_null: Expression::Literal(LiteralValue::Null).into(),
-                    on_error: Expression::Literal(LiteralValue::Null).into(),
-                    is_nullable: true,
-                })],
-                cache: SchemaCache::new(),
-            }),
+            expected_expr = Expression::Literal(LiteralValue::String(
+                "507f1f77bcf86cd799439011".to_string()
+            )),
+            input_expr = Expression::Literal(LiteralValue::ObjectId(*OID)),
+            input_to = Type::String,
         );
     }
 }
