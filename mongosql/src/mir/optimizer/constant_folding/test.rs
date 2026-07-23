@@ -3603,20 +3603,16 @@ mod cast {
         test_constant_fold_cast_literal!(
             from_string_greater_than_max_int_literal,
             expected_expr = Expression::Literal(LiteralValue::String("error".into())),
-            input_expr = Expression::Literal(LiteralValue::String(format!(
-                "{}",
-                i32::MAX as i64 + 1i64
-            ))),
+            input_expr =
+                Expression::Literal(LiteralValue::String(format!("{}", i32::MAX as i64 + 1i64))),
             input_to = Type::Int32,
         );
 
         test_constant_fold_cast_literal!(
             from_string_less_than_min_int_literal,
             expected_expr = Expression::Literal(LiteralValue::String("error".into())),
-            input_expr = Expression::Literal(LiteralValue::String(format!(
-                "{}",
-                i32::MIN as i64 - 1i64
-            ))),
+            input_expr =
+                Expression::Literal(LiteralValue::String(format!("{}", i32::MIN as i64 - 1i64))),
             input_to = Type::Int32,
         );
 
@@ -4078,20 +4074,16 @@ mod cast {
         test_constant_fold_cast_literal!(
             from_string_greater_than_max_long_literal,
             expected_expr = Expression::Literal(LiteralValue::String("error".into())),
-            input_expr = Expression::Literal(LiteralValue::String(format!(
-                "{}",
-                i64::MAX as f64 + 1.0
-            ))),
+            input_expr =
+                Expression::Literal(LiteralValue::String(format!("{}", i64::MAX as f64 + 1.0))),
             input_to = Type::Int64,
         );
 
         test_constant_fold_cast_literal!(
             from_string_less_than_min_long_literal,
             expected_expr = Expression::Literal(LiteralValue::String("error".into())),
-            input_expr = Expression::Literal(LiteralValue::String(format!(
-                "{}",
-                i64::MIN as f64 - 1.0
-            ))),
+            input_expr =
+                Expression::Literal(LiteralValue::String(format!("{}", i64::MIN as f64 - 1.0))),
             input_to = Type::Int64,
         );
 
@@ -4439,9 +4431,8 @@ mod cast {
 
         test_constant_fold_cast_literal!(
             from_objectid_literal,
-            expected_expr = Expression::Literal(LiteralValue::String(
-                "507f1f77bcf86cd799439011".to_string()
-            )),
+            expected_expr =
+                Expression::Literal(LiteralValue::String("507f1f77bcf86cd799439011".to_string())),
             input_expr = Expression::Literal(LiteralValue::ObjectId(*OID)),
             input_to = Type::String,
         );
