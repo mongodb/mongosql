@@ -705,6 +705,21 @@ functions:
           echo "---------------------------------------------"
           echo "<<<< Done scanning SBOM"
 
+  "authenticate with devprod platforms ecr":
+    - command: ec2.assume_role
+      display_name: Assume DevProd Platforms ECR readonly IAM role
+      params:
+        role_arn: ${devprod_platforms_ecr_readonly_role_arn}
+    - command: shell.exec
+      display_name: Log in to DevProd Platforms ECR
+      params:
+        silent: true
+        shell: bash
+        include_expansions_in_env: [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN]
+        script: |
+          set -o errexit
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 901841024863.dkr.ecr.us-east-1.amazonaws.com
+
   "augment SBOM":
     - command: ec2.assume_role
       display_name: Assume IAM role with permissions to pull Kondukto API token
@@ -739,7 +754,7 @@ functions:
           echo "-- Augmenting SBOM Lite --"
           docker run -i --platform="linux/amd64" --rm -v "$PWD":/pwd \
           --env-file ${workdir}/kondukto_credentials.env \
-          artifactory.corp.mongodb.com/release-tools-container-registry-public-local/silkbomb:2.0 \
+          901841024863.dkr.ecr.us-east-1.amazonaws.com/release-infrastructure/silkbomb:2.0 \
           augment --repo mongodb/mongosql --branch ${branch_name} --sbom-in /pwd/$SBOM_FINAL --sbom-out /pwd/${project_folder}.augmented.sbom.json --force
           echo "-------------------------------"
     - *assume_role_cmd

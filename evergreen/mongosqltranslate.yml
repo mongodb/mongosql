@@ -178,13 +178,6 @@ functions:
         local_file: mongosql-rs/mongosqltranslate.dll
     - command: shell.exec
       type: system
-      retry_on_failure: true
-      params:
-        silent: true
-        script: |
-          docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
-    - command: shell.exec
-      type: system
       params:
         silent: true
         env:
@@ -219,13 +212,6 @@ functions:
         <<: *evg_bucket_config
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosqltranslate.so
         local_file: mongosql-rs/libmongosqltranslate.so
-    - command: shell.exec
-      type: system
-      retry_on_failure: true
-      params:
-        silent: true
-        script: |
-          docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
     - command: shell.exec
       type: system
       params:
@@ -408,6 +394,7 @@ tasks:
       - func: "scan SBOM"
         vars:
           project_folder: "mongosqltranslate"
+      - func: "authenticate with devprod platforms ecr"
       - func: "augment SBOM"
         vars:
           project_folder: "mongosqltranslate"
@@ -421,6 +408,13 @@ tasks:
     depends_on:
       - name: compile-mongosqltranslate
     commands:
+      - func: "authenticate with devprod platforms ecr"
+        variants:
+          [
+            mongosqltranslate-windows-64,
+            mongosqltranslate-linux-x86_64,
+            mongosqltranslate-linux-arm64,
+          ]
       - func: "sign mongosqltranslate windows"
         retry_on_failure: true
         variants: [mongosqltranslate-windows-64]
