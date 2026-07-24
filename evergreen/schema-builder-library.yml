@@ -54,13 +54,6 @@ functions:
         local_file: mongosql-rs/schema-builder-library.tgz
     - command: shell.exec
       type: system
-      retry_on_failure: true
-      params:
-        silent: true
-        script: |
-          docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
-    - command: shell.exec
-      type: system
       params:
         silent: true
         env:
@@ -145,6 +138,7 @@ tasks:
     depends_on:
       - name: compile-schema-builder-library
     commands:
+      - func: "authenticate with devprod platforms ecr"
       - func: "sign schema-builder-library"
         retry_on_failure: true
 
@@ -168,6 +162,7 @@ tasks:
       - func: "scan SBOM"
         vars:
           project_folder: "schema-builder-library"
+      - func: "authenticate with devprod platforms ecr"
       - func: "augment SBOM"
         vars:
           project_folder: "schema-builder-library"
