@@ -582,7 +582,12 @@ impl StageMovementVisitor<'_> {
             // Recall that the LHS (source) datasources are considered in-scope
             // inside the RHS (subquery) so this is safe.
             Stage::MqlIntrinsic(MqlStage::LateralJoin(ref n)) => {
-                let right_schema = n.subquery.schema(self.schema_state).unwrap();
+                let source_result_set = n.source.schema(self.schema_state).unwrap();
+                let state = self
+                    .schema_state
+                    .with_merged_schema_env(source_result_set.schema_env.clone());
+                let right_schema = n.subquery.schema(&state).unwrap();
+
                 // If this is a filter, we cannot move it, if the Join's JoinType is Left and any use is in the RHS.
                 // It is not semantically correct to merge WHERE conditions into lateral JOIN RHS clauses.
                 if (node.is_filter() && n.join_type == JoinType::Left) || node.is_sort() {
