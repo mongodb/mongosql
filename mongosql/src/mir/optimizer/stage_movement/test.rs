@@ -1702,12 +1702,12 @@ test_move_stage_no_op!(
     cannot_move_filter_above_lateral_left_join_if_correlated_conditions,
     Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
         join_type: JoinType::Left,
-        source: mir_collection("foo", "bar"), // "Table3"
+        source: mir_collection("foo", "bar"),
         subquery: Box::new(Stage::Filter(Filter {
             source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
                 join_type: JoinType::Inner,
-                source: mir_collection("foo", "bar2"), // "Table2"
-                from: mir_collection("foo", "bar3"),   // "Table7"
+                source: mir_collection("foo", "bar2"),
+                from: mir_collection("foo", "bar3"),
                 local_field: Box::new(mir_field_path("bar2", vec!["x", "a", "b"])),
                 foreign_field: Box::new(mir_field_path("bar3", vec!["d"])),
                 cache: SchemaCache::new(),
