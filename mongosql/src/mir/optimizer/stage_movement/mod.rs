@@ -712,10 +712,15 @@ impl StageMovementVisitor<'_> {
                         (_, true) => {
                             side = BubbleUpSide::Right;
                         }
-                        // This case is when we have a TRUE or FALSE filter, we want this to bubble
-                        // up both sides.
+
+                        // While there may be a few cases in which we could bubble up both sides,
+                        // there are also cases where the data sources are masked behind
+                        // multiple joins with correlated conditions.
+                        //
+                        // So to avoid the ambiguity, we always short out here if
+                        // neither side has the data source.
                         (false, false) => {
-                            side = BubbleUpSide::Both;
+                            return (node, false);
                         }
                     }
                 }

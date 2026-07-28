@@ -41,7 +41,7 @@ lazy_static! {
                 required: set!{"x".to_string()},
                 additional_properties: false,
                 ..Default::default()
-                }
+            }
         ),
         ("foo", "bar2").into() => Schema::Document(
             schema::Document {
@@ -72,8 +72,18 @@ lazy_static! {
                 required: set!{"x".to_string()},
                 additional_properties: false,
                 ..Default::default()
-                }
-        )
+            }
+        ),
+        ("foo", "bar3").into() => Schema::Document(
+            schema::Document {
+                keys: map! {
+                    "d".to_string() => schema::Schema::Atomic(schema::Atomic::Integer),
+                },
+                required: set!{"d".to_string()},
+                additional_properties: false,
+                ..Default::default()
+            }
+        ),
     });
 }
 
@@ -1686,6 +1696,34 @@ test_move_stage_no_op!(
         specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
         cache: SchemaCache::new(),
     })
+);
+
+test_move_stage_no_op!(
+    cannot_move_filter_above_lateral_left_join_if_correlated_conditions,
+    Stage::MqlIntrinsic(MqlStage::LateralJoin(LateralJoin {
+        join_type: JoinType::Left,
+        source: mir_collection("foo", "bar"), // "Table3"
+        subquery: Box::new(Stage::Filter(Filter {
+            source: Box::new(Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
+                join_type: JoinType::Inner,
+                source: mir_collection("foo", "bar2"), // "Table2"
+                from: mir_collection("foo", "bar3"),   // "Table7"
+                local_field: Box::new(mir_field_path("bar2", vec!["x", "a", "b"])),
+                foreign_field: Box::new(mir_field_path("bar3", vec!["d"])),
+                cache: SchemaCache::new(),
+            }))),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Eq,
+                args: vec![
+                    *mir_field_access_multi_part("bar2", vec!["x", "a", "b"], false),
+                    *mir_field_access("bar", "y", false),
+                ],
+                is_nullable: false,
+            }),
+            cache: SchemaCache::new(),
+        })),
+        cache: SchemaCache::new(),
+    }))
 );
 
 test_move_stage!(
