@@ -1010,41 +1010,41 @@ pub enum Type {
 
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum HigherOrderFunctionExpr {
-  Map(MapExpr),
-  Filter(FilterExpr),
-  Reduce(ReduceExpr),
+    Map(MapExpr),
+    Filter(FilterExpr),
+    Reduce(ReduceExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct MapExpr {
-  pub array: Box<Expression>,
-  pub f: Box<FunctionArgument>,
+    pub array: Box<Expression>,
+    pub f: Box<FunctionArgument>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct FilterExpr {
-  pub array: Box<Expression>,
-  pub f: Box<FunctionArgument>,
+    pub array: Box<Expression>,
+    pub f: Box<FunctionArgument>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ReduceExpr {
-  pub array: Box<Expression>,
-  pub init_value: Box<Expression>,
-  pub f: Box<FunctionArgument>,
+    pub array: Box<Expression>,
+    pub init_value: Box<Expression>,
+    pub f: Box<FunctionArgument>,
 }
 
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum FunctionArgument {
-  Expr(Expression),
-  NamedFunction(NamedFunction)
+    Expr(Expression),
+    NamedFunction(NamedFunction)
 }
 
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum NamedFunction {
-  UnaryOp(UnaryOp),
-  BinaryOp(BinaryOp),
-  Function(FunctionName),
+    UnaryOp(UnaryOp),
+    BinaryOp(BinaryOp),
+    Function(FunctionName),
 }
 
 } // end of generate_visitors! block
