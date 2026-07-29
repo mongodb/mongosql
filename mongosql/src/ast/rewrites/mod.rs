@@ -57,7 +57,7 @@ pub enum Error {
     #[error("incorrect argument count for {name}: required {required}, found {found}")]
     IncorrectArgumentCount {
         name: &'static str,
-        required: &'static str,
+        required: ArgCount,
         found: usize,
     },
     #[error("invalid date part: {0}")]
@@ -99,4 +99,50 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         rewritten = pass.apply(rewritten)?;
     }
     Ok(rewritten)
+}
+
+/// Specifies how many arguments a function accepts.
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+pub enum ArgCount {
+    /// Exactly this many arguments.
+    Exactly(usize),
+    /// Either of these many arguments.
+    Either(usize, usize),
+}
+
+impl ArgCount {
+    /// Returns whether `n` satisfies this argument count specification.
+    pub(crate) fn contains(&self, n: usize) -> bool {
+        match self {
+            ArgCount::Exactly(count) => n == *count,
+            ArgCount::Either(min, max) => n >= *min && n <= *max,
+        }
+    }
+}
+
+impl std::fmt::Display for ArgCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArgCount::Exactly(n) => write!(f, "{n}"),
+            ArgCount::Either(min, max) => write!(f, "{min} or {max}"),
+        }
+    }
+}
+
+/// Validates that `args` satisfies `expected`, returning
+/// `Error::IncorrectArgumentCount` otherwise.
+pub(crate) fn assert_arg_count(
+    name: &'static str,
+    args_len: usize,
+    expected: ArgCount,
+) -> Result<()> {
+    if expected.contains(args_len) {
+        Ok(())
+    } else {
+        Err(Error::IncorrectArgumentCount {
+            name,
+            required: expected,
+            found: args_len,
+        })
+    }
 }

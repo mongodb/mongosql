@@ -1095,7 +1095,7 @@ mod scalar_functions {
         pass = ScalarFunctionsRewritePass,
         expected = Err(Error::IncorrectArgumentCount {
             name: "LOG",
-            required: "1 or 2",
+            required: ArgCount::Either(1, 2),
             found: 3
         }),
         input = "SELECT { fn LOG(10, 5, 10) }",
@@ -1123,7 +1123,7 @@ mod scalar_functions {
         pass = ScalarFunctionsRewritePass,
         expected = Err(Error::IncorrectArgumentCount {
             name: "LTRIM",
-            required: "1",
+            required: ArgCount::Exactly(1),
             found: 2
         }),
         input = "SELECT LTRIM(' stuff ', 'more stuff')",
@@ -1139,7 +1139,7 @@ mod scalar_functions {
         pass = ScalarFunctionsRewritePass,
         expected = Err(Error::IncorrectArgumentCount {
             name: "RTRIM",
-            required: "1",
+            required: ArgCount::Exactly(1),
             found: 2
         }),
         input = "SELECT RTRIM(' stuff ', 'more stuff')",
@@ -1155,7 +1155,7 @@ mod scalar_functions {
         pass = ScalarFunctionsRewritePass,
         expected = Err(Error::IncorrectArgumentCount {
             name: "DATEADD",
-            required: "3",
+            required: ArgCount::Exactly(3),
             found: 2
         }),
         input = "SELECT DATEADD(YEAR, 2)",
@@ -1177,7 +1177,7 @@ mod scalar_functions {
         pass = ScalarFunctionsRewritePass,
         expected = Err(Error::IncorrectArgumentCount {
             name: "DATEDIFF",
-            required: "3 or 4",
+            required: ArgCount::Either(3, 4),
             found: 2
         }),
         input = "SELECT DATEDIFF(QUARTER, d1)",
@@ -1199,7 +1199,7 @@ mod scalar_functions {
         pass = ScalarFunctionsRewritePass,
         expected = Err(Error::IncorrectArgumentCount {
             name: "DATETRUNC",
-            required: "2 or 3",
+            required: ArgCount::Either(2, 3),
             found: 1
         }),
         input = "SELECT DATETRUNC(YEAR)",
@@ -1460,21 +1460,21 @@ mod higher_order_functions {
     test_rewrite!(
         array_sum,
         pass = HigherOrderFunctionsRewritePass,
-        expected = Ok("SELECT REDUCE(a, 0, this + `value`)"),
+        expected = Ok("SELECT REDUCE(a, 0, `value` + this)"),
         input = "SELECT ARRAY_SUM(a)",
     );
 
     test_rewrite!(
         array_product,
         pass = HigherOrderFunctionsRewritePass,
-        expected = Ok("SELECT REDUCE(a, 1, this * `value`)"),
+        expected = Ok("SELECT REDUCE(a, 1, `value` * this)"),
         input = "SELECT ARRAY_PRODUCT(a)",
     );
 
     test_rewrite!(
         array_averge,
         pass = HigherOrderFunctionsRewritePass,
-        expected = Ok("SELECT REDUCE(a, 0, this + `value`) / SIZE(a)"),
+        expected = Ok("SELECT REDUCE(a, 0, `value` + this) / SIZE(a)"),
         input = "SELECT ARRAY_AVERAGE(a)",
     );
 

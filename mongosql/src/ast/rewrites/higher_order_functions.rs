@@ -1,6 +1,6 @@
 use crate::ast::{
     self,
-    rewrites::{Error, Pass, Result},
+    rewrites::{assert_arg_count, ArgCount, Error, Pass, Result},
     visitor::Visitor,
     AccessExpr, BinaryExpr, BinaryOp, ComparisonOp, Expression, FilterExpr, FunctionArgument,
     FunctionArguments, FunctionExpr, FunctionName, HigherOrderFunctionExpr, IsExpr, Literal,
@@ -43,11 +43,31 @@ impl Visitor for HigherOrderFunctionsAliasVisitor {
                     FunctionName::ArrayCompact => Self::rewrite_array_compact(args),
                     FunctionName::ArrayRemove => Self::rewrite_array_remove(args),
                     FunctionName::ArrayCountIf => Self::rewrite_array_count_if(args),
-                    FunctionName::ArraySum => Self::rewrite_array_sum(args),
-                    FunctionName::ArrayProduct => Self::rewrite_array_product(args),
+                    FunctionName::ArraySum => Self::rewrite_single_arg_reduce_alias(
+                        function.as_str(),
+                        args,
+                        Literal::Integer(0),
+                        BinaryOp::Add,
+                    ),
+                    FunctionName::ArrayProduct => Self::rewrite_single_arg_reduce_alias(
+                        function.as_str(),
+                        args,
+                        Literal::Integer(1),
+                        BinaryOp::Mul,
+                    ),
                     FunctionName::ArrayAverage => Self::rewrite_array_average(args),
-                    FunctionName::ArrayAll => Self::rewrite_array_all(args),
-                    FunctionName::ArrayAny => Self::rewrite_array_any(args),
+                    FunctionName::ArrayAll => Self::rewrite_single_arg_reduce_alias(
+                        function.as_str(),
+                        args,
+                        Literal::Boolean(true),
+                        BinaryOp::And,
+                    ),
+                    FunctionName::ArrayAny => Self::rewrite_single_arg_reduce_alias(
+                        function.as_str(),
+                        args,
+                        Literal::Boolean(false),
+                        BinaryOp::Or,
+                    ),
                     FunctionName::ArrayJoin => Self::rewrite_array_join(args),
                     _ => return node,
                 };
@@ -88,6 +108,32 @@ impl HigherOrderFunctionsAliasVisitor {
         }))
     }
 
+    /// Returns the `this` identifier expression used within higher order function bodies.
+    fn this() -> Expression {
+        Expression::Identifier(THIS.to_string())
+    }
+
+    /// Returns the `value` identifier expression used within higher order function bodies.
+    fn value() -> Expression {
+        Expression::Identifier(VALUE.to_string())
+    }
+
+    fn make_binary(left: Expression, op: BinaryOp, right: Expression) -> Expression {
+        Expression::Binary(BinaryExpr {
+            left: Box::new(left),
+            op,
+            right: Box::new(right),
+        })
+    }
+
+    fn make_size(array: Expression) -> Expression {
+        Expression::Function(FunctionExpr {
+            function: FunctionName::Size,
+            args: FunctionArguments::Args(vec![array]),
+            set_quantifier: None,
+        })
+    }
+
     fn rewrite_array_cast(args: &[Expression]) -> Result<Expression> {
         // TODO: need to handle array_cast specially since it takes a Type as an argument
         todo!()
@@ -95,13 +141,8 @@ impl HigherOrderFunctionsAliasVisitor {
 
     /// Rewrite `ARRAY_EXTRACT(a, expr)` into `MAP(a, this.expr)`.
     fn rewrite_array_extract(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 2 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_EXTRACT",
-                required: "2",
-                found: args.len(),
-            });
-        }
+        assert_arg_count("ARRAY_EXTRACT", args.len(), ArgCount::Exactly(2))?;
+
         let array = &args[0];
         let extract_expr = &args[1];
 
@@ -109,7 +150,7 @@ impl HigherOrderFunctionsAliasVisitor {
         // If it is not, we should wrap it in an AccessExpr with "this" as the base.
         let f = prepend_parent_to_field_path_expr(THIS, extract_expr).unwrap_or_else(|| {
             Expression::Access(AccessExpr {
-                expr: Box::new(Expression::Identifier(THIS.to_string())),
+                expr: Box::new(Self::this()),
                 subfield: Box::new(extract_expr.clone()),
             })
         });
@@ -119,21 +160,16 @@ impl HigherOrderFunctionsAliasVisitor {
 
     /// Rewrite `ARRAY_COMPACT(a)` into `FILTER(a, NOT this IS NULL)`.
     fn rewrite_array_compact(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 1 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_COMPACT",
-                required: "1",
-                found: args.len(),
-            });
-        }
+        assert_arg_count("ARRAY_COMPACT", args.len(), ArgCount::Exactly(1))?;
 
         let array = &args[0];
+
         Ok(Self::make_filter(
             array.clone(),
             Expression::Unary(UnaryExpr {
                 op: UnaryOp::Not,
                 expr: Box::new(Expression::Is(IsExpr {
-                    expr: Box::new(Expression::Identifier(THIS.to_string())),
+                    expr: Box::new(Self::this()),
                     target_type: TypeOrMissing::Type(Type::Null),
                 })),
             }),
@@ -142,155 +178,64 @@ impl HigherOrderFunctionsAliasVisitor {
 
     /// Rewrite `ARRAY_REMOVE(a, x)` into `FILTER(a, this <> x)`.
     fn rewrite_array_remove(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 2 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_REMOVE",
-                required: "2",
-                found: args.len(),
-            });
-        }
+        assert_arg_count("ARRAY_REMOVE", args.len(), ArgCount::Exactly(2))?;
 
         let array = &args[0];
-        let x = &args[1];
+        let remove_expr = &args[1];
+
         Ok(Self::make_filter(
             array.clone(),
-            Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier(THIS.to_string())),
-                op: BinaryOp::Comparison(ComparisonOp::Neq),
-                right: Box::new(x.clone()),
-            }),
+            Self::make_binary(
+                Self::this(),
+                BinaryOp::Comparison(ComparisonOp::Neq),
+                remove_expr.clone(),
+            ),
         ))
     }
 
     /// Rewrite `ARRAY_COUNT_IF(a, f)` into `SIZE(FILTER(a, f))`.
     fn rewrite_array_count_if(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 2 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_COUNT_IF",
-                required: "2",
-                found: args.len(),
-            });
-        }
+        assert_arg_count("ARRAY_COUNT_IF", args.len(), ArgCount::Exactly(2))?;
 
         let array = &args[0];
         let f = &args[1];
-        Ok(Expression::Function(FunctionExpr {
-            function: FunctionName::Size,
-            args: FunctionArguments::Args(vec![Self::make_filter(array.clone(), f.clone())]),
-            set_quantifier: None,
-        }))
+
+        Ok(Self::make_size(Self::make_filter(array.clone(), f.clone())))
     }
 
-    /// Rewrite `ARRAY_SUM(a)` into `REDUCE(a, 0, this + value)`.
-    fn rewrite_array_sum(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 1 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_SUM",
-                required: "1",
-                found: args.len(),
-            });
-        }
+    /// Rewrite any single-argument reduce-alias function (e.g., `ARRAY_SUM(a)` into
+    /// `REDUCE(a, init_value, value op this)`.
+    fn rewrite_single_arg_reduce_alias(
+        name: &'static str,
+        args: &[Expression],
+        init_value: Literal,
+        op: BinaryOp,
+    ) -> Result<Expression> {
+        assert_arg_count(name, args.len(), ArgCount::Exactly(1))?;
 
         let array = &args[0];
+
         Ok(Self::make_reduce(
             array.clone(),
-            Expression::Literal(Literal::Integer(0)),
-            Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier(THIS.to_string())),
-                op: BinaryOp::Add,
-                right: Box::new(Expression::Identifier(VALUE.to_string())),
-            }),
-        ))
-    }
-
-    /// Rewrite `ARRAY_PRODUCT(a)` into `REDUCE(a, 1, this * value)`.
-    fn rewrite_array_product(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 1 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_PRODUCT",
-                required: "1",
-                found: args.len(),
-            });
-        }
-
-        let array = &args[0];
-        Ok(Self::make_reduce(
-            array.clone(),
-            Expression::Literal(Literal::Integer(1)),
-            Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier(THIS.to_string())),
-                op: BinaryOp::Mul,
-                right: Box::new(Expression::Identifier(VALUE.to_string())),
-            }),
+            Expression::Literal(init_value),
+            Self::make_binary(Self::value(), op, Self::this()),
         ))
     }
 
     /// Rewrite `ARRAY_AVERAGE(a)` into `REDUCE(a, 0, this + value) / SIZE(a)`.
     fn rewrite_array_average(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 1 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_AVERAGE",
-                required: "1",
-                found: args.len(),
-            });
-        }
-
-        let rewritten_sum = Self::rewrite_array_sum(args)?;
-        let array = &args[0];
-        Ok(Expression::Binary(BinaryExpr {
-            left: Box::new(rewritten_sum),
-            op: BinaryOp::Div,
-            right: Box::new(Expression::Function(FunctionExpr {
-                function: FunctionName::Size,
-                args: FunctionArguments::Args(vec![array.clone()]),
-                set_quantifier: None,
-            })),
-        }))
-    }
-
-    /// Rewrite `ARRAY_ALL(a)` into `REDUCE(a, true, value AND this)`.
-    fn rewrite_array_all(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 1 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_ALL",
-                required: "1",
-                found: args.len(),
-            });
-        }
-
+        let rewritten_sum = Self::rewrite_single_arg_reduce_alias(
+            "ARRAY_AVERAGE",
+            args,
+            Literal::Integer(0),
+            BinaryOp::Add,
+        )?;
         let array = &args[0];
 
-        Ok(Self::make_reduce(
-            array.clone(),
-            Expression::Literal(Literal::Boolean(true)),
-            Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier(VALUE.to_string())),
-                op: BinaryOp::And,
-                right: Box::new(Expression::Identifier(THIS.to_string())),
-            }),
-        ))
-    }
-
-    /// Rewrite `ARRAY_ANY(a)` into `REDUCE(a, false, value OR this)`.
-    fn rewrite_array_any(args: &[Expression]) -> Result<Expression> {
-        if args.len() != 1 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_ANY",
-                required: "1",
-                found: args.len(),
-            });
-        }
-
-        let array = &args[0];
-
-        Ok(Self::make_reduce(
-            array.clone(),
-            Expression::Literal(Literal::Boolean(false)),
-            Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier(VALUE.to_string())),
-                op: BinaryOp::Or,
-                right: Box::new(Expression::Identifier(THIS.to_string())),
-            }),
+        Ok(Self::make_binary(
+            rewritten_sum,
+            BinaryOp::Div,
+            Self::make_size(array.clone()),
         ))
     }
 
@@ -298,13 +243,7 @@ impl HigherOrderFunctionsAliasVisitor {
     /// and rewrite `ARRAY_JOIN(a, sep)` into
     /// `TRIM(LEADING sep FROM REDUCE(a, '', value || sep || this))`.
     fn rewrite_array_join(args: &[Expression]) -> Result<Expression> {
-        if args.len() < 1 || args.len() > 2 {
-            return Err(Error::IncorrectArgumentCount {
-                name: "ARRAY_JOIN",
-                required: "1 or 2",
-                found: args.len(),
-            });
-        }
+        assert_arg_count("ARRAY_JOIN", args.len(), ArgCount::Either(1, 2))?;
 
         let array = &args[0];
         let mut sep = Expression::StringConstructor("".to_string());
@@ -316,11 +255,7 @@ impl HigherOrderFunctionsAliasVisitor {
             Ok(Self::make_reduce(
                 array.clone(),
                 Expression::StringConstructor("".to_string()),
-                Expression::Binary(BinaryExpr {
-                    left: Box::new(Expression::Identifier(VALUE.to_string())),
-                    op: BinaryOp::Concat,
-                    right: Box::new(Expression::Identifier(THIS.to_string())),
-                }),
+                Self::make_binary(Self::value(), BinaryOp::Concat, Self::this()),
             ))
         } else {
             Ok(Expression::Trim(TrimExpr {
@@ -329,15 +264,11 @@ impl HigherOrderFunctionsAliasVisitor {
                 arg: Box::new(Self::make_reduce(
                     array.clone(),
                     Expression::StringConstructor("".to_string()),
-                    Expression::Binary(BinaryExpr {
-                        left: Box::new(Expression::Binary(BinaryExpr {
-                            left: Box::new(Expression::Identifier(VALUE.to_string())),
-                            op: BinaryOp::Concat,
-                            right: Box::new(sep.clone()),
-                        })),
-                        op: BinaryOp::Concat,
-                        right: Box::new(Expression::Identifier(THIS.to_string())),
-                    }),
+                    Self::make_binary(
+                        Self::make_binary(Self::value(), BinaryOp::Concat, sep.clone()),
+                        BinaryOp::Concat,
+                        Self::this(),
+                    ),
                 )),
             }))
         }

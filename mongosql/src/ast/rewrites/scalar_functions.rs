@@ -1,6 +1,6 @@
 use crate::ast::{
     self,
-    rewrites::{Error, Pass, Result},
+    rewrites::{ArgCount, Error, Pass, Result},
     visitor::Visitor,
     *,
 };
@@ -83,7 +83,7 @@ impl Visitor for ScalarFunctionsVisitor {
                     } else {
                         self.error = Some(Error::IncorrectArgumentCount {
                             name: function.as_str(),
-                            required: "1",
+                            required: ArgCount::Exactly(1),
                             found: args.len(),
                         });
                         return node;
@@ -100,7 +100,7 @@ impl Visitor for ScalarFunctionsVisitor {
                     _ => {
                         self.error = Some(Error::IncorrectArgumentCount {
                             name: function.as_str(),
-                            required: "1 or 2",
+                            required: ArgCount::Either(1, 2),
                             found: args.len(),
                         });
                         node
@@ -112,7 +112,7 @@ impl Visitor for ScalarFunctionsVisitor {
                     } else {
                         self.error = Some(Error::IncorrectArgumentCount {
                             name: function.as_str(),
-                            required: "1",
+                            required: ArgCount::Exactly(1),
                             found: args.len(),
                         });
                         node
@@ -135,7 +135,7 @@ impl Visitor for ScalarFunctionsVisitor {
                     } else {
                         self.error = Some(Error::IncorrectArgumentCount {
                             name: function.as_str(),
-                            required: "3",
+                            required: ArgCount::Exactly(3),
                             found: args.len(),
                         });
                         node
@@ -179,7 +179,7 @@ impl Visitor for ScalarFunctionsVisitor {
                     } else {
                         self.error = Some(Error::IncorrectArgumentCount {
                             name: function.as_str(),
-                            required: "3 or 4",
+                            required: ArgCount::Either(3, 4),
                             found: args.len(),
                         });
                         node
@@ -218,7 +218,7 @@ impl Visitor for ScalarFunctionsVisitor {
                     } else {
                         self.error = Some(Error::IncorrectArgumentCount {
                             name: function.as_str(),
-                            required: "2 or 3",
+                            required: ArgCount::Either(2, 3),
                             found: args.len(),
                         });
                         node
@@ -242,7 +242,7 @@ impl Visitor for ScalarFunctionsVisitor {
                     } else {
                         self.error = Some(Error::IncorrectArgumentCount {
                             name: function.as_str(),
-                            required: "1",
+                            required: ArgCount::Exactly(1),
                             found: args.len(),
                         });
                         node
