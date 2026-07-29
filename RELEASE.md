@@ -83,11 +83,11 @@ Close the release on JIRA, adding the current date (you may need to ask the SQL 
 
 #### Ensure Evergreen Passing
 
-Ensure that the build you are releasing is passing the tests on the [mongosql waterfall](https://spruce.mongodb.com/commits/mongosql).
+Ensure that the build you are releasing is passing the tests on the [mongosql waterfall](https://spruce.corp.mongodb.com/project/mongosql/waterfall).
 
 #### Ensure master up to date
 
-Ensure you have the `main` branch checked out, and that you have pulled the latest commit from `mongodb/mongosql-rs`.
+Ensure you have the `main` branch checked out, and that you have pulled the latest commit from `mongodb/mongosql`.
 
 #### Create the tag and push
 
@@ -98,7 +98,7 @@ git tag -a -m <major>.<minor>.<patch> <project-prefix><major>.<minor>.<patch>
 git push --tags
 ```
 
-This should trigger an Evergreen run that can be viewed on the [mongosql-rs waterfall](https://spruce.mongodb.com/waterfall/mongosql-rs).
+This should trigger an Evergreen run that can be viewed on the [mongosql waterfall](https://spruce.corp.mongodb.com/project/mongosql/waterfall).
 The description for the tag triggered release starts with "Triggered From Git Tag 'vX.Y.Z"
 If it does not, you may have to ask the project manager to give you the right permissions to do so.
 Make sure to run the 'release' task, if it is not run automatically.
@@ -178,6 +178,6 @@ To monitor the status of ADF releases, check the #mongohouse-releases channel.
 
 Use the following messsage template to announce the release in the #atlas-sql channel:
 
-> Hello! We've released mongosql-rs version \<VERSION\>
+> Hello! We've released mongosql version \<VERSION\>
 > More information, including release notes, can be found on the Release Ticket: \<JIRA Link\>
 > Please note that the release roll-out in Atlas is a separate process and it can take up to 2 weeks before the next release is available.
