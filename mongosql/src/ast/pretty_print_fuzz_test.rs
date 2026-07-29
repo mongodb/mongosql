@@ -938,7 +938,7 @@ mod arbitrary {
                 55 => Self::ArrayCountIf,
                 56 => Self::ArraySum,
                 57 => Self::ArrayProduct,
-                58 => Self::ArrayAverage,
+                58 => Self::ArrayAvg,
                 59 => Self::ArrayAll,
                 60 => Self::ArrayAny,
                 61 => Self::ArrayJoin,

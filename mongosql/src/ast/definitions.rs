@@ -503,7 +503,7 @@ pub enum FunctionName {
     ArrayCountIf,
     ArraySum,
     ArrayProduct,
-    ArrayAverage,
+    ArrayAvg,
     ArrayAll,
     ArrayAny,
     ArrayJoin,
@@ -658,7 +658,7 @@ impl TryFrom<&str> for FunctionName {
             "ARRAY_COUNT_IF" => Ok(FunctionName::ArrayCountIf),
             "ARRAY_SUM" => Ok(FunctionName::ArraySum),
             "ARRAY_PRODUCT" => Ok(FunctionName::ArrayProduct),
-            "ARRAY_AVERAGE" => Ok(FunctionName::ArrayAverage),
+            "ARRAY_AVG" => Ok(FunctionName::ArrayAvg),
             "ARRAY_ALL" => Ok(FunctionName::ArrayAll),
             "ARRAY_ANY" => Ok(FunctionName::ArrayAny),
             "ARRAY_JOIN" => Ok(FunctionName::ArrayJoin),
@@ -733,7 +733,7 @@ impl FunctionName {
             FunctionName::ArrayCountIf => "ARRAY_COUNT_IF",
             FunctionName::ArraySum => "ARRAY_SUM",
             FunctionName::ArrayProduct => "ARRAY_PRODUCT",
-            FunctionName::ArrayAverage => "ARRAY_AVERAGE",
+            FunctionName::ArrayAvg => "ARRAY_AVG",
             FunctionName::ArrayAll => "ARRAY_ALL",
             FunctionName::ArrayAny => "ARRAY_ANY",
             FunctionName::ArrayJoin => "ARRAY_JOIN",
@@ -805,7 +805,7 @@ impl FunctionName {
             | FunctionName::ArrayCountIf
             | FunctionName::ArraySum
             | FunctionName::ArrayProduct
-            | FunctionName::ArrayAverage
+            | FunctionName::ArrayAvg
             | FunctionName::ArrayAll
             | FunctionName::ArrayAny
             | FunctionName::ArrayJoin => false,

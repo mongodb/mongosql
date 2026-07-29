@@ -65,7 +65,7 @@ impl Visitor for HigherOrderFunctionsAliasVisitor {
                         Literal::Integer(1),
                         BinaryOp::Mul,
                     ),
-                    FunctionName::ArrayAverage => Self::rewrite_array_average(args),
+                    FunctionName::ArrayAvg => Self::rewrite_array_avg(args),
                     FunctionName::ArrayAll => Self::rewrite_single_arg_reduce_alias(
                         function.as_str(),
                         args,
@@ -240,10 +240,10 @@ impl HigherOrderFunctionsAliasVisitor {
         ))
     }
 
-    /// Rewrite `ARRAY_AVERAGE(a)` into `REDUCE(a, 0, this + value) / SIZE(a)`.
-    fn rewrite_array_average(args: &[Expression]) -> Result<Expression> {
+    /// Rewrite `ARRAY_AVG(a)` into `REDUCE(a, 0, this + value) / SIZE(a)`.
+    fn rewrite_array_avg(args: &[Expression]) -> Result<Expression> {
         let rewritten_sum = Self::rewrite_single_arg_reduce_alias(
-            "ARRAY_AVERAGE",
+            "ARRAY_AVG",
             args,
             Literal::Integer(0),
             BinaryOp::Add,

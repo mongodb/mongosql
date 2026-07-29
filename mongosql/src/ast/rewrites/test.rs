@@ -1475,7 +1475,7 @@ mod higher_order_functions {
         array_averge,
         pass = HigherOrderFunctionsRewritePass,
         expected = Ok("SELECT REDUCE(a, 0, `value` + this) / SIZE(a)"),
-        input = "SELECT ARRAY_AVERAGE(a)",
+        input = "SELECT ARRAY_AVG(a)",
     );
 
     test_rewrite!(

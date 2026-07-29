@@ -112,7 +112,7 @@ impl TryFrom<ast::FunctionName> for mir::ScalarFunction {
             | ast::FunctionName::ArrayCountIf
             | ast::FunctionName::ArraySum
             | ast::FunctionName::ArrayProduct
-            | ast::FunctionName::ArrayAverage
+            | ast::FunctionName::ArrayAvg
             | ast::FunctionName::ArrayAll
             | ast::FunctionName::ArrayAny
             | ast::FunctionName::ArrayJoin => unreachable! {},
@@ -201,7 +201,7 @@ impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
             | ast::FunctionName::ArrayCountIf
             | ast::FunctionName::ArraySum
             | ast::FunctionName::ArrayProduct
-            | ast::FunctionName::ArrayAverage
+            | ast::FunctionName::ArrayAvg
             | ast::FunctionName::ArrayAll
             | ast::FunctionName::ArrayAny
             | ast::FunctionName::ArrayJoin => {
@@ -1930,7 +1930,7 @@ impl<'a> Algebrizer<'a> {
             | (ast::FunctionName::ArrayCountIf, _)
             | (ast::FunctionName::ArraySum, _)
             | (ast::FunctionName::ArrayProduct, _)
-            | (ast::FunctionName::ArrayAverage, _)
+            | (ast::FunctionName::ArrayAvg, _)
             | (ast::FunctionName::ArrayAll, _)
             | (ast::FunctionName::ArrayAny, _)
             | (ast::FunctionName::ArrayJoin, _) => {
