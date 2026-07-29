@@ -57,7 +57,7 @@ lazy_static! {
         r"(?i)inner$",
         r"(?i)int$",
         r"(?i)integer$",
-        r"(?i)is$",
+        r"(?i)^is$",
         r"(?i)javascript$",
         r"(?i)javascriptwithscope$",
         r"(?i)join$",

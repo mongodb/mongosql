@@ -544,6 +544,7 @@ mod identifier {
         input = "foo1"
     );
     expression_printer_test!(empty, expected = "``", input = "``");
+    expression_printer_test!(is_keyword, expected = "`is`", input = "`is`");
 }
 
 mod is {
