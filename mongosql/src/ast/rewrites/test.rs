@@ -1397,3 +1397,98 @@ mod scalar_functions {
         input = "SELECT EXTRACT(YEAR FROM d)",
     );
 }
+
+mod higher_order_functions {
+    use super::*;
+
+    test_rewrite!(
+        array_cast,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT MAP(a, CAST(this AS STRING))"),
+        input = "SELECT ARRAY_CAST(a, STRING)",
+    );
+
+    test_rewrite!(
+        array_extract,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT MAP(a, this.x.y.z)"),
+        input = "SELECT ARRAY_EXTRACT(a, x.y.z)",
+    );
+
+    test_rewrite!(
+        array_compact,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT FILTER(a, this IS NOT NULL)"),
+        input = "SELECT ARRAY_COMPACT(a)",
+    );
+
+    test_rewrite!(
+        array_remove,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT FILTER(a, this <> x)"),
+        input = "SELECT ARRAY_REMOVE(a, x)",
+    );
+
+    test_rewrite!(
+        array_count_if,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT SIZE(FILTER(a, this > y))"),
+        input = "SELECT ARRAY_COUNT_IF(a, this > y)",
+    );
+
+    test_rewrite!(
+        array_sum,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT REDUCE(a, 0, this + value)"),
+        input = "SELECT ARRAY_SUM(a)",
+    );
+
+    test_rewrite!(
+        array_product,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT REDUCE(a, 1, this * value)"),
+        input = "SELECT ARRAY_PRODUCT(a)",
+    );
+
+    test_rewrite!(
+        array_averge,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT REDUCE(a, 0, this + value) / SIZE(a)"),
+        input = "SELECT ARRAY_AVERAGE(a)",
+    );
+
+    test_rewrite!(
+        array_all,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT REDUCE(a, true, value AND this)"),
+        input = "SELECT ARRAY_ALL(a)",
+    );
+
+    test_rewrite!(
+        array_any,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT REDUCE(a, false, value OR this)"),
+        input = "SELECT ARRAY_ANY(a)",
+    );
+
+    test_rewrite!(
+        array_join_without_separator,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT REDUCE(a, '', value || this)"),
+        input = "SELECT ARRAY_JOIN(a)",
+    );
+
+    test_rewrite!(
+        array_join_with_empty_separator,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT REDUCE(a, '', value || this)"),
+        input = "SELECT ARRAY_JOIN(a, '')",
+    );
+
+    test_rewrite!(
+        array_join_with_non_empty_separator,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok("SELECT TRIM(LEADING ',' FROM REDUCE(`array`, '', value || ',' || this))"),
+        input = "SELECT ARRAY_JOIN(a, ',')",
+    );
+}
