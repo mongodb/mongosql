@@ -94,7 +94,7 @@ Ensure you have the `main` branch checked out, and that you have pulled the late
 Create an annotated tag and push it:
 
 ```sh
-git tag -a -m <major>.<minor>.<patch> <project-prefix><major>.<minor>.<patch>
+git tag -s -a -m <major>.<minor>.<patch> <project-prefix><major>.<minor>.<patch>
 git push --tags
 ```
 
