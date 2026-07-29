@@ -3,7 +3,6 @@ tests:
   - description: ARRAY_CAST correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_CAST(a, STRING) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": [] } }
       - { '': { "a": [1], "v": ["1"] } }
@@ -16,7 +15,6 @@ tests:
   - description: ARRAY_EXTRACT correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_EXTRACT(a, x.y) } FROM `array_extract` AS `array_extract`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": [] } }
       - { '': { "a": [{ "x": { "y": 1 } }], "v": [1] } }
@@ -30,7 +28,6 @@ tests:
   - description: ARRAY_COMPACT correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_COMPACT(a) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": [] } }
       - { '': { "a": [1], "v": [1] } }
@@ -70,7 +67,6 @@ tests:
   - description: ARRAY_COUNT_IF correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_COUNT_IF(a, this > 1) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": 0 } }
       - { '': { "a": [1], "v": 0 } }
@@ -83,7 +79,6 @@ tests:
   - description: ARRAY_SUM correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_SUM(a) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": 0 } }
       - { '': { "a": [1], "v": 1 } }
@@ -96,7 +91,6 @@ tests:
   - description: ARRAY_PRODUCT correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_PRODUCT(a) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": 1 } }
       - { '': { "a": [1], "v": 1 } }
@@ -109,7 +103,6 @@ tests:
   - description: ARRAY_AVG correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_AVG(a) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": null } }
       - { '': { "a": [1], "v": 1 } }
@@ -122,7 +115,6 @@ tests:
   - description: ARRAY_ALL correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_ALL(a) } FROM `array_default_boolean_data` AS `array_default_boolean_data`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": true } }
       - { '': { "a": [ true ], "v": true } }
@@ -141,7 +133,6 @@ tests:
   - description: ARRAY_ANY correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_ANY(a) } FROM `array_default_boolean_data` AS `array_default_boolean_data`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "v": false } }
       - { '': { "a": [ true ], "v": true } }
@@ -160,7 +151,6 @@ tests:
   - description: ARRAY_JOIN correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'sep': sep, 'v': ARRAY_JOIN(a, sep) } FROM `array_join` AS `array_join`"
-    skip_reason: "SQL-3297: Finish support for array functions"
     result:
       - { '': { "a": [], "sep": "", "v": "" } }
       - { '': { "a": [], "sep": ",", "v": "" } }
