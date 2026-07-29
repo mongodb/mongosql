@@ -488,6 +488,19 @@ pub enum FunctionName {
     Minute,
     Second,
     Millisecond,
+
+    // Higher Order Function aliases
+    ArrayCast,
+    ArrayExtract,
+    ArrayCompact,
+    ArrayRemove,
+    ArrayCountIf,
+    ArraySum,
+    ArrayProduct,
+    ArrayAverage,
+    ArrayAll,
+    ArrayAny,
+    ArrayJoin,
 }
 
 impl TryFrom<FunctionName> for TrimSpec {
@@ -632,6 +645,18 @@ impl TryFrom<&str> for FunctionName {
             "MINUTE" => Ok(FunctionName::Minute),
             "SECOND" => Ok(FunctionName::Second),
             "MILLISECOND" => Ok(FunctionName::Millisecond),
+
+            "ARRAY_CAST" => Ok(FunctionName::ArrayCast),
+            "ARRAY_EXTRACT" => Ok(FunctionName::ArrayExtract),
+            "ARRAY_COMPACT" => Ok(FunctionName::ArrayCompact),
+            "ARRAY_REMOVE" => Ok(FunctionName::ArrayRemove),
+            "ARRAY_COUNT_IF" => Ok(FunctionName::ArrayCountIf),
+            "ARRAY_SUM" => Ok(FunctionName::ArraySum),
+            "ARRAY_PRODUCT" => Ok(FunctionName::ArrayProduct),
+            "ARRAY_AVERAGE" => Ok(FunctionName::ArrayAverage),
+            "ARRAY_ALL" => Ok(FunctionName::ArrayAll),
+            "ARRAY_ANY" => Ok(FunctionName::ArrayAny),
+            "ARRAY_JOIN" => Ok(FunctionName::ArrayJoin),
             _ => Err(format!("unknown function {name}")),
         }
     }
@@ -697,6 +722,17 @@ impl FunctionName {
             FunctionName::Minute => "MINUTE",
             FunctionName::Second => "SECOND",
             FunctionName::Millisecond => "MILLISECOND",
+            FunctionName::ArrayCast => "ARRAY_CAST",
+            FunctionName::ArrayExtract => "ARRAY_EXTRACT",
+            FunctionName::ArrayCompact => "ARRAY_COMPACT",
+            FunctionName::ArrayRemove => "ARRAY_REMOVE",
+            FunctionName::ArrayCountIf => "ARRAY_COUNT_IF",
+            FunctionName::ArraySum => "ARRAY_SUM",
+            FunctionName::ArrayProduct => "ARRAY_PRODUCT",
+            FunctionName::ArrayAverage => "ARRAY_AVERAGE",
+            FunctionName::ArrayAll => "ARRAY_ALL",
+            FunctionName::ArrayAny => "ARRAY_ANY",
+            FunctionName::ArrayJoin => "ARRAY_JOIN",
         }
     }
 
@@ -758,7 +794,18 @@ impl FunctionName {
             | FunctionName::Hour
             | FunctionName::Minute
             | FunctionName::Second
-            | FunctionName::Millisecond => false,
+            | FunctionName::Millisecond
+            | FunctionName::ArrayCast
+            | FunctionName::ArrayExtract
+            | FunctionName::ArrayCompact
+            | FunctionName::ArrayRemove
+            | FunctionName::ArrayCountIf
+            | FunctionName::ArraySum
+            | FunctionName::ArrayProduct
+            | FunctionName::ArrayAverage
+            | FunctionName::ArrayAll
+            | FunctionName::ArrayAny
+            | FunctionName::ArrayJoin => false,
         }
     }
 }
