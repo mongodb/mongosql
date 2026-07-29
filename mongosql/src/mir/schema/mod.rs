@@ -2308,7 +2308,7 @@ impl HigherOrderFunction for MapExpr {
         // be null based on the array argument's nullability.
         Ok(self.propagate_null_arguments_helper(
             array_schema.satisfies(&NULLISH),
-            Schema::Array(Box::new(func_schema)),
+            Schema::Array(Box::new(func_schema.upconvert_missing_to_null())),
         ))
     }
 }
@@ -2453,7 +2453,10 @@ impl HigherOrderFunction for ReduceExpr {
         // The output schema is a union of the initial value schema and the function result schema.
         // It may be null based on the array argument's nullability.
         let output_schema = init_value_schema.union(&func_schema);
-        Ok(self.propagate_null_arguments_helper(array_schema.satisfies(&NULLISH), output_schema))
+        Ok(self.propagate_null_arguments_helper(
+            array_schema.satisfies(&NULLISH),
+            output_schema.upconvert_missing_to_null(),
+        ))
     }
 }
 

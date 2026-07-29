@@ -237,6 +237,24 @@ mod map {
             is_nullable: false,
         })),
     );
+
+    // The output array must not contain missing, since it is upconverted to null.
+    test_schema!(
+        output_array_must_not_contain_missing,
+        expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])))),
+        input = Expression::HigherOrderFunction(HigherOrderFunctionApplication::Map(MapExpr {
+            array: Box::new(Expression::Reference(("foo", 0u16).into())),
+            f: Box::new(Expression::Reference(("possibly_missing", 0u16).into())),
+            is_nullable: false,
+        })),
+        schema_env = map! {
+            ("foo", 0u16).into() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+            ("possibly_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]),
+        },
+    );
 }
 
 mod filter {
@@ -1058,5 +1076,29 @@ mod reduce {
                 })),
                 is_nullable: false,
             })),
+    );
+
+    // The output schema must not be possibly missing, as missing should be upconverted to null.
+    test_schema!(
+        output_schema_upconverts_missing_to_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        input =
+            Expression::HigherOrderFunction(HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                array: Box::new(Expression::Array(ArrayExpr {
+                    array: vec![Expression::Reference(("int_or_missing", 0u16).into())]
+                })),
+                init_value: Box::new(Expression::Reference(("int_or_missing", 0u16).into())),
+                f: Box::new(Expression::Reference(("int_or_missing", 0u16).into())),
+                is_nullable: true,
+            })),
+        schema_env = map! {
+            ("int_or_missing", 0u16).into() => Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Missing
+            ]),
+        },
     );
 }
