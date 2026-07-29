@@ -9,21 +9,21 @@ dataset:
         - { "_id": 3, "a": [ 1, null, 3 ] }
         - { "_id": 4, "a": null }
         - { "_id": 5 }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  anyOf:
-                    - bsonType: "int"
-                    - bsonType: !!str "null"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                anyOf:
+                  - bsonType: "int"
+                  - bsonType: !!str "null"
+            - bsonType: !!str "null"
 
   - db: "spec_query_array_functions"
     collection:
@@ -41,21 +41,21 @@ dataset:
         - { "_id": 9, "a": [ true, null, false ] }
         - { "_id": 10, "a": null }
         - { "_id": 11 }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  anyOf:
-                    - bsonType: "bool"
-                    - bsonType: !!str "null"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                anyOf:
+                  - bsonType: "bool"
+                  - bsonType: !!str "null"
+            - bsonType: !!str "null"
 
   - db: "spec_query_array_functions"
     collection:
@@ -68,33 +68,33 @@ dataset:
         - { "_id": 4, "a": [ { "x": { "y": 1 } }, { "x": { "y": null } }, { "x": { } } ] }
         - { "_id": 5, "a": null }
         - { "_id": 6 }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  anyOf:
-                    - bsonType: "object"
-                      required: [ "x" ]
-                      additionalProperties: false
-                      properties:
-                        x:
-                          bsonType: "object"
-                          required: []
-                          additionalProperties: false
-                          properties:
-                            y:
-                              anyOf:
-                                - bsonType: "int"
-                                - bsonType: !!str "null"
-                    - bsonType: !!str "null"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                anyOf:
+                  - bsonType: "object"
+                    required: [ "x" ]
+                    additionalProperties: false
+                    properties:
+                      x:
+                        bsonType: "object"
+                        required: []
+                        additionalProperties: false
+                        properties:
+                          y:
+                            anyOf:
+                              - bsonType: "int"
+                              - bsonType: !!str "null"
+                  - bsonType: !!str "null"
+            - bsonType: !!str "null"
 
   - db: "spec_query_array_functions"
     collection:
@@ -111,21 +111,21 @@ dataset:
         - { "_id": 8, "sep": "" }
         - { "_id": 9, "a": [ "a", "b", "c" ], "sep": null }
         - { "_id": 10, "a": [ "a", "b", "c" ] }
-      schema:
-        bsonType: "object"
-        required: [ "_id" ]
-        additionalProperties: false
-        properties:
-          _id:
-            bsonType: "int"
-          a:
-            anyOf:
-              - bsonType: "array"
-                items:
-                  anyOf:
-                    - bsonType: "string"
-                    - bsonType: !!str "null"
-              - bsonType: !!str "null"
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                anyOf:
+                  - bsonType: "string"
+                  - bsonType: !!str "null"
+            - bsonType: !!str "null"
         sep:
             anyOf:
               - bsonType: "string"
