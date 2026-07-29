@@ -646,6 +646,8 @@ mod arbitrary {
                 // TODO: SQL-3298: Replace `23 => TypeAssertion` with `23 => HigherOrderFunction`
                 23 => Self::TypeAssertion(TypeAssertionExpr::arbitrary(nested_g)),
                 // 23 => Self::HigherOrderFunction(HigherOrderFunctionExpr::arbitrary(nested_g)),
+                // TODO: SQL-3298: Replace `24 => TypeAssertion` with `24 => ArrayCastExpr`
+                // 24 => Self::ArrayCast(ArrayCastExpr::arbitrary(nested_g)),
                 _ => panic!("missing Expression variant(s)"),
             }
         }
@@ -928,6 +930,18 @@ mod arbitrary {
                 49 => Self::Second,
                 50 => Self::Millisecond,
                 51 => Self::Replace,
+
+                // Higher Order Function aliases
+                52 => Self::ArrayExtract,
+                53 => Self::ArrayCompact,
+                54 => Self::ArrayRemove,
+                55 => Self::ArrayCountIf,
+                56 => Self::ArraySum,
+                57 => Self::ArrayProduct,
+                58 => Self::ArrayAverage,
+                59 => Self::ArrayAll,
+                60 => Self::ArrayAny,
+                61 => Self::ArrayJoin,
                 _ => panic!("missing FunctionName variant(s)"),
             }
         }
@@ -1261,6 +1275,15 @@ mod arbitrary {
                 1 => Self::BinaryOp(BinaryOp::arbitrary(g)),
                 2 => Self::Function(FunctionName::arbitrary(g)),
                 _ => panic!("missing NamedFunction variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for ArrayCastExpr {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                expr: Box::new(Expression::arbitrary(g)),
+                to: Type::arbitrary(g),
             }
         }
     }

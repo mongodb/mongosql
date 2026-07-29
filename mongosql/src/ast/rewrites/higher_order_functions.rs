@@ -2,9 +2,10 @@ use crate::ast::{
     self,
     rewrites::{assert_arg_count, ArgCount, Error, Pass, Result},
     visitor::Visitor,
-    AccessExpr, BinaryExpr, BinaryOp, ComparisonOp, Expression, FilterExpr, FunctionArgument,
-    FunctionArguments, FunctionExpr, FunctionName, HigherOrderFunctionExpr, IsExpr, Literal,
-    MapExpr, ReduceExpr, SubpathExpr, TrimExpr, TrimSpec, Type, TypeOrMissing, UnaryExpr, UnaryOp,
+    AccessExpr, ArrayCastExpr, BinaryExpr, BinaryOp, CastExpr, ComparisonOp, Expression,
+    FilterExpr, FunctionArgument, FunctionArguments, FunctionExpr, FunctionName,
+    HigherOrderFunctionExpr, IsExpr, Literal, MapExpr, ReduceExpr, SubpathExpr, TrimExpr, TrimSpec,
+    Type, TypeOrMissing, UnaryExpr, UnaryOp,
 };
 
 const THIS: &str = "this";
@@ -32,13 +33,22 @@ impl Visitor for HigherOrderFunctionsAliasVisitor {
     fn visit_expression(&mut self, node: Expression) -> Expression {
         let node = node.walk(self);
         match node {
+            Expression::ArrayCast(ArrayCastExpr { ref expr, to }) => {
+                let res = Self::rewrite_array_cast(expr, to);
+                match res {
+                    Ok(expr) => expr,
+                    Err(err) => {
+                        self.error = Some(err);
+                        node
+                    }
+                }
+            }
             Expression::Function(FunctionExpr {
                 function,
                 args: FunctionArguments::Args(ref args),
                 set_quantifier: _,
             }) => {
                 let res = match function {
-                    FunctionName::ArrayCast => Self::rewrite_array_cast(args),
                     FunctionName::ArrayExtract => Self::rewrite_array_extract(args),
                     FunctionName::ArrayCompact => Self::rewrite_array_compact(args),
                     FunctionName::ArrayRemove => Self::rewrite_array_remove(args),
@@ -134,9 +144,17 @@ impl HigherOrderFunctionsAliasVisitor {
         })
     }
 
-    fn rewrite_array_cast(args: &[Expression]) -> Result<Expression> {
-        // TODO: need to handle array_cast specially since it takes a Type as an argument
-        todo!()
+    /// Rewrite `ARRAY_CAST(a, to)` into `MAP(a, CAST(this AS to))`.
+    fn rewrite_array_cast(array: &Expression, to: Type) -> Result<Expression> {
+        Ok(Self::make_map(
+            array.clone(),
+            Expression::Cast(CastExpr {
+                expr: Box::new(Self::this()),
+                to,
+                on_null: None,
+                on_error: None,
+            }),
+        ))
     }
 
     /// Rewrite `ARRAY_EXTRACT(a, expr)` into `MAP(a, this.expr)`.

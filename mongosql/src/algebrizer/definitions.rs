@@ -106,7 +106,6 @@ impl TryFrom<ast::FunctionName> for mir::ScalarFunction {
             | ast::FunctionName::Minute
             | ast::FunctionName::Second
             | ast::FunctionName::Millisecond
-            | ast::FunctionName::ArrayCast
             | ast::FunctionName::ArrayExtract
             | ast::FunctionName::ArrayCompact
             | ast::FunctionName::ArrayRemove
@@ -196,7 +195,6 @@ impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
             | ast::FunctionName::Minute
             | ast::FunctionName::Second
             | ast::FunctionName::Millisecond
-            | ast::FunctionName::ArrayCast
             | ast::FunctionName::ArrayExtract
             | ast::FunctionName::ArrayCompact
             | ast::FunctionName::ArrayRemove
@@ -1562,6 +1560,7 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::SubqueryComparison(s) => self.algebrize_subquery_comparison(s),
             ast::Expression::Exists(e) => self.algebrize_exists(*e),
             ast::Expression::HigherOrderFunction(h) => self.algebrize_higher_order_function(h),
+            ast::Expression::ArrayCast(_) => unreachable!("ARRAY_CAST should have been rewritten"),
         }
     }
 
@@ -1925,7 +1924,6 @@ impl<'a> Algebrizer<'a> {
             | (ast::FunctionName::Minute, _)
             | (ast::FunctionName::Second, _)
             | (ast::FunctionName::Millisecond, _)
-            | (ast::FunctionName::ArrayCast, _)
             | (ast::FunctionName::ArrayExtract, _)
             | (ast::FunctionName::ArrayCompact, _)
             | (ast::FunctionName::ArrayRemove, _)

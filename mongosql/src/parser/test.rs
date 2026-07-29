@@ -2912,6 +2912,14 @@ mod type_conversion {
     );
 }
 
+mod array_cast {
+    parsable!(
+        array_cast,
+        expected = true,
+        input = "select ARRAY_CAST(v, STRING)"
+    );
+}
+
 mod subquery {
     use crate::ast::*;
     parsable!(

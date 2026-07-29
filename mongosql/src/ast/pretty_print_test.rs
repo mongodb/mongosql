@@ -744,6 +744,15 @@ mod cast_and_assert {
     );
 }
 
+mod array_cast {
+    use super::*;
+    expression_printer_test!(
+        array_cast,
+        expected = "ARRAY_CAST(x, STRING)",
+        input = "ARRAY_CAST(x, STRING)"
+    );
+}
+
 mod literal {
     use super::*;
     expression_printer_test!(null, expected = "NULL", input = "nUlL");

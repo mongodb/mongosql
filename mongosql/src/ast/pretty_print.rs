@@ -750,6 +750,7 @@ impl Expression {
             // formatting for all the following is handled specially and will never conditionally
             // wrap arguments in parentheses
             Array(_)
+            | ArrayCast(_)
             | Case(_)
             | Cast(_)
             | Document(_)
@@ -830,6 +831,7 @@ impl PrettyPrint for Expression {
             Exists(q) => Ok(format!("EXISTS({})", q.pretty_print()?)),
             SubqueryComparison(sc) => sc.pretty_print(),
             HigherOrderFunction(hof) => hof.pretty_print(),
+            ArrayCast(ac) => ac.pretty_print(),
         }
     }
 }
@@ -1335,5 +1337,15 @@ impl PrettyPrint for FunctionArgument {
             FunctionArgument::NamedFunction(NamedFunction::BinaryOp(b)) => b.pretty_print()?,
             FunctionArgument::NamedFunction(NamedFunction::Function(f)) => f.pretty_print()?,
         })
+    }
+}
+
+impl PrettyPrint for ArrayCastExpr {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "ARRAY_CAST({}, {})",
+            self.expr.pretty_print()?,
+            self.to.pretty_print()?
+        ))
     }
 }

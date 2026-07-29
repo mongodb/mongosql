@@ -289,6 +289,7 @@ pub enum Expression {
     Extract(ExtractExpr),
     Cast(CastExpr),
     Array(Vec<Expression>),
+    ArrayCast(ArrayCastExpr),
     Subquery(Box<Query>),
     Exists(Box<Query>),
     SubqueryComparison(SubqueryComparisonExpr),
@@ -326,6 +327,12 @@ pub struct CastExpr {
     pub to: Type,
     pub on_null: Option<Box<Expression>>,
     pub on_error: Option<Box<Expression>>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ArrayCastExpr {
+    pub expr: Box<Expression>,
+    pub to: Type,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -490,7 +497,6 @@ pub enum FunctionName {
     Millisecond,
 
     // Higher Order Function aliases
-    ArrayCast,
     ArrayExtract,
     ArrayCompact,
     ArrayRemove,
@@ -646,7 +652,6 @@ impl TryFrom<&str> for FunctionName {
             "SECOND" => Ok(FunctionName::Second),
             "MILLISECOND" => Ok(FunctionName::Millisecond),
 
-            "ARRAY_CAST" => Ok(FunctionName::ArrayCast),
             "ARRAY_EXTRACT" => Ok(FunctionName::ArrayExtract),
             "ARRAY_COMPACT" => Ok(FunctionName::ArrayCompact),
             "ARRAY_REMOVE" => Ok(FunctionName::ArrayRemove),
@@ -722,7 +727,6 @@ impl FunctionName {
             FunctionName::Minute => "MINUTE",
             FunctionName::Second => "SECOND",
             FunctionName::Millisecond => "MILLISECOND",
-            FunctionName::ArrayCast => "ARRAY_CAST",
             FunctionName::ArrayExtract => "ARRAY_EXTRACT",
             FunctionName::ArrayCompact => "ARRAY_COMPACT",
             FunctionName::ArrayRemove => "ARRAY_REMOVE",
@@ -795,7 +799,6 @@ impl FunctionName {
             | FunctionName::Minute
             | FunctionName::Second
             | FunctionName::Millisecond
-            | FunctionName::ArrayCast
             | FunctionName::ArrayExtract
             | FunctionName::ArrayCompact
             | FunctionName::ArrayRemove

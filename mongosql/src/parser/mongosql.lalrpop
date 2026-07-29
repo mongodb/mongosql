@@ -315,6 +315,11 @@ CastExpr: CastExpr = {
             },
 }
 
+ArrayCastExpr: ArrayCastExpr = {
+    ARRAY_CAST LEFT_PAREN <ex:Expression> COMMA <t:Type> RIGHT_PAREN =>
+        ArrayCastExpr {expr: Box::new(ex), to: t},
+}
+
 CurrentTimestamp: FunctionExpr = {
     CURRENT_TIMESTAMP <e:(LEFT_PAREN <Expression> RIGHT_PAREN)?> => match e {
         Some(e) => FunctionExpr {
@@ -556,6 +561,7 @@ Tier14Expr = SubpathTier<Expression, BottomExpr>;
 BottomExpr: Box<Expression> = {
   AccessExpr => Box::new(Expression::Access(<>)),
   ArrayExpr => Box::new(Expression::Array(<>)),
+  ArrayCastExpr => Box::new(Expression::ArrayCast(<>)),
   CaseExpr => Box::new(Expression::Case(<>)),
   CastExpr => Box::new(Expression::Cast(<>)),
   DocumentExpr => Box::new(<>),
@@ -815,6 +821,7 @@ match {
   r"(?i)and" => AND,
   r"(?i)any" => ANY,
   r"(?i)array" => ARRAY,
+  r"(?i)array_cast" => ARRAY_CAST,
   r"(?i)as" => AS,
   r"(?i)asc" => ASC,
   r"(?i)between" => BETWEEN,
