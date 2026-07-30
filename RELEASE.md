@@ -176,7 +176,7 @@ To monitor the status of ADF releases, check the #mongohouse-releases channel.
 
 #### Announce Release on Slack
 
-Use the following messsage template to announce the release in the #atlas-sql channel:
+Use the following messsage template to announce the release in the #sql-interface channel:
 
 > Hello! We've released mongosql version \<VERSION\>
 > More information, including release notes, can be found on the Release Ticket: \<JIRA Link\>
