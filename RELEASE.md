@@ -20,8 +20,8 @@ All projects/crates in this repository use [Semantic Versioning](https://semver.
 Tags are prepended with `libv` for `libmongosqltranslate` releases.
 
 ```sh
-# git tag -am libv1.0.0-<prerelease>-<prerelease-version> libv1.0.0-<prerelease>-<prerelease-version>
-git tag -am libv1.0.0-alpha-1 libv1.0.0-alpha-1
+# git tag -sam libv1.0.0-<prerelease>-<prerelease-version> libv1.0.0-<prerelease>-<prerelease-version>
+git tag -sam libv1.0.0-alpha-1 libv1.0.0-alpha-1
 ```
 
 ### Versioning `libmongosql`
@@ -36,7 +36,7 @@ At the moment, there are no pre-release (alpha, beta, rc, etc.) versions of `lib
 Tags are prepended with `v` for `libmongosql` releases.
 
 ```sh
-git tag -am v1.6.1 v1.6.1
+git tag -sam v1.6.1 v1.6.1
 ```
 
 ### Versioning `schema-builder-library`
