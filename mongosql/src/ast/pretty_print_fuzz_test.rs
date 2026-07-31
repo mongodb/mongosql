@@ -646,8 +646,7 @@ mod arbitrary {
                 // TODO: SQL-3298: Replace `23 => TypeAssertion` with `23 => HigherOrderFunction`
                 23 => Self::TypeAssertion(TypeAssertionExpr::arbitrary(nested_g)),
                 // 23 => Self::HigherOrderFunction(HigherOrderFunctionExpr::arbitrary(nested_g)),
-                // TODO: SQL-3298: Replace `24 => TypeAssertion` with `24 => ArrayCastExpr`
-                // 24 => Self::ArrayCast(ArrayCastExpr::arbitrary(nested_g)),
+                24 => Self::ArrayCast(ArrayCastExpr::arbitrary(nested_g)),
                 _ => panic!("missing Expression variant(s)"),
             }
         }
