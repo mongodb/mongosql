@@ -18,6 +18,10 @@ impl Pass for HigherOrderFunctionsRewritePass {
         let mut func_alias_visitor = HigherOrderFunctionsAliasVisitor { error: None };
         let query = query.walk(&mut func_alias_visitor);
 
+        if let Some(error) = func_alias_visitor.error {
+            return Err(error);
+        }
+
         let mut func_arg_visitor = FunctionArgumentVisitor;
         let query = query.walk(&mut func_arg_visitor);
 
