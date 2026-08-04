@@ -1548,11 +1548,11 @@ mod higher_order_functions {
         array_average_invalid,
         pass = HigherOrderFunctionsRewritePass,
         expected = Err(Error::IncorrectArgumentCount {
-            name: "ARRAY_AVERAGE",
+            name: "ARRAY_AVG",
             required: ArgCount::Exactly(1),
             found: 0,
         }),
-        input = "SELECT ARRAY_AVERAGE()",
+        input = "SELECT ARRAY_AVG()",
     );
 
     test_rewrite!(
