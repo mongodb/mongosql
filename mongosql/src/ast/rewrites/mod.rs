@@ -115,7 +115,7 @@ impl ArgCount {
     pub(crate) fn contains(&self, n: usize) -> bool {
         match self {
             ArgCount::Exactly(count) => n == *count,
-            ArgCount::Either(min, max) => n >= *min && n <= *max,
+            ArgCount::Either(a, b) => n == *a || n == *b,
         }
     }
 }
@@ -124,7 +124,7 @@ impl std::fmt::Display for ArgCount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ArgCount::Exactly(n) => write!(f, "{n}"),
-            ArgCount::Either(min, max) => write!(f, "{min} or {max}"),
+            ArgCount::Either(a, b) => write!(f, "{a} or {b}"),
         }
     }
 }

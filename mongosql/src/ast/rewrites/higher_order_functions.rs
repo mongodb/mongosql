@@ -100,6 +100,7 @@ impl Visitor for HigherOrderFunctionsAliasVisitor {
 }
 
 impl HigherOrderFunctionsAliasVisitor {
+    #[inline(always)]
     fn make_map(array: Expression, f: Expression) -> Expression {
         Expression::HigherOrderFunction(HigherOrderFunctionExpr::Map(MapExpr {
             array: Box::new(array),
@@ -107,6 +108,7 @@ impl HigherOrderFunctionsAliasVisitor {
         }))
     }
 
+    #[inline(always)]
     fn make_filter(array: Expression, f: Expression) -> Expression {
         Expression::HigherOrderFunction(HigherOrderFunctionExpr::Filter(FilterExpr {
             array: Box::new(array),
@@ -114,6 +116,7 @@ impl HigherOrderFunctionsAliasVisitor {
         }))
     }
 
+    #[inline(always)]
     fn make_reduce(array: Expression, init_value: Expression, f: Expression) -> Expression {
         Expression::HigherOrderFunction(HigherOrderFunctionExpr::Reduce(ReduceExpr {
             array: Box::new(array),
@@ -123,15 +126,18 @@ impl HigherOrderFunctionsAliasVisitor {
     }
 
     /// Returns the `this` identifier expression used within higher order function bodies.
+    #[inline(always)]
     fn this() -> Expression {
         Expression::Identifier(THIS.to_string())
     }
 
     /// Returns the `value` identifier expression used within higher order function bodies.
+    #[inline(always)]
     fn value() -> Expression {
         Expression::Identifier(VALUE.to_string())
     }
 
+    #[inline(always)]
     fn make_binary(left: Expression, op: BinaryOp, right: Expression) -> Expression {
         Expression::Binary(BinaryExpr {
             left: Box::new(left),
@@ -140,6 +146,7 @@ impl HigherOrderFunctionsAliasVisitor {
         })
     }
 
+    #[inline(always)]
     fn make_size(array: Expression) -> Expression {
         Expression::Function(FunctionExpr {
             function: FunctionName::Size,
