@@ -1,6 +1,6 @@
 use crate::ast::{
     self,
-    rewrites::{assert_arg_count, ArgCount, Error, Pass, Result},
+    rewrites::{try_exact_args, try_extract_either_args, Error, Pass, Result},
     visitor::Visitor,
     AccessExpr, ArrayCastExpr, BinaryExpr, BinaryOp, CastExpr, ComparisonOp, Expression,
     FilterExpr, FunctionArgument, FunctionArguments, FunctionExpr, FunctionName,
@@ -170,10 +170,7 @@ impl HigherOrderFunctionsAliasVisitor {
 
     /// Rewrite `ARRAY_EXTRACT(a, expr)` into `MAP(a, this.expr)`.
     fn rewrite_array_extract(args: &[Expression]) -> Result<Expression> {
-        assert_arg_count("ARRAY_EXTRACT", args.len(), ArgCount::Exactly(2))?;
-
-        let array = &args[0];
-        let extract_expr = &args[1];
+        let [array, extract_expr] = try_exact_args("ARRAY_EXTRACT", args)?;
 
         // If the second argument is a field-path-like Expression, we should prepend "this" to it.
         // If it is not, we should wrap it in an AccessExpr with "this" as the base.
@@ -189,9 +186,7 @@ impl HigherOrderFunctionsAliasVisitor {
 
     /// Rewrite `ARRAY_COMPACT(a)` into `FILTER(a, NOT this IS NULL)`.
     fn rewrite_array_compact(args: &[Expression]) -> Result<Expression> {
-        assert_arg_count("ARRAY_COMPACT", args.len(), ArgCount::Exactly(1))?;
-
-        let array = &args[0];
+        let [array] = try_exact_args("ARRAY_COMPACT", args)?;
 
         Ok(Self::make_filter(
             array.clone(),
@@ -207,10 +202,7 @@ impl HigherOrderFunctionsAliasVisitor {
 
     /// Rewrite `ARRAY_REMOVE(a, x)` into `FILTER(a, this <> x)`.
     fn rewrite_array_remove(args: &[Expression]) -> Result<Expression> {
-        assert_arg_count("ARRAY_REMOVE", args.len(), ArgCount::Exactly(2))?;
-
-        let array = &args[0];
-        let remove_expr = &args[1];
+        let [array, remove_expr] = try_exact_args("ARRAY_REMOVE", args)?;
 
         Ok(Self::make_filter(
             array.clone(),
@@ -224,10 +216,7 @@ impl HigherOrderFunctionsAliasVisitor {
 
     /// Rewrite `ARRAY_COUNT_IF(a, f)` into `SIZE(FILTER(a, f))`.
     fn rewrite_array_count_if(args: &[Expression]) -> Result<Expression> {
-        assert_arg_count("ARRAY_COUNT_IF", args.len(), ArgCount::Exactly(2))?;
-
-        let array = &args[0];
-        let f = &args[1];
+        let [array, f] = try_exact_args("ARRAY_COUNT_IF", args)?;
 
         Ok(Self::make_size(Self::make_filter(array.clone(), f.clone())))
     }
@@ -240,9 +229,7 @@ impl HigherOrderFunctionsAliasVisitor {
         init_value: Literal,
         op: BinaryOp,
     ) -> Result<Expression> {
-        assert_arg_count(name, args.len(), ArgCount::Exactly(1))?;
-
-        let array = &args[0];
+        let [array] = try_exact_args(name, args)?;
 
         Ok(Self::make_reduce(
             array.clone(),
@@ -272,13 +259,13 @@ impl HigherOrderFunctionsAliasVisitor {
     /// and rewrite `ARRAY_JOIN(a, sep)` into
     /// `TRIM(LEADING sep FROM REDUCE(a, '', value || sep || this))`.
     fn rewrite_array_join(args: &[Expression]) -> Result<Expression> {
-        assert_arg_count("ARRAY_JOIN", args.len(), ArgCount::Either(1, 2))?;
+        let ([array], rest_args) = try_extract_either_args::<1, 2>("ARRAY_JOIN", args)?;
 
-        let array = &args[0];
-        let mut sep = Expression::StringConstructor("".to_string());
-        if args.len() == 2 {
-            sep = args[1].clone();
-        }
+        let sep = if let [sep] = rest_args {
+            sep.clone()
+        } else {
+            Expression::StringConstructor("".to_string())
+        };
 
         if sep == Expression::StringConstructor("".to_string()) {
             Ok(Self::make_reduce(

@@ -110,16 +110,6 @@ pub enum ArgCount {
     Either(usize, usize),
 }
 
-impl ArgCount {
-    /// Returns whether `n` satisfies this argument count specification.
-    pub(crate) fn contains(&self, n: usize) -> bool {
-        match self {
-            ArgCount::Exactly(count) => n == *count,
-            ArgCount::Either(a, b) => n == *a || n == *b,
-        }
-    }
-}
-
 impl std::fmt::Display for ArgCount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -129,20 +119,43 @@ impl std::fmt::Display for ArgCount {
     }
 }
 
-/// Validates that `args` satisfies `expected`, returning
-/// `Error::IncorrectArgumentCount` otherwise.
-pub(crate) fn assert_arg_count(
+/// Validates that `args` contains `N` elements, extracting them into as fixed-size array of length
+/// `N` if so. If `args` does not contain exactly `N` elements, an `IncorrectArgumentCount` error is
+/// returned.
+#[inline]
+pub(crate) fn try_exact_args<'a, const N: usize>(
     name: &'static str,
-    args_len: usize,
-    expected: ArgCount,
-) -> Result<()> {
-    if expected.contains(args_len) {
-        Ok(())
-    } else {
-        Err(Error::IncorrectArgumentCount {
+    args: &'a [ast::Expression],
+) -> Result<&'a [ast::Expression; N]> {
+    let Ok(extracted) = args.try_into() else {
+        return Err(Error::IncorrectArgumentCount {
             name,
-            required: expected,
-            found: args_len,
-        })
+            required: ArgCount::Exactly(N),
+            found: args.len(),
+        });
+    };
+    Ok(extracted)
+}
+
+/// Validates that `args` contains either `A` or `B` elements, extracting them into as fixed-size
+/// array of length `A` and a slice of the remaining elements if so. If `args` does not contain
+/// exactly `A` or exactly `B` elements, an `IncorrectArgumentCount` error is returned.
+#[inline]
+pub(crate) fn try_extract_either_args<'a, const A: usize, const B: usize>(
+    name: &'static str,
+    args: &'a [ast::Expression],
+) -> Result<(&'a [ast::Expression; A], &'a [ast::Expression])> {
+    if args.len() != A && args.len() != B {
+        return Err(Error::IncorrectArgumentCount {
+            name,
+            required: ArgCount::Either(A, B),
+            found: args.len(),
+        });
     }
+
+    let (min, rest) = args.split_at(A);
+    let Ok(min) = min.try_into() else {
+        unreachable!();
+    };
+    Ok((min, rest))
 }
