@@ -48,7 +48,9 @@ impl Validator {
         Self { cluster }
     }
 
-    /// Validate a marker
+    /// Validate a marker token (the compact JWS read from `__sql_status.token`).
+    /// `Ok(())` means the signature, issuer, subject cluster, `enabled` flag, and any
+    /// expiration all passed. The caller is responsible for reading the marker itself.
     pub async fn validate<J, C>(
         &self,
         marker: &str,

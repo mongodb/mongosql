@@ -36,6 +36,8 @@ pub enum CachedError<H: core::error::Error, F: core::error::Error> {
 ///
 /// This first attempts to fetch the JWKS from the well-known upstream URL,
 /// but falls back to reading from a user-provided path if that fails.
+/// The cache lives on the instance, so callers must retain the provider
+/// across validations for the TTL to have any effect.
 pub struct NetworkedCachedJwksProvider<H, F> {
     /// Optional path to a JSON file containing the JWKS to use
     path: Option<PathBuf>,

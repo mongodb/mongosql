@@ -1,3 +1,7 @@
+//! Validates Atlas SQL entitlement markers (Ed25519-signed compact JWS).
+//! The caller reads the marker from `__sql_status.token`; this crate only verifies it.
+#![forbid(unsafe_code)]
+
 use serde::{Deserialize, Serialize};
 
 pub mod clients;
