@@ -2,7 +2,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, Validation};
 
 use crate::{
     marker::Claims,
-    providers::{ClockProvider, JwksProvider, MarkerFetchError, MarkerProvider},
+    providers::{ClockProvider, JwksProvider},
     Issuer,
 };
 
@@ -27,9 +27,6 @@ where
     #[error("temporary marker is missing an expiration time")]
     MissingExp,
 
-    #[error("failed to fetch marker: {0}")]
-    MarkerFetch(#[from] MarkerFetchError),
-
     #[error("JWKS is missing specified key ID: {0}")]
     MissingJwk(String),
 
@@ -52,21 +49,19 @@ impl Validator {
     }
 
     /// Validate a marker
-    pub async fn validate<M, J, C>(
+    pub async fn validate<J, C>(
         &self,
-        marker: &mut M,
+        marker: &str,
         jwks: &mut J,
         clock: &C,
     ) -> Result<(), ValidatorError<J::Error>>
     where
-        M: MarkerProvider,
         J: JwksProvider,
         C: ClockProvider,
     {
         let jwks = jwks.fetch_jwks().await.map_err(ValidatorError::JwksFetch)?;
-        let token = marker.fetch_marker().await?;
 
-        let header = jsonwebtoken::decode_header(token.as_ref())?;
+        let header = jsonwebtoken::decode_header(marker)?;
         let key_id = header.kid.ok_or(ValidatorError::MissingKeyID)?;
         let key = jwks
             .find(&key_id)
@@ -81,7 +76,7 @@ impl Validator {
             result
         };
 
-        let decoded = jsonwebtoken::decode::<Claims>(token.as_ref(), &key, &validation)?;
+        let decoded = jsonwebtoken::decode::<Claims>(marker, &key, &validation)?;
         if !decoded.claims.enabled {
             return Err(ValidatorError::MarkerDisabled);
         }
@@ -127,7 +122,7 @@ mod test {
     use serde_json::json;
 
     use crate::{
-        providers::{ClockProvider, JwksProvider, MarkerFetchError, MarkerProvider},
+        providers::{ClockProvider, JwksProvider},
         validator::{Validator, ValidatorError},
         Issuer,
     };
@@ -182,26 +177,18 @@ mod test {
         }
     }
 
-    struct TestMarkerProvider(String);
-    impl MarkerProvider for TestMarkerProvider {
-        async fn fetch_marker(&mut self) -> Result<impl AsRef<str>, MarkerFetchError> {
-            Ok(&self.0)
-        }
-    }
-
-    async fn validate_marker<M, J, C>(
+    async fn validate_marker<J, C>(
         cluster: &str,
-        mut token: M,
+        token: &str,
         mut jwks: J,
         clock: C,
     ) -> Result<(), ValidatorError<J::Error>>
     where
-        M: MarkerProvider,
         J: JwksProvider,
         C: ClockProvider,
     {
         Validator::for_cluster(cluster.to_string())
-            .validate(&mut token, &mut jwks, &clock)
+            .validate(token, &mut jwks, &clock)
             .await
     }
 
@@ -265,7 +252,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(normal_token(&sk)),
+                &normal_token(&sk),
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -285,7 +272,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(sk),
                 TestClockProvider(NOW),
             )
@@ -305,7 +292,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -325,7 +312,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -345,7 +332,7 @@ mod test {
 
         validate_marker(
             CLUSTER,
-            TestMarkerProvider(token),
+            &token,
             TestJwksProvider(sk),
             TestClockProvider(NOW),
         )
@@ -364,7 +351,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -384,7 +371,7 @@ mod test {
 
         validate_marker(
             CLUSTER,
-            TestMarkerProvider(token),
+            &token,
             TestJwksProvider(sk),
             TestClockProvider(NOW),
         )
@@ -403,7 +390,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -430,7 +417,7 @@ mod test {
 
         validate_marker(
             CLUSTER,
-            TestMarkerProvider(token),
+            &token,
             TestJwksProvider(sk),
             TestClockProvider(NOW),
         )
@@ -452,7 +439,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -473,7 +460,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -490,7 +477,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(expected),
                 TestClockProvider(NOW)
             )
@@ -507,7 +494,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider("aaaa.bbbb".to_string()),
+                "aaaa.bbbb",
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -523,7 +510,7 @@ mod test {
         let sk = signing_key(1);
         validate_marker(
             CLUSTER,
-            TestMarkerProvider("!!!.payload.sig".to_string()),
+            "!!!.payload.sig",
             TestJwksProvider(sk),
             TestClockProvider(NOW),
         )
@@ -543,7 +530,7 @@ mod test {
         assert_eq!(
             validate_marker(
                 CLUSTER,
-                TestMarkerProvider(token),
+                &token,
                 TestJwksProvider(sk),
                 TestClockProvider(NOW)
             )
@@ -562,7 +549,7 @@ mod test {
         let token = normal_token(&sk);
         let err = validate_marker(
             CLUSTER,
-            TestMarkerProvider(token.clone()),
+            &token,
             TestJwksProvider(expected),
             TestClockProvider(NOW),
         )

@@ -7,11 +7,9 @@ use jsonwebtoken::jwk::JwkSet;
 
 mod clock;
 mod jwks;
-mod marker;
 
 pub use clock::*;
 pub use jwks::*;
-pub use marker::*;
 
 use crate::{
     clients::{FileClient, HttpsClient},
