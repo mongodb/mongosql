@@ -103,6 +103,14 @@ impl<H: HttpsClient, F: FileClient> NetworkedCachedJwksProvider<H, F> {
 
         Ok(result)
     }
+
+    /// Backdate the cached entry so it reads as expired, exercising the refresh path
+    #[cfg(test)]
+    fn expire_cache(&mut self) {
+        if let Some((_, atime)) = &mut self.jwks {
+            *atime -= JWKS_TTL;
+        }
+    }
 }
 
 impl<H: HttpsClient, F: FileClient> JwksProvider for NetworkedCachedJwksProvider<H, F> {
@@ -126,17 +134,30 @@ impl<H: HttpsClient, F: FileClient> JwksProvider for NetworkedCachedJwksProvider
         }
 
         // If that failed, then we try the file path
-        if let Some(path) = &self.path {
-            return self.read_jwks_from_path(path.clone()).await;
+        let refresh = if let Some(path) = &self.path {
+            match self.read_jwks_from_path(path.clone()).await {
+                Ok(jwks) => return Ok(jwks),
+                file_err => file_err,
+            }
+        } else {
+            networked_jwks
+        };
+
+        // If neither refresh path worked, serve the last-known-good keys rather
+        // than failing closed on a transient outage (keys rotate rarely)
+        if let Some((jwks, _)) = &self.jwks {
+            return Ok(jwks.clone());
         }
 
-        // If that didn't work, then bubble up the original network error
-        networked_jwks
+        // If we have never cached anything, bubble up the most recent refresh error
+        refresh
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::cell::Cell;
+
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
     use ed25519_dalek::SigningKey;
     use jsonwebtoken::{
@@ -180,6 +201,23 @@ mod test {
             }
 
             self.0.clone().ok_or(TestError::IntentionallyEmpty)
+        }
+    }
+
+    /// Serves the JWKS on the first fetch, then fails, simulating a transient outage
+    struct OnceThenFailHttpsClient {
+        jwks: serde_json::Value,
+        served: Cell<bool>,
+    }
+    impl HttpsClient for OnceThenFailHttpsClient {
+        type Error = TestError;
+
+        async fn fetch_json(&self, url: &str) -> Result<serde_json::Value, Self::Error> {
+            if url != JWKS_WELL_KNOWN_URL || self.served.replace(true) {
+                return Err(TestError::IntentionallyEmpty);
+            }
+
+            Ok(self.jwks.clone())
         }
     }
 
@@ -273,5 +311,29 @@ mod test {
             ),
             "empty remote / file should have errored: {result:?}"
         );
+    }
+
+    #[tokio::test]
+    async fn serves_stale_cache_when_refresh_fails() {
+        let key_id = "example";
+        let (_, jwk) = generate_keys(1, key_id);
+        let https_client = OnceThenFailHttpsClient {
+            jwks: json!(JwkSet {
+                keys: vec![jwk.clone()]
+            }),
+            served: Cell::new(false),
+        };
+        let mut provider =
+            NetworkedCachedJwksProvider::new(None, https_client, TestFileClient(None));
+
+        // Prime the cache from upstream, then expire it and force a failing refresh
+        provider.fetch_jwks().await.expect("initial fetch");
+        provider.expire_cache();
+        let jwks = provider
+            .fetch_jwks()
+            .await
+            .expect("stale cache should be served when refresh fails");
+
+        assert_eq!(*jwks.find(key_id).expect("cached key"), jwk);
     }
 }
