@@ -15,6 +15,6 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-ed25519-dalek = { version = "2.1.1", default-features = false, features = ["rand_core", "pkcs8"] }
-jsonwebtoken = {version = "11", default-features = false, features = ["rust_crypto", "use_pem"] }
+ed25519-dalek = { version = "2.1.1", default-features = false, features = ["rand_core"] }
+jsonwebtoken = {version = "11", default-features = false, features = ["rust_crypto"] }
 tokio = { workspace = true, features = ["full"] }
