@@ -1,0 +1,20 @@
+[package]
+name = "mongosql-token-verifier"
+version = "0.0.0"
+edition = "2021"
+
+[features]
+reqwest = ["dep:reqwest"]
+
+[dependencies]
+base64.workspace = true
+jsonwebtoken = {version = "11", default-features = false, features = ["rust_crypto"] }
+thiserror.workspace = true
+reqwest = { version = "0.13", features = ["json"], optional = true }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+ed25519-dalek = { version = "2.1.1", default-features = false, features = ["rand_core", "pkcs8"] }
+jsonwebtoken = {version = "11", default-features = false, features = ["rust_crypto", "use_pem"] }
+tokio = { workspace = true, features = ["full"] }

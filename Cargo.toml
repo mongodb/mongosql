@@ -19,6 +19,7 @@ members = [
     "visitgen",
     "visitgen-test",
     "mongosqltranslate",
+    "mongosql-token-verifier",
 ]
 
 [workspace.dependencies]
