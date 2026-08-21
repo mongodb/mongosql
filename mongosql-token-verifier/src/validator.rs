@@ -54,9 +54,9 @@ impl Validator {
     /// Validate a marker
     pub async fn validate<M, J, C>(
         &self,
-        marker: M,
-        mut jwks: J,
-        clock: C,
+        marker: &mut M,
+        jwks: &mut J,
+        clock: &C,
     ) -> Result<(), ValidatorError<J::Error>>
     where
         M: MarkerProvider,
@@ -184,15 +184,15 @@ mod test {
 
     struct TestMarkerProvider(String);
     impl MarkerProvider for TestMarkerProvider {
-        async fn fetch_marker(&self) -> Result<impl AsRef<str>, MarkerFetchError> {
+        async fn fetch_marker(&mut self) -> Result<impl AsRef<str>, MarkerFetchError> {
             Ok(&self.0)
         }
     }
 
     async fn validate_marker<M, J, C>(
         cluster: &str,
-        token: M,
-        jwks: J,
+        mut token: M,
+        mut jwks: J,
         clock: C,
     ) -> Result<(), ValidatorError<J::Error>>
     where
@@ -201,7 +201,7 @@ mod test {
         C: ClockProvider,
     {
         Validator::for_cluster(cluster.to_string())
-            .validate(token, jwks, clock)
+            .validate(&mut token, &mut jwks, &clock)
             .await
     }
 

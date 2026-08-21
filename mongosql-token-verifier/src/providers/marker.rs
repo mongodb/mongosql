@@ -8,5 +8,5 @@ pub enum MarkerFetchError {}
 /// This trait signals a way to fetch the entitlement token for a cluster
 pub trait MarkerProvider {
     /// Fetch the token from the cluster
-    fn fetch_marker(&self) -> impl Future<Output = Result<impl AsRef<str>, MarkerFetchError>>;
+    fn fetch_marker(&mut self) -> impl Future<Output = Result<impl AsRef<str>, MarkerFetchError>>;
 }
