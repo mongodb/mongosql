@@ -252,14 +252,11 @@ impl SqlNullSemanticsOperatorsDesugarerVisitor {
             }
         }
 
-        let false_check_cond_else_statement = literal_null_found.map_or(
-            make_cond_expr!(
-                Self::literal_check_args(let_vars.clone(), MqlOperator::Lte, LiteralValue::Null),
-                Literal(LiteralValue::Null),
-                Literal(LiteralValue::Boolean(true))
-            ),
-            |x| x,
-        );
+        let false_check_cond_else_statement = literal_null_found.unwrap_or(make_cond_expr!(
+            Self::literal_check_args(let_vars.clone(), MqlOperator::Lte, LiteralValue::Null),
+            Literal(LiteralValue::Null),
+            Literal(LiteralValue::Boolean(true))
+        ));
 
         // If any of the arguments are false, return false.
         // Otherwise, if any of the arguments are null, return null. Otherwise, return true.
@@ -296,14 +293,11 @@ impl SqlNullSemanticsOperatorsDesugarerVisitor {
             }
         }
 
-        let true_check_cond_else_statement = literal_null_found.map_or(
-            make_cond_expr!(
-                Self::literal_check_args(let_vars.clone(), MqlOperator::Lte, LiteralValue::Null),
-                Literal(LiteralValue::Null),
-                Literal(LiteralValue::Boolean(false))
-            ),
-            |x| x,
-        );
+        let true_check_cond_else_statement = literal_null_found.unwrap_or(make_cond_expr!(
+            Self::literal_check_args(let_vars.clone(), MqlOperator::Lte, LiteralValue::Null),
+            Literal(LiteralValue::Null),
+            Literal(LiteralValue::Boolean(false))
+        ));
 
         // If any of the arguments are true, return true.
         // Otherwise, if any of the arguments are null, return null. Otherwise, return false.
