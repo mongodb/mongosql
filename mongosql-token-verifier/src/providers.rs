@@ -64,11 +64,6 @@ impl<H: HttpsClient, F: FileClient> NetworkedCachedJwksProvider<H, F> {
         }
     }
 
-    /// Attempt to deserialize a JwkSet from JSON
-    fn deserialize_from_json(&self, json: serde_json::Value) -> Result<JwkSet, serde_json::Error> {
-        serde_json::from_value(json)
-    }
-
     /// Attempt to fetch a JwkSet from the well-known upstream URL
     async fn fetch_from_upstream(&mut self) -> Result<JwkSet, CachedError<H::Error, F::Error>> {
         let jwks = self
@@ -77,7 +72,7 @@ impl<H: HttpsClient, F: FileClient> NetworkedCachedJwksProvider<H, F> {
             .await
             .map_err(CachedError::HttpsClient)?;
 
-        let result = self.deserialize_from_json(jwks)?;
+        let result: JwkSet = serde_json::from_value(jwks)?;
 
         // Update the cache
         self.jwks = Some((result.clone(), Instant::now()));
@@ -96,7 +91,7 @@ impl<H: HttpsClient, F: FileClient> NetworkedCachedJwksProvider<H, F> {
             .await
             .map_err(CachedError::FileClient)?;
 
-        let result = self.deserialize_from_json(jwks)?;
+        let result: JwkSet = serde_json::from_value(jwks)?;
 
         // Update the cache
         self.jwks = Some((result.clone(), Instant::now()));
