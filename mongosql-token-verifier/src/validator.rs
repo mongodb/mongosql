@@ -61,15 +61,15 @@ impl Validator {
         J: JwksProvider,
         C: ClockProvider,
     {
-        let jwks = jwks.fetch_jwks().await.map_err(ValidatorError::JwksFetch)?;
-
         let header = jsonwebtoken::decode_header(marker)?;
         let key_id = header.kid.ok_or(ValidatorError::MissingKeyID)?;
         let key = jwks
-            .find(&key_id)
+            .fetch_key(&key_id)
+            .await
+            .map_err(ValidatorError::JwksFetch)?
             .ok_or(ValidatorError::MissingJwk(key_id))?;
 
-        let key = DecodingKey::from_jwk(key)?;
+        let key = DecodingKey::from_jwk(&key)?;
         let validation = {
             let mut result = Validation::new(Algorithm::EdDSA);
             result.set_required_spec_claims(&["iss", "sub", "enabled"]);

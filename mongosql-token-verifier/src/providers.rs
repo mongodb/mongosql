@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use jsonwebtoken::jwk::JwkSet;
+use jsonwebtoken::jwk::{Jwk, JwkSet};
 
 mod clock;
 mod jwks;
@@ -113,21 +113,11 @@ impl<H: HttpsClient, F: FileClient> NetworkedCachedJwksProvider<H, F> {
     }
 }
 
-impl<H: HttpsClient, F: FileClient> JwksProvider for NetworkedCachedJwksProvider<H, F> {
-    type Error = CachedError<H::Error, F::Error>;
-
-    async fn fetch_jwks(&mut self) -> Result<JwkSet, Self::Error> {
-        // If we have it cached and it hasn't expired yet, just short out
-        let now = Instant::now();
-        if let Some((jwks, atime)) = &self.jwks {
-            if now.duration_since(*atime) < JWKS_TTL {
-                return Ok(jwks.clone());
-            }
-        } else {
-            self.jwks = None;
-        }
-
-        // Otherwise, always attempt to fetch from upstream first
+impl<H: HttpsClient, F: FileClient> NetworkedCachedJwksProvider<H, F> {
+    /// Refresh the JWKS, ignoring any cached entry: upstream, then file, then
+    /// falling back to the last-known-good cache on failure
+    async fn refresh(&mut self) -> Result<JwkSet, CachedError<H::Error, F::Error>> {
+        // Always attempt to fetch from upstream first
         let networked_jwks = self.fetch_from_upstream().await;
         if let Ok(jwks) = networked_jwks {
             return Ok(jwks);
@@ -151,6 +141,32 @@ impl<H: HttpsClient, F: FileClient> JwksProvider for NetworkedCachedJwksProvider
 
         // If we have never cached anything, bubble up the most recent refresh error
         refresh
+    }
+}
+
+impl<H: HttpsClient, F: FileClient> JwksProvider for NetworkedCachedJwksProvider<H, F> {
+    type Error = CachedError<H::Error, F::Error>;
+
+    async fn fetch_jwks(&mut self) -> Result<JwkSet, Self::Error> {
+        // If we have it cached and it hasn't expired yet, just short out
+        let now = Instant::now();
+        if let Some((jwks, atime)) = &self.jwks {
+            if now.duration_since(*atime) < JWKS_TTL {
+                return Ok(jwks.clone());
+            }
+        }
+
+        self.refresh().await
+    }
+
+    async fn fetch_key(&mut self, kid: &str) -> Result<Option<Jwk>, Self::Error> {
+        // Try the cached set first, then re-fetch once on a miss to pick up a
+        // key published mid-rotation before reporting it as absent
+        if let Some(jwk) = self.fetch_jwks().await?.find(kid).cloned() {
+            return Ok(Some(jwk));
+        }
+
+        Ok(self.refresh().await?.find(kid).cloned())
     }
 }
 
@@ -218,6 +234,29 @@ mod test {
             }
 
             Ok(self.jwks.clone())
+        }
+    }
+
+    /// Serves a different JWKS on each fetch, simulating a key rotation between calls
+    struct RotatingHttpsClient {
+        responses: Vec<serde_json::Value>,
+        call: Cell<usize>,
+    }
+    impl HttpsClient for RotatingHttpsClient {
+        type Error = TestError;
+
+        async fn fetch_json(&self, url: &str) -> Result<serde_json::Value, Self::Error> {
+            if url != JWKS_WELL_KNOWN_URL {
+                return Err(TestError::IntentionallyEmpty);
+            }
+
+            let idx = self.call.replace(self.call.get() + 1);
+            Ok(self
+                .responses
+                .get(idx)
+                .or_else(|| self.responses.last())
+                .cloned()
+                .unwrap_or_else(|| json!({})))
         }
     }
 
@@ -335,5 +374,35 @@ mod test {
             .expect("stale cache should be served when refresh fails");
 
         assert_eq!(*jwks.find(key_id).expect("cached key"), jwk);
+    }
+
+    #[tokio::test]
+    async fn refetches_on_kid_miss_to_pick_up_rotated_key() {
+        let old_kid = "old";
+        let new_kid = "new";
+        let (_, old_jwk) = generate_keys(1, old_kid);
+        let (_, new_jwk) = generate_keys(2, new_kid);
+        let https_client = RotatingHttpsClient {
+            responses: vec![
+                json!(JwkSet {
+                    keys: vec![old_jwk.clone()]
+                }),
+                json!(JwkSet {
+                    keys: vec![old_jwk.clone(), new_jwk.clone()]
+                }),
+            ],
+            call: Cell::new(0),
+        };
+        let mut provider =
+            NetworkedCachedJwksProvider::new(None, https_client, TestFileClient(None));
+
+        // The fresh cache lacks the rotated key; fetch_key must re-fetch to find it
+        let key = provider
+            .fetch_key(new_kid)
+            .await
+            .expect("fetch_key")
+            .expect("rotated key should be found after a re-fetch");
+
+        assert_eq!(key, new_jwk);
     }
 }
