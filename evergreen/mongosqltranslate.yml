@@ -498,7 +498,7 @@ buildvariants:
   - name: mongosqltranslate-macos-arm
     tags: ["mongosqltranslate-release-variant"]
     display_name: "Mongosqltranslate - macOS arm64"
-    run_on: [macos-13-arm64]
+    run_on: [macos-14-arm64]
     modules:
       - sql-engines-common-test-infra
     tasks:
