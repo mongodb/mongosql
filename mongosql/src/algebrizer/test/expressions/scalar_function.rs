@@ -9,7 +9,8 @@ test_algebrize!(
             function: mir::ScalarFunction::Lower,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "hello".into(),
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -31,7 +32,8 @@ test_algebrize!(
             function: mir::ScalarFunction::Lower,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "{\"$numberInt\": \"1\"}".into(),
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -56,6 +58,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
                 mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -82,6 +85,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
                 mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -108,6 +112,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Null),
                 mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -134,6 +139,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
                 mir::Expression::Literal(mir::LiteralValue::Null),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -164,6 +170,7 @@ test_algebrize!(
                 )),
                 mir::Expression::Literal(mir::LiteralValue::Null),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -211,6 +218,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(100)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -235,6 +243,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(100)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -259,6 +268,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -283,6 +293,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -303,7 +314,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Cos,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10))],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -311,7 +323,7 @@ test_algebrize!(
         function: ast::FunctionName::Cos,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             10
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -323,7 +335,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Cos,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10))],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -331,7 +344,7 @@ test_algebrize!(
         function: ast::FunctionName::Cos,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\": \"10\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -343,7 +356,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Sin,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10))],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -351,7 +365,7 @@ test_algebrize!(
         function: ast::FunctionName::Sin,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             10
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -363,7 +377,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Sin,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10))],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -371,7 +386,7 @@ test_algebrize!(
         function: ast::FunctionName::Sin,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\": \"10\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -383,7 +398,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Tan,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10))],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -391,7 +407,7 @@ test_algebrize!(
         function: ast::FunctionName::Tan,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             10
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -403,7 +419,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Tan,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10))],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -411,7 +428,7 @@ test_algebrize!(
         function: ast::FunctionName::Tan,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\": \"10\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -423,7 +440,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Radians,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -431,7 +449,7 @@ test_algebrize!(
         function: ast::FunctionName::Radians,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             1
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -443,7 +461,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Radians,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -451,7 +470,7 @@ test_algebrize!(
         function: ast::FunctionName::Radians,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\": \"1\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -463,7 +482,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Sqrt,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(4)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(4))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -471,7 +491,7 @@ test_algebrize!(
         function: ast::FunctionName::Sqrt,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             4
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -483,7 +503,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Sqrt,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(4)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(4))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -491,7 +512,7 @@ test_algebrize!(
         function: ast::FunctionName::Sqrt,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\": \"4\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -503,7 +524,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Abs,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -511,7 +533,7 @@ test_algebrize!(
         function: ast::FunctionName::Abs,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             10
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -523,7 +545,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Abs,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -531,7 +554,7 @@ test_algebrize!(
         function: ast::FunctionName::Abs,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\": \"10\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -543,7 +566,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Ceil,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -551,7 +575,7 @@ test_algebrize!(
         function: ast::FunctionName::Ceil,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Double(
             1.5
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -563,7 +587,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Ceil,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -583,7 +608,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Degrees,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -591,7 +617,7 @@ test_algebrize!(
         function: ast::FunctionName::Degrees,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             1
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -603,7 +629,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Degrees,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -623,7 +650,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Floor,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -631,7 +659,7 @@ test_algebrize!(
         function: ast::FunctionName::Floor,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Double(
             1.5
-        )),]),
+        ))]),
         set_quantifier: Some(ast::SetQuantifier::All),
     }),
 );
@@ -643,7 +671,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Floor,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -667,6 +696,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -691,6 +721,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -715,6 +746,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -739,6 +771,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(10)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -768,6 +801,7 @@ test_algebrize!(
                 )),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -796,6 +830,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -825,6 +860,7 @@ test_algebrize!(
                     "{\"$numberInt\": \"1\"}".to_string()
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -849,6 +885,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -873,6 +910,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -941,7 +979,8 @@ test_algebrize!(
             function: mir::ScalarFunction::Size,
             args: vec![mir::Expression::Array(
                 vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into(),
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     ),),
@@ -963,7 +1002,8 @@ test_algebrize!(
             function: mir::ScalarFunction::Size,
             args: vec![mir::Expression::Array(
                 vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))].into(),
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     ),),
@@ -971,7 +1011,7 @@ test_algebrize!(
         function: ast::FunctionName::Size,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "[1]".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -989,14 +1029,14 @@ test_algebrize!(
                 ),
                 mir::Expression::Literal(mir::LiteralValue::Integer(0)),
             ],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::Slice,
         args: ast::FunctionArguments::Args(vec![
-            ast::Expression::Array(vec![ast::Expression::Literal(ast::Literal::Integer(1)),]),
+            ast::Expression::Array(vec![ast::Expression::Literal(ast::Literal::Integer(1))]),
             ast::Expression::Literal(ast::Literal::Integer(0)),
         ]),
         set_quantifier: None,
@@ -1016,7 +1056,7 @@ test_algebrize!(
                 ),
                 mir::Expression::Literal(mir::LiteralValue::Integer(0)),
             ],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -1037,7 +1077,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::DayOfWeek,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -1045,7 +1086,7 @@ test_algebrize!(
         function: ast::FunctionName::DayOfWeek,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             1
-        )),]),
+        ))]),
         set_quantifier: None,
     }),
 );
@@ -1057,7 +1098,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::DayOfWeek,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -1065,7 +1107,7 @@ test_algebrize!(
         function: ast::FunctionName::DayOfWeek,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\":\"1\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -1077,15 +1119,16 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::BitLength,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
-            is_nullable: false
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::BitLength,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             1
-        )),]),
+        ))]),
         set_quantifier: None,
     }),
 );
@@ -1099,15 +1142,16 @@ test_algebrize!(
             function: mir::ScalarFunction::BitLength,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "{\"$numberInt\":\"1\"}".to_string()
-            )),],
-            is_nullable: false
+            ))],
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::BitLength,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\":\"1\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -1119,15 +1163,16 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::CharLength,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
-            is_nullable: false
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::CharLength,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             1
-        )),]),
+        ))]),
         set_quantifier: None,
     }),
 );
@@ -1141,15 +1186,16 @@ test_algebrize!(
             function: mir::ScalarFunction::CharLength,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "{\"$numberInt\":\"1\"}".to_string()
-            )),],
-            is_nullable: false
+            ))],
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::CharLength,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\":\"1\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -1161,15 +1207,16 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::OctetLength,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
-            is_nullable: false
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::OctetLength,
         args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(ast::Literal::Integer(
             1
-        )),]),
+        ))]),
         set_quantifier: None,
     }),
 );
@@ -1183,15 +1230,16 @@ test_algebrize!(
             function: mir::ScalarFunction::OctetLength,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "{\"$numberInt\":\"1\"}".to_string()
-            )),],
-            is_nullable: false
+            ))],
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::OctetLength,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\":\"1\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -1207,7 +1255,8 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::String("hello".to_string())),
                 mir::Expression::Literal(mir::LiteralValue::String("world".to_string())),
             ],
-            is_nullable: false
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
@@ -1235,7 +1284,8 @@ test_algebrize!(
                     "{\"$numberInt\":\"2\"}".to_string()
                 )),
             ],
-            is_nullable: false
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
@@ -1257,15 +1307,16 @@ test_algebrize!(
             function: mir::ScalarFunction::Upper,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "hello".to_string()
-            )),],
-            is_nullable: false
+            ))],
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::Upper,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "hello".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );
@@ -1279,15 +1330,16 @@ test_algebrize!(
             function: mir::ScalarFunction::Upper,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "{\"$numberInt\":\"1\"}".to_string()
-            )),],
-            is_nullable: false
+            ))],
+            force_mql_semantics: false,
+            is_nullable: false,
         }
     )),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::Upper,
         args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
             "{\"$numberInt\":\"1\"}".to_string()
-        ),]),
+        )]),
         set_quantifier: None,
     }),
 );

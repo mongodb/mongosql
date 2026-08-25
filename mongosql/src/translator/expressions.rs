@@ -345,8 +345,11 @@ impl MqlTranslator {
             .map(|x| self.translate_expression(x))
             .collect::<Result<Vec<air::Expression>>>()?;
 
-        let op =
-            scalar_function_to_scalar_function_type(scalar_func.is_nullable, scalar_func.function);
+        let op = scalar_function_to_scalar_function_type(
+            scalar_func.is_nullable,
+            scalar_func.force_mql_semantics,
+            scalar_func.function,
+        );
 
         match op {
             ScalarFunctionType::Divide => Ok(air::Expression::SqlDivide(air::SqlDivide {

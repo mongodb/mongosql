@@ -817,6 +817,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(32)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -842,6 +843,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        lt_forced_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Lt,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lt,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         lte_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -858,6 +881,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(32)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -883,6 +907,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        lte_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Lte,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lte,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         neq_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -899,6 +945,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(32)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -924,6 +971,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        neq_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Ne,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Neq,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         eq_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -940,6 +1009,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(32)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -965,6 +1035,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        eq_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Eq,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Eq,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         gt_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -981,6 +1073,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(32)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1006,6 +1099,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        gt_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Gt,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Gt,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         gte_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -1022,6 +1137,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(32)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1047,6 +1163,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        gte_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Gte,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Gte,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         between_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -1065,6 +1203,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(32)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1092,6 +1231,30 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        between_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Between,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Between,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         not_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -1101,7 +1264,8 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Not,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Boolean(false)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Boolean(false))],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1121,6 +1285,22 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        not_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Not,
+                args: vec![air::Expression::Literal(air::LiteralValue::Boolean(false)),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Not,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Boolean(false))],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         and_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -1137,6 +1317,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1162,6 +1343,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        and_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::And,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
+                    air::Expression::Literal(air::LiteralValue::Boolean(false)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::And,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         or_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -1178,6 +1381,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1200,6 +1404,28 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null),
             ],
         )),
+    );
+
+    test_translate_expression_with_schema_info!(
+        or_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Or,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
+                    air::Expression::Literal(air::LiteralValue::Boolean(false)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Or,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1306,7 +1532,7 @@ mod scalar_function {
                 ),
                 mir::Expression::Literal(mir::LiteralValue::Integer(0)),
             ],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1335,7 +1561,7 @@ mod scalar_function {
                 ),
                 mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -1357,8 +1583,8 @@ mod scalar_function {
                     "abc".into()
                 ))]
                 .into()
-            ),],
-
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1378,6 +1604,29 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        size_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::Size,
+                args: vec![air::Expression::Array(vec![air::Expression::Literal(
+                    air::LiteralValue::String("abc".to_string())
+                )]),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Size,
+            args: vec![mir::Expression::Array(
+                vec![mir::Expression::Literal(mir::LiteralValue::String(
+                    "abc".into()
+                ))]
+                .into()
+            )],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         position_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -1394,6 +1643,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
                 mir::Expression::Literal(mir::LiteralValue::String("world".into())),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1419,6 +1669,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        position_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::IndexOfCP,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::String("world".into())),
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Position,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("world".into())),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         char_length_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -1432,7 +1704,8 @@ mod scalar_function {
             function: mir::ScalarFunction::CharLength,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "hello".into()
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1452,6 +1725,26 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        char_length_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::StrLenCP,
+                args: vec![air::Expression::Literal(air::LiteralValue::String(
+                    "hello".into()
+                )),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::CharLength,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            ))],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         octet_length_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -1465,7 +1758,8 @@ mod scalar_function {
             function: mir::ScalarFunction::OctetLength,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "hello".into()
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1482,6 +1776,26 @@ mod scalar_function {
             mir::ScalarFunction::OctetLength,
             vec![mir::Expression::Literal(mir::LiteralValue::Null),],
         )),
+    );
+
+    test_translate_expression_with_schema_info!(
+        octet_length_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::StrLenBytes,
+                args: vec![air::Expression::Literal(air::LiteralValue::String(
+                    "hello".into()
+                )),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::OctetLength,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            ))],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1891,6 +2205,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("el".into())),
                 mir::Expression::Literal(mir::LiteralValue::String("lo".into())),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1914,6 +2229,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null),
                 mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -1935,6 +2251,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: false
         }),
     );
@@ -1960,20 +2277,43 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        substring_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::SubstrCP,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                    air::Expression::Literal(air::LiteralValue::Integer(1)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Substring,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+            ],
+            force_mql_semantics: true,
+            is_nullable: true
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         upper_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
                 op: air::MqlOperator::ToUpper,
                 args: vec![air::Expression::Literal(air::LiteralValue::String(
                     "hello".into()
-                )),],
+                ))],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Upper,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "hello".into()
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -1993,6 +2333,26 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        upper_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::ToUpper,
+                args: vec![air::Expression::Literal(air::LiteralValue::String(
+                    "hello".into()
+                ))],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Upper,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            ))],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         lower_no_nullish,
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
@@ -2006,7 +2366,8 @@ mod scalar_function {
             function: mir::ScalarFunction::Lower,
             args: vec![mir::Expression::Literal(mir::LiteralValue::String(
                 "hello".into()
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2023,6 +2384,26 @@ mod scalar_function {
             mir::ScalarFunction::Lower,
             vec![mir::Expression::Literal(mir::LiteralValue::Null),],
         )),
+    );
+
+    test_translate_expression_with_schema_info!(
+        lower_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::ToLower,
+                args: vec![air::Expression::Literal(air::LiteralValue::String(
+                    "hello".into()
+                )),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lower,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            ))],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2225,7 +2606,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2272,7 +2653,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2304,7 +2685,7 @@ mod scalar_function {
                     to: air::Type::Datetime,
                     on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
                     on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
-                }),],
+                })],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -2319,7 +2700,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2366,6 +2747,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2375,12 +2757,13 @@ mod scalar_function {
         expected = Ok(air::Expression::MqlSemanticOperator(
             air::MqlSemanticOperator {
                 op: air::MqlOperator::DayOfWeek,
-                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+                args: vec![air::Expression::Literal(air::LiteralValue::Null)],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::DayOfWeek,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null)],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2398,7 +2781,7 @@ mod scalar_function {
                     to: air::Type::Datetime,
                     on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
                     on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
-                }),],
+                })],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -2413,7 +2796,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2460,7 +2843,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2507,7 +2890,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2539,7 +2922,7 @@ mod scalar_function {
                     to: air::Type::Datetime,
                     on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
                     on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
-                }),],
+                })],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -2554,6 +2937,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2568,7 +2952,8 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Second,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null)],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2586,7 +2971,7 @@ mod scalar_function {
                     to: air::Type::Datetime,
                     on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
                     on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
-                }),],
+                })],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -2601,7 +2986,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2633,7 +3018,7 @@ mod scalar_function {
                     to: air::Type::Datetime,
                     on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
                     on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
-                }),],
+                })],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -2648,7 +3033,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2680,7 +3065,7 @@ mod scalar_function {
                     to: air::Type::Datetime,
                     on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
                     on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
-                }),],
+                })],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -2695,7 +3080,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2727,7 +3112,7 @@ mod scalar_function {
                     to: air::Type::Datetime,
                     on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
                     on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
-                }),],
+                })],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -2742,7 +3127,7 @@ mod scalar_function {
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
             })],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -2780,7 +3165,7 @@ mod scalar_function {
                     unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),}
                 .into()),
             ],
-
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -3878,6 +4263,7 @@ mod subquery {
                                     *mir_field_access("Foo coll-ß", "a", true),
                                     *mir_field_access("foo_coll_ß", "a", true),
                                 ],
+                                force_mql_semantics: false,
                                 is_nullable: true,
                             }),
                         },
@@ -4387,6 +4773,7 @@ mod in_operator {
                     ],
                 })
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         mapping_registry = {
@@ -4426,6 +4813,7 @@ mod in_operator {
                     ],
                 })
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
         mapping_registry = {
@@ -4484,6 +4872,7 @@ mod in_operator {
                     ],
                 })
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     );
@@ -4515,6 +4904,7 @@ mod in_operator {
                     ],
                 })
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         mapping_registry = {
@@ -4554,6 +4944,7 @@ mod in_operator {
                     ],
                 })
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         mapping_registry = {
@@ -4593,6 +4984,7 @@ mod in_operator {
                     ],
                 })
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
         mapping_registry = {
@@ -4603,6 +4995,50 @@ mod in_operator {
             );
             mr
         },
+    );
+
+    test_translate_expression!(
+        in_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::In,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    air::Expression::Array(vec![])
+                ],
+            }
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::In,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Array(ArrayExpr { array: vec![] })
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression!(
+        not_in_force_mql_semantics,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::NotIn,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    air::Expression::Array(vec![])
+                ],
+            }
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NotIn,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Array(ArrayExpr { array: vec![] })
+            ],
+            force_mql_semantics: true,
+            is_nullable: true,
+        }),
     );
 }
 

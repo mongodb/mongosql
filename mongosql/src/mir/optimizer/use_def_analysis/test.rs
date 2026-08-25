@@ -264,9 +264,11 @@ mod field_uses {
                             *mir_field_access("bar", "y", true),
                             *mir_field_access("bar", "x", true),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: true,
                     })
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }),
             cache: SchemaCache::new(),
@@ -298,9 +300,11 @@ mod field_uses {
                             *mir_field_access_multi_part("bar", vec!["x", "y", "z"], true),
                             *mir_field_access_multi_part("bar", vec!["a", "b"], true),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: true,
                     })
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }),
             cache: SchemaCache::new(),
@@ -574,6 +578,7 @@ mod datasource_uses {
                         vec![mir_reference("y"), mir_reference("x"),],
                     ))
                 ],
+                force_mql_semantics: false,
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -636,7 +641,8 @@ mod substitute {
             source: mir_collection("foo", "bar"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
-                args: vec![mir_int_expr(42), mir_int_expr(55),],
+                args: vec![mir_int_expr(42), mir_int_expr(55)],
+                force_mql_semantics: false,
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -645,7 +651,8 @@ mod substitute {
             source: mir_collection("foo", "bar"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
-                args: vec![mir_reference("x"), mir_reference("y"),],
+                args: vec![mir_reference("x"), mir_reference("y")],
+                force_mql_semantics: false,
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -952,7 +959,8 @@ mod substitute {
             source: mir_collection("foo", "bar"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
-                args: vec![mir_int_expr(42), mir_int_expr(55),],
+                args: vec![mir_int_expr(42), mir_int_expr(55)],
+                force_mql_semantics: false,
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -961,7 +969,8 @@ mod substitute {
             source: mir_collection("foo", "bar"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
-                args: vec![mir_reference("x"), mir_reference("y"),],
+                args: vec![mir_reference("x"), mir_reference("y")],
+                force_mql_semantics: false,
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),

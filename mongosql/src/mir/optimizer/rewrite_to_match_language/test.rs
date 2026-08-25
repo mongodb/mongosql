@@ -220,6 +220,7 @@ test_rewrite_to_match_language_no_op!(
             valid_like(),   // rewritable
             invalid_expr(), // not rewritable - invalid expression
         ],
+        force_mql_semantics: false,
         is_nullable: true,
     }))
 );
@@ -244,6 +245,7 @@ test_rewrite_to_match_language_no_op!(
             valid_like(),   // rewritable
             invalid_expr(), // not rewritable - invalid expression
         ],
+        force_mql_semantics: false,
         is_nullable: true,
     }))
 );
@@ -432,6 +434,7 @@ test_rewrite_to_match_language!(
                 ],
             })
         ],
+        force_mql_semantics: false,
         is_nullable: false,
     }))
 );
@@ -461,6 +464,7 @@ test_rewrite_to_match_language!(
                 ],
             })
         ],
+        force_mql_semantics: false,
         is_nullable: false,
     }))
 );
@@ -478,6 +482,7 @@ test_rewrite_to_match_language_no_op!(
                 ],
             })
         ],
+        force_mql_semantics: false,
         is_nullable: false,
     }))
 );
@@ -490,6 +495,7 @@ test_rewrite_to_match_language_no_op!(
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Upper,
                 args: vec![*mir_field_access("foo", "str", true)],
+                force_mql_semantics: false,
                 is_nullable: true,
             }),
             Expression::Array(ArrayExpr {
@@ -499,6 +505,7 @@ test_rewrite_to_match_language_no_op!(
                 ],
             })
         ],
+        force_mql_semantics: false,
         is_nullable: false,
     }))
 );
@@ -1018,6 +1025,7 @@ test_rewrite_to_match_language_no_op!(
                 array: vec![Expression::Literal(LiteralValue::Integer(1))],
             }),
         ],
+        force_mql_semantics: false,
         is_nullable: false,
     }))
 );

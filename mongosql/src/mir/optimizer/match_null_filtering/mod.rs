@@ -99,8 +99,9 @@ impl MatchNullFilteringVisitor {
             _ => (
                 Some(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
-                    is_nullable: false,
                     args: optimized_exists_ops,
+                    force_mql_semantics: false,
+                    is_nullable: false,
                 })),
                 condition,
             ),

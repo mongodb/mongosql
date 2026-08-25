@@ -824,6 +824,7 @@ mod join {
                             *util::mir_field_access("t1", "a", true),
                             *util::mir_field_access("t2", "b", true),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: true,
                     }
                 )),
@@ -1198,6 +1199,7 @@ mod unwind {
                         *util::mir_field_access("foo", "arr", true),
                         mir::Expression::Literal(mir::LiteralValue::Integer(0)),
                     ],
+                    force_mql_semantics: false,
                     is_nullable: true,
                 }),
                 cache: mir::schema::SchemaCache::new(),

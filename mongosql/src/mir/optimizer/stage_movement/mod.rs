@@ -395,19 +395,22 @@ impl StageMovementVisitor<'_> {
             None => Some(filter_condition),
             Some(Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
-                is_nullable,
                 mut args,
+                force_mql_semantics,
+                is_nullable,
             })) => {
                 let filter_is_nullable = filter_condition.is_nullable();
                 args.push(filter_condition);
                 Some(Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
-                    is_nullable: is_nullable || filter_is_nullable,
                     args,
+                    force_mql_semantics,
+                    is_nullable: is_nullable || filter_is_nullable,
                 }))
             }
             Some(condition) => Some(Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
+                force_mql_semantics: false,
                 is_nullable: condition.is_nullable() || filter_condition.is_nullable(),
                 args: vec![condition, filter_condition],
             })),

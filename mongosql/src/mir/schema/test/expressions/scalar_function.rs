@@ -4400,6 +4400,7 @@ mod split {
             args: vec![Expression::Literal(LiteralValue::String(
                 "a-b-c".to_string()
             ))],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -4420,6 +4421,7 @@ mod split {
                 Expression::Literal(LiteralValue::String("-".to_string())),
                 Expression::Literal(LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -4443,6 +4445,7 @@ mod split {
                 Expression::Literal(LiteralValue::String("-".to_string())),
                 Expression::Literal(LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         variables = map! {
@@ -4466,6 +4469,7 @@ mod split {
                 Expression::Literal(LiteralValue::Integer(5)),
                 Expression::Literal(LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -4489,6 +4493,7 @@ mod split {
                 }),
                 Expression::Literal(LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         variables = map! {
@@ -4512,6 +4517,7 @@ mod split {
                 Expression::Literal(LiteralValue::String("-".to_string())),
                 Expression::Literal(LiteralValue::String("1".to_string())),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -4535,6 +4541,7 @@ mod split {
                     is_nullable: false,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         variables = map! {
@@ -4555,6 +4562,7 @@ mod split {
                 Expression::Literal(LiteralValue::String("".to_string())),
                 Expression::Literal(LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -4798,6 +4806,7 @@ mod in_operator {
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::NotIn,
             args: vec![Expression::Literal(LiteralValue::Integer(1))],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -4823,6 +4832,7 @@ mod in_operator {
                     ],
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -4851,6 +4861,7 @@ mod in_operator {
                     ],
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         variables = map! {
@@ -4880,6 +4891,7 @@ mod in_operator {
                     ],
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         schema_env = map! {
@@ -4907,6 +4919,7 @@ mod in_operator {
                     ],
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
     );
@@ -4939,6 +4952,7 @@ mod in_operator {
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }),
         schema_env = map! {

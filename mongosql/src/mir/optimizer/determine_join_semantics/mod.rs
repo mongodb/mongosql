@@ -106,8 +106,9 @@ impl JoinSemanticsOptimizerVisitor<'_> {
         match condition {
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
-                is_nullable: _,
                 args,
+                force_mql_semantics: _,
+                is_nullable: _,
             }) if args.len() == 2 => {
                 let arg1: FieldPath = match args.first().unwrap().try_into() {
                     Ok(fp) => fp,

@@ -182,6 +182,7 @@ mod do_not_change {
                     *mir_field_access("local", "may_be_null", true),
                     *mir_field_access("foreign", "may_be_null", true),
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }
         )))
@@ -196,6 +197,7 @@ mod do_not_change {
                     *mir_field_access("local", "may_be_null", true),
                     *mir_field_access("local", "not_null", false),
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }
         )))

@@ -12,6 +12,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(2)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(3)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -40,6 +41,7 @@ test_algebrize!(
                     "{\"$numberInt\": \"1\"}".to_string()
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -72,6 +74,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -116,6 +119,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -156,6 +160,7 @@ test_algebrize!(
                 }),
                 mir::Expression::Literal(mir::LiteralValue::Integer(2)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -200,6 +205,7 @@ test_algebrize!(
                     "{\"$numberInt\": \"2\"}".to_string()
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -240,6 +246,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(2)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -284,6 +291,7 @@ test_algebrize!(
                     "{\"$numberInt\": \"2\"}".to_string()
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -328,6 +336,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -371,6 +380,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -416,6 +426,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -459,6 +470,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -502,6 +514,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -547,6 +560,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -590,6 +604,7 @@ test_algebrize!(
                 }),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -633,6 +648,7 @@ test_algebrize!(
                 }),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -678,6 +694,7 @@ test_algebrize!(
                     "{\"$numberInt\": \"1\"}".to_string()
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),

@@ -76,6 +76,7 @@ impl Visitor for ScalarFunctionApplicationVisitor {
             | ScalarFunction::Or
             | ScalarFunction::Concat => ScalarFunctionApplication {
                 function: node.function,
+                force_mql_semantics: node.force_mql_semantics,
                 is_nullable: node.is_nullable,
                 args: node
                     .args

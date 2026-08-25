@@ -11,6 +11,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
                 mir::Expression::Literal(mir::LiteralValue::String("hello world".into()))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -32,6 +33,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::String("world".into())),
                 mir::Expression::Literal(mir::LiteralValue::String("hello world".into()))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -53,6 +55,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::String(" ".into())),
                 mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into()))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),

@@ -11,9 +11,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -38,9 +40,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -65,9 +69,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -92,9 +98,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -119,9 +127,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -146,9 +156,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -173,9 +185,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -200,9 +214,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -227,9 +243,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -254,9 +272,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -281,9 +301,11 @@ test_algebrize!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }
-            ),],
+            )],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -327,6 +349,7 @@ test_algebrize!(
                     .unwrap()
                     .into(),
             ))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),

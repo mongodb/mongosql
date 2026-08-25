@@ -88,6 +88,7 @@ mod match_splitting_test {
                         vec![Literal(Integer(3)), Literal(Integer(3))],
                     ))
                 ],
+                force_mql_semantics: false,
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),

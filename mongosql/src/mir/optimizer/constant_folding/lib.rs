@@ -116,8 +116,9 @@ impl ConstantFoldExprVisitor<'_> {
         (
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: sf.function,
-                is_nullable: sf.is_nullable,
                 args: non_literals,
+                force_mql_semantics: sf.force_mql_semantics,
+                is_nullable: sf.is_nullable,
             }),
             changed,
         )
@@ -219,8 +220,9 @@ impl ConstantFoldExprVisitor<'_> {
         (
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: sf.function,
-                is_nullable: sf.is_nullable,
                 args,
+                force_mql_semantics: sf.force_mql_semantics,
+                is_nullable: sf.is_nullable,
             }),
             changed,
         )
@@ -335,21 +337,27 @@ impl ConstantFoldExprVisitor<'_> {
             "between scalar function must contain 3 args"
         );
         let (arg, bottom, top) = (sf.args[0].clone(), sf.args[1].clone(), sf.args[2].clone());
+        let arg_is_nullable = arg.is_nullable();
+        let bottom_is_nullable = bottom.is_nullable();
+        let top_is_nullable = top.is_nullable();
         let new_sf = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::And,
-            is_nullable: sf.is_nullable,
             args: vec![
                 Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Lte,
-                    is_nullable: sf.is_nullable,
                     args: vec![arg.clone(), top],
+                    force_mql_semantics: sf.force_mql_semantics,
+                    is_nullable: arg_is_nullable || top_is_nullable,
                 }),
                 Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Gte,
-                    is_nullable: sf.is_nullable,
                     args: vec![arg, bottom],
+                    force_mql_semantics: sf.force_mql_semantics,
+                    is_nullable: arg_is_nullable || bottom_is_nullable,
                 }),
             ],
+            force_mql_semantics: sf.force_mql_semantics,
+            is_nullable: sf.is_nullable,
         });
         let folded_expr = self.visit_expression(new_sf);
         if let Expression::Literal(_) = folded_expr {
@@ -570,8 +578,9 @@ impl ConstantFoldExprVisitor<'_> {
             (
                 Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Concat,
-                    is_nullable: sf.is_nullable,
                     args: result,
+                    force_mql_semantics: sf.force_mql_semantics,
+                    is_nullable: sf.is_nullable,
                 }),
                 changed,
             )
@@ -664,12 +673,13 @@ impl ConstantFoldExprVisitor<'_> {
                 return (
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::MergeObjects,
-                        is_nullable: sf.is_nullable,
                         args: [
                             vec![Expression::Document(result_doc.into())],
                             sf.args.into_iter().skip(i).collect(),
                         ]
                         .concat(),
+                        force_mql_semantics: sf.force_mql_semantics,
+                        is_nullable: sf.is_nullable,
                     }),
                     i > 1,
                 );

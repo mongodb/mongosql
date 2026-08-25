@@ -933,6 +933,7 @@ impl<'a> Algebrizer<'a> {
             } else {
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::MergeObjects,
+                    force_mql_semantics: false,
                     is_nullable: false,
                     args: datasource_refs
                 })
@@ -1946,8 +1947,9 @@ impl<'a> Algebrizer<'a> {
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function,
-                is_nullable,
                 args,
+                force_mql_semantics: false,
+                is_nullable,
             },
         ))
     }
@@ -1961,6 +1963,7 @@ impl<'a> Algebrizer<'a> {
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::from(u.op),
+                force_mql_semantics: false,
                 is_nullable: Self::args_are_nullable(&args),
                 args,
             },
@@ -2077,8 +2080,9 @@ impl<'a> Algebrizer<'a> {
         let scalar_function_expr =
             mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                 function,
-                is_nullable,
                 args,
+                force_mql_semantics: false,
+                is_nullable,
             });
 
         if let Some(div_result_target_type) = cast_div_result {
@@ -2189,8 +2193,9 @@ impl<'a> Algebrizer<'a> {
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function,
-                is_nullable,
                 args,
+                force_mql_semantics: false,
+                is_nullable,
             },
         ))
     }
@@ -2210,6 +2215,7 @@ impl<'a> Algebrizer<'a> {
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function,
+                force_mql_semantics: false,
                 is_nullable: Self::args_are_nullable(&args),
                 args,
             },
@@ -2241,8 +2247,9 @@ impl<'a> Algebrizer<'a> {
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function,
-                is_nullable,
                 args,
+                force_mql_semantics: false,
+                is_nullable,
             },
         ))
     }

@@ -104,6 +104,7 @@ fn select_and_order_by_column_not_in_select() {
                                 }),
                                 Expression::Literal(mir::LiteralValue::Integer(42)),
                             ],
+                            force_mql_semantics: false,
                             is_nullable: false,
                         }),
                     }.into())
@@ -149,6 +150,7 @@ fn select_and_order_by_column_not_in_select() {
                         }),
                         Expression::Literal(mir::LiteralValue::Integer(42)),
                     ],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }),
             }.into())

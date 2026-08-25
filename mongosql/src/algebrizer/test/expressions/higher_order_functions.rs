@@ -146,6 +146,7 @@ mod map {
                                 is_nullable: false,
                             }),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }
                 )),
@@ -192,6 +193,7 @@ mod map {
                                 is_nullable: false,
                             }),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }
                 )),
@@ -440,6 +442,7 @@ mod filter {
                                 is_nullable: false,
                             }),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }
                 )),
@@ -488,6 +491,7 @@ mod filter {
                                 is_nullable: false,
                             }),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }
                 )),
@@ -807,6 +811,7 @@ mod reduce {
                             }),
                             mir::Expression::Literal(mir::LiteralValue::Null),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: true,
                     }
                 )),
@@ -875,13 +880,16 @@ mod reduce {
                                                     is_nullable: true,
                                                 }),
                                             ],
+                                            force_mql_semantics: false,
                                             is_nullable: true,
                                         }
                                     )
                                 ],
+                                force_mql_semantics: false,
                                 is_nullable: true,
                             })
                         ],
+                        force_mql_semantics: false,
                         is_nullable: true,
                     }
                 )),
@@ -975,13 +983,16 @@ mod reduce {
                                                     is_nullable: false,
                                                 }),
                                             ],
+                                            force_mql_semantics: false,
                                             is_nullable: false,
                                         }
                                     )
                                 ],
+                                force_mql_semantics: false,
                                 is_nullable: false,
                             })
                         ],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }
                 )),
@@ -1218,6 +1229,7 @@ mod shadowing_variables {
                                 is_nullable: false,
                             }),
                         ],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }
                 )),
@@ -1329,6 +1341,7 @@ mod shadowing_variables {
                                                                                 }),
                                                                                 mir::Expression::Literal(mir::LiteralValue::String("0".to_string())),
                                                                             ],
+                                                                            force_mql_semantics: false,
                                                                             is_nullable: false,
                                                                         })),
                                                                         to: mir::Type::Int32,
@@ -1341,6 +1354,7 @@ mod shadowing_variables {
                                                                         is_nullable: false,
                                                                     }),
                                                                 ],
+                                                                force_mql_semantics: false,
                                                                 is_nullable: false,
                                                             }),
                                                             mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -1368,19 +1382,23 @@ mod shadowing_variables {
                                                                                     is_nullable: false,
                                                                                 }),
                                                                             ],
+                                                                            force_mql_semantics: false,
                                                                             is_nullable: false,
                                                                         })),
                                                                         is_nullable: false,
                                                                     })),
                                                                 ],
+                                                                force_mql_semantics: false,
                                                                 is_nullable: false,
                                                             }),
                                                         ],
+                                                        force_mql_semantics: false,
                                                         is_nullable: false,
                                                     })),
                                                     is_nullable: false,
                                                 }))
                                             ],
+                                            force_mql_semantics: false,
                                             is_nullable: false,
                                         }),
                                         mir::Expression::Variable(mir::Variable {
@@ -1388,6 +1406,7 @@ mod shadowing_variables {
                                             is_nullable: false,
                                         })
                                     ],
+                                    force_mql_semantics: false,
                                     is_nullable: false,
                                 }),
                                 mir::Expression::Variable(mir::Variable {
@@ -1395,6 +1414,7 @@ mod shadowing_variables {
                                     is_nullable: false,
                                 }),
                             ],
+                            force_mql_semantics: false,
                             is_nullable: false,
                         }),
                         mir::Expression::Cast(mir::CastExpr {
@@ -1428,6 +1448,7 @@ mod shadowing_variables {
                                                 is_nullable: false,
                                             }),
                                         ],
+                                        force_mql_semantics: false,
                                         is_nullable: false,
                                     })),
                                     to: mir::Type::String,
@@ -1443,6 +1464,7 @@ mod shadowing_variables {
                             is_nullable: false,
                         }),
                     ],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 })),
                 is_nullable: false,

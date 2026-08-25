@@ -456,6 +456,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Long(1)),
                 Expression::Literal(LiteralValue::Long(-1)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -506,6 +507,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(1)),
                 Expression::Reference(("a", 0u16).into()),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -616,6 +618,7 @@ test_constant_fold!(
                 )),
                 Expression::Reference(("a", 0u16).into()),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         })],
         cache: SchemaCache::new(),
@@ -861,6 +864,7 @@ test_constant_fold!(
                         Expression::Literal(LiteralValue::Long(-2)),
                         Expression::Literal(LiteralValue::Long(2))
                     ],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }),
                 Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1214,6 +1218,7 @@ test_constant_fold!(
                 )),
                 Expression::Literal(LiteralValue::Boolean(true)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1230,6 +1235,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(0)),
                 Expression::Literal(LiteralValue::Integer(3)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1247,6 +1253,7 @@ test_constant_fold!(
                         Expression::Literal(LiteralValue::Integer(1)),
                         Expression::Literal(LiteralValue::Integer(-1)),
                     ],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }),
                 Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1257,6 +1264,7 @@ test_constant_fold!(
                     ],
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1483,6 +1491,7 @@ test_constant_fold!(
                     ],
                 ))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1506,6 +1515,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::String("ááá🇷🇺ááá".to_string())),
                 Expression::Literal(LiteralValue::Integer(6)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1530,6 +1540,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(6)),
                 Expression::Literal(LiteralValue::Integer(-1)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1552,6 +1563,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(-6)),
                 Expression::Literal(LiteralValue::Integer(5)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1576,6 +1588,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(-6)),
                 Expression::Literal(LiteralValue::Integer(11)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1771,9 +1784,10 @@ test_constant_fold!(
             function: ScalarFunction::CharLength,
             args: vec![Expression::Literal(LiteralValue::String(
                 "ááá🇷🇺ááá".to_string()
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
-        }),],
+        })],
         cache: SchemaCache::new(),
     }),
 );
@@ -1810,9 +1824,10 @@ test_constant_fold!(
             function: ScalarFunction::OctetLength,
             args: vec![Expression::Literal(LiteralValue::String(
                 "ááá🇷🇺ááá".to_string()
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
-        }),],
+        })],
         cache: SchemaCache::new(),
     }),
 );
@@ -1849,7 +1864,8 @@ test_constant_fold!(
             function: ScalarFunction::BitLength,
             args: vec![Expression::Literal(LiteralValue::String(
                 "ááá🇷🇺ááá".to_string()
-            )),],
+            ))],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1874,6 +1890,7 @@ test_constant_fold!(
                 ]
                 .into()
             )],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1892,6 +1909,7 @@ test_constant_fold!(
         array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Size,
             args: vec![Expression::Array(vec![].into())],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -1982,6 +2000,7 @@ test_constant_fold!(
                     "c".into() => Expression::Literal(LiteralValue::Integer(2))}
                 .into())
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2000,6 +2019,7 @@ test_constant_fold_no_op!(
                 .into()),
                 Expression::Reference(("a", 0u16).into())
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2038,6 +2058,7 @@ test_constant_fold!(
                 .into()),
                 Expression::Reference(("a", 0u16).into())
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2058,6 +2079,7 @@ test_constant_fold!(
                 .into()),
                 Expression::Reference(("a", 0u16).into())
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2167,6 +2189,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(1)),
                 Expression::Literal(LiteralValue::Integer(1))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2196,6 +2219,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Null),
                 Expression::Literal(LiteralValue::Integer(1))
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         })],
         cache: SchemaCache::new(),
@@ -2230,6 +2254,7 @@ test_constant_fold!(
                 ),
                 Expression::Literal(LiteralValue::Integer(-2))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2264,6 +2289,7 @@ test_constant_fold!(
                 ),
                 Expression::Literal(LiteralValue::Integer(2))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2295,6 +2321,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(-2)),
                 Expression::Literal(LiteralValue::Integer(1))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2330,6 +2357,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(-5)),
                 Expression::Literal(LiteralValue::Integer(2))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2365,6 +2393,7 @@ test_constant_fold!(
                 ),
                 Expression::Literal(LiteralValue::Integer(-5))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2400,6 +2429,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(1)),
                 Expression::Literal(LiteralValue::Integer(5))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2435,6 +2465,7 @@ test_constant_fold!(
                 ),
                 Expression::Literal(LiteralValue::Integer(5))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2464,6 +2495,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(5)),
                 Expression::Literal(LiteralValue::Integer(1))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         })],
         cache: SchemaCache::new(),
@@ -2493,6 +2525,7 @@ test_constant_fold!(
                 Expression::Literal(LiteralValue::Integer(5)),
                 Expression::Literal(LiteralValue::Integer(-1))
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),],
         cache: SchemaCache::new(),

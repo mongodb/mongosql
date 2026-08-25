@@ -10,10 +10,11 @@ test_algebrize!(
             is_nullable: false,
             date_part: mir::DatePart::Quarter,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(5),),
+                mir::Expression::Literal(mir::LiteralValue::Integer(5)),
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }),
             ],
@@ -46,14 +47,16 @@ test_algebrize!(
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }),
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }),
-                mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()),)
+                mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()))
             ],
         }
     )),
@@ -89,9 +92,10 @@ test_algebrize!(
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
+                    force_mql_semantics: false,
                     is_nullable: false,
                 }),
-                mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()),)
+                mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()))
             ],
         }
     )),

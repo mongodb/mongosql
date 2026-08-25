@@ -42,7 +42,6 @@ tests:
   - description: ARRAY_REMOVE correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_REMOVE(a, 1) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
-    skip_reason: "SQL-3387: Implement ARRAY_REMOVE"
     result:
       - { '': { "a": [], "v": [] } }
       - { '': { "a": [1], "v": [] } }
@@ -54,7 +53,6 @@ tests:
   - description: ARRAY_REMOVE remove NULL correctness test
     current_db: spec_query_array_functions
     query: "SELECT VALUE { 'a': a, 'v': ARRAY_REMOVE(a, NULL) } FROM `array_default_numeric_data` AS `array_default_numeric_data`"
-    skip_reason: "SQL-3387: Implement ARRAY_REMOVE"
     result:
       - { '': { "a": [], "v": [] } }
       - { '': { "a": [1], "v": [1] } }

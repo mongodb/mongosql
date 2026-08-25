@@ -255,9 +255,10 @@ impl From<mir::DateFunction> for air::DateFunction {
 
 pub(crate) fn scalar_function_to_scalar_function_type(
     is_nullable: bool,
+    force_mql_semantics: bool,
     function: mir::ScalarFunction,
 ) -> ScalarFunctionType {
-    if is_nullable {
+    if is_nullable && !force_mql_semantics {
         ScalarFunctionType::from(function)
     } else {
         match function {

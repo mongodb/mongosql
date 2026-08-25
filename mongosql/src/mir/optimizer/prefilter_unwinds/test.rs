@@ -303,6 +303,7 @@ test_prefilter_no_op! {
                     Expression::ScalarFunction( ScalarFunctionApplication::new(ScalarFunction::Add,vec![ mir_field_access("foo", "bar"), Expression::Literal(Integer(1)) ],) ),
                     Expression::Literal( Integer(42), )
                 ],
+                force_mql_semantics: false,
                 is_nullable: false,
             }),
         cache: SchemaCache::new(),
@@ -327,6 +328,7 @@ test_prefilter_no_op! {
                     Expression::ScalarFunction( ScalarFunctionApplication{
                         function: ScalarFunction::Add,
                         args: vec![mir_field_access("foo", "idx")],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }),
                     Expression::Literal(
@@ -336,6 +338,7 @@ test_prefilter_no_op! {
                         Integer(46),
                     )
                 ],
+                force_mql_semantics: false,
                 is_nullable: false,
             }),
         cache: SchemaCache::new(),

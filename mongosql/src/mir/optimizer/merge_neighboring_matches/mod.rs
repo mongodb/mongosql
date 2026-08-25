@@ -143,6 +143,7 @@ impl Visitor for MergeNeighboringMatchesVisitor {
                         condition: Expression::ScalarFunction(ScalarFunctionApplication {
                             function: ScalarFunction::And,
                             args: conditions,
+                            force_mql_semantics: false,
                             is_nullable,
                         }),
                         cache: f.cache.clone(),

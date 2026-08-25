@@ -591,11 +591,11 @@ test_algebrize!(
                 mir::Expression::ScalarFunction(
                     mir::ScalarFunctionApplication {
                         function: mir::ScalarFunction::MergeObjects,
-                        args:
-                            vec![
-                                mir::Expression::Reference(Key::bot(1u16).into()),
-                                mir::Expression::Reference(("bar", 1u16).into()),
-                            ],
+                        args: vec![
+                            mir::Expression::Reference(Key::bot(1u16).into()),
+                            mir::Expression::Reference(("bar", 1u16).into()),
+                        ],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }
                 )
@@ -686,8 +686,11 @@ test_algebrize!(
                 mir::Expression::ScalarFunction(
                     mir::ScalarFunctionApplication {
                         function: mir::ScalarFunction::MergeObjects,
-                        args: vec![mir::Expression::Reference(("bar1", 1u16).into()),
-                                   mir::Expression::Reference(("bar2", 1u16).into())],
+                        args: vec![
+                            mir::Expression::Reference(("bar1", 1u16).into()),
+                            mir::Expression::Reference(("bar2", 1u16).into())
+                        ],
+                        force_mql_semantics: false,
                         is_nullable: false,
                     }
                 )
@@ -781,6 +784,7 @@ test_algebrize!(
                         is_nullable: false,
                     })
                 ],
+                force_mql_semantics: false,
                 is_nullable: false,
             })
         ),

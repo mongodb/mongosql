@@ -52,6 +52,7 @@ fn mir_field_access_complex_expr() -> mir::OptionallyAliasedExpr {
                 }),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }),
     })

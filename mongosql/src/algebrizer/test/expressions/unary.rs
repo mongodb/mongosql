@@ -7,7 +7,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Neg,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -41,7 +42,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Pos,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -75,7 +77,8 @@ test_algebrize!(
     expected = Ok(mir::Expression::ScalarFunction(
         mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Neg,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42)),],
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42))],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),

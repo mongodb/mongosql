@@ -11,6 +11,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(42)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -50,6 +51,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(42)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -89,6 +91,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Double(42.5)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(42)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -111,6 +114,7 @@ test_algebrize!(
                     mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                     mir::Expression::Literal(mir::LiteralValue::Integer(42))
                 ],
+                force_mql_semantics: false,
                 is_nullable: true
             }
         )),
@@ -138,6 +142,7 @@ test_algebrize!(
                     mir::Expression::Literal(mir::LiteralValue::Long(42)),
                     mir::Expression::Literal(mir::LiteralValue::Integer(42))
                 ],
+                force_mql_semantics: false,
                 is_nullable: true
             }
         )),
@@ -210,6 +215,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(42)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -249,6 +255,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::String("42".into())),
                 mir::Expression::Literal(mir::LiteralValue::String("42".into())),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -288,6 +295,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -309,6 +317,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -330,6 +339,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -351,6 +361,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -372,6 +383,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -397,6 +409,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -422,6 +435,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Double(4.0)),
                 mir::Expression::Literal(mir::LiteralValue::Double(2.0)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -447,6 +461,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(2)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(3)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -472,6 +487,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -497,6 +513,7 @@ test_algebrize!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(7)),
                 mir::Expression::Literal(mir::LiteralValue::Integer(6)),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -526,6 +543,7 @@ test_algebrize!(
                     "{\"$numberInt\": \"1\"}".to_string()
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -555,6 +573,7 @@ test_algebrize!(
                     "{\"$numberInt\": \"1\"}".to_string()
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: false,
         }
     )),
@@ -584,6 +603,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -623,6 +643,7 @@ test_algebrize!(
                     is_nullable: true,
                 }),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -660,6 +681,7 @@ test_algebrize!(
                 }),
                 mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -699,6 +721,7 @@ test_algebrize!(
                     "{\"$numberInt\": \"1\"}".to_string()
                 )),
             ],
+            force_mql_semantics: false,
             is_nullable: true,
         }
     )),
@@ -744,6 +767,7 @@ mod in_operator {
                         ],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }
         )),
@@ -789,6 +813,7 @@ mod in_operator {
                         ],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }
         )),
@@ -830,6 +855,7 @@ mod in_operator {
                         array: vec![mir::Expression::Literal(mir::LiteralValue::Boolean(true)),],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }
         )),
@@ -869,6 +895,7 @@ mod in_operator {
                         ],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: false,
             }
         )),
@@ -927,6 +954,7 @@ mod in_operator {
                         ],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }
         )),
@@ -976,6 +1004,7 @@ mod in_operator {
                         ],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }
         )),
@@ -1017,6 +1046,7 @@ mod in_operator {
                         ],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: false,
             }
         )),
@@ -1053,6 +1083,7 @@ mod in_operator {
                         ],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: true,
             }
         )),
@@ -1097,6 +1128,7 @@ mod in_operator {
                         ],
                     }),
                 ],
+                force_mql_semantics: false,
                 is_nullable: false,
             }
         )),
