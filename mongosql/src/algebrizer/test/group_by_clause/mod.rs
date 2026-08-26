@@ -105,7 +105,8 @@ lazy_static! {
                 subpath: "a".to_string()
             })),
             op: ast::BinaryOp::Add,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            force_mql_semantics: false,
         }),
         alias: "complex_expr".into(),
     });

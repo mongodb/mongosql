@@ -20,7 +20,12 @@ pub fn process_delimited_ident(value: &str) -> String {
 
 pub fn parse_position_func(e: Expression) -> Result<FunctionExpr, LalrpopError<'static>> {
     match e {
-        Expression::Binary(BinaryExpr { left, op, right }) => {
+        Expression::Binary(BinaryExpr {
+            left,
+            op,
+            right,
+            force_mql_semantics: _,
+        }) => {
             if op != BinaryOp::In {
                 Err(LalrpopError::from(
                     "invalid BinaryOp in call to Position()".to_string(),

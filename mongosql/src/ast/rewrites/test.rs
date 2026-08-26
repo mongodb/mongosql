@@ -1490,6 +1490,32 @@ mod higher_order_functions {
         input = "SELECT ARRAY_REMOVE(a, x)",
     );
 
+    test_rewrite_ast!(
+        array_remove_ast,
+        pass = HigherOrderFunctionsRewritePass,
+        expected = Ok(make_select_query(ast::Expression::HigherOrderFunction(
+            ast::HigherOrderFunctionExpr::Filter(ast::FilterExpr {
+                array: Box::new(ast::Expression::Identifier("a".into())),
+                f: Box::new(ast::FunctionArgument::Expr(ast::Expression::Binary(
+                    ast::BinaryExpr {
+                        left: Box::new(ast::Expression::Identifier("this".into())),
+                        op: ast::BinaryOp::Comparison(ast::ComparisonOp::Neq),
+                        right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+                        force_mql_semantics: true,
+                    }
+                ))),
+            })
+        ))),
+        input = make_select_query(ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::ArrayRemove,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Identifier("a".into()),
+                ast::Expression::Literal(ast::Literal::Integer(1)),
+            ]),
+            set_quantifier: None,
+        })),
+    );
+
     test_rewrite!(
         array_remove_invalid,
         pass = HigherOrderFunctionsRewritePass,
@@ -1953,6 +1979,7 @@ mod higher_order_functions {
                         op: ast::BinaryOp::Add,
                         left: Box::new(ast::Expression::Identifier(("value", true).into())),
                         right: Box::new(ast::Expression::Identifier("this".into())),
+                        force_mql_semantics: false,
                     }
                 ))),
             })
@@ -1980,6 +2007,7 @@ mod higher_order_functions {
                         op: ast::BinaryOp::Sub,
                         left: Box::new(ast::Expression::Identifier(("value", true).into())),
                         right: Box::new(ast::Expression::Identifier("this".into())),
+                        force_mql_semantics: false,
                     }
                 ))),
             })
@@ -2007,6 +2035,7 @@ mod higher_order_functions {
                         op: ast::BinaryOp::Div,
                         left: Box::new(ast::Expression::Identifier(("value", true).into())),
                         right: Box::new(ast::Expression::Identifier("this".into())),
+                        force_mql_semantics: false,
                     }
                 ))),
             })

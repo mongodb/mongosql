@@ -510,7 +510,7 @@ Tuple: Expression = {
 }
 
 BinaryTier<Op,NextTier>: Box<Expression> = {
-  <left:BinaryTier<Op,NextTier>> <op:Op> <right:NextTier> => Box::new(Expression::Binary(BinaryExpr{<>})),
+  <left:BinaryTier<Op,NextTier>> <op:Op> <right:NextTier> => Box::new(Expression::Binary(BinaryExpr{<>, force_mql_semantics: false})),
   NextTier
 };
 
@@ -527,6 +527,7 @@ ComparisonTier<Expr, NextTier>: Box<Expression> = {
         left,
         op: BinaryOp::Comparison(op),
         right,
+        force_mql_semantics: false,
     })),
   <expr:ComparisonTier<Expr, NextTier>> <op:CompareOp> <quantifier:SubqueryQuantifier> <subquery:SubqueryExpr>
      => Box::new(Expression::SubqueryComparison(SubqueryComparisonExpr{<>})),

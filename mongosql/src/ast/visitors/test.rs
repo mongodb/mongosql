@@ -53,7 +53,9 @@ mod are_literal_tests {
                     left: Box::new(Literal(Integer(5))),
                     op: BinaryOp::Add,
                     right: Box::new(Literal(Integer(6))),
+                    force_mql_semantics: false,
                 })),
+                force_mql_semantics: false,
             }),
             Binary(BinaryExpr {
                 left: Box::new(Literal(Integer(4))),
@@ -65,7 +67,9 @@ mod are_literal_tests {
                         op: UnaryOp::Neg,
                         expr: Box::new(Literal(Integer(1)))
                     })),
+                    force_mql_semantics: false,
                 })),
+                force_mql_semantics: false,
             }),
         ],
     );
@@ -81,7 +85,9 @@ mod are_literal_tests {
                     left: Box::new(Literal(Integer(5))),
                     op: BinaryOp::Add,
                     right: Box::new(Identifier("1".into())),
+                    force_mql_semantics: false,
                 })),
+                force_mql_semantics: false,
             }),
             Binary(BinaryExpr {
                 left: Box::new(Literal(Integer(4))),
@@ -93,7 +99,9 @@ mod are_literal_tests {
                         op: UnaryOp::Neg,
                         expr: Box::new(Literal(Integer(1)))
                     })),
+                    force_mql_semantics: false,
                 })),
+                force_mql_semantics: false,
             }),
         ],
     );
@@ -184,35 +192,36 @@ mod subpath_field_tests {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
                     OptionallyAliasedExpr::Unaliased(Subpath(SubpathExpr {
-                        expr: Box::new(Identifier("a".into(),)),
+                        expr: Box::new(Identifier("a".into())),
                         subpath: "b".to_string(),
-                    },),),
-                ),]),
+                    })),
+                )]),
             },
             from_clause: Some(Datasource::Join(JoinSource {
                 join_type: JoinType::Cross,
                 left: Box::new(Datasource::Collection(CollectionSource {
                     database: None,
                     collection: "employees".to_string(),
-                    alias: Some("e".to_string(),),
-                },)),
+                    alias: Some("e".to_string()),
+                })),
                 right: Box::new(Datasource::Collection(CollectionSource {
                     database: None,
                     collection: "departments".to_string(),
-                    alias: Some("d".to_string(),),
-                },)),
+                    alias: Some("d".to_string()),
+                })),
                 condition: Some(Binary(BinaryExpr {
                     left: Box::from(Subpath(SubpathExpr {
-                        expr: Box::new(Identifier("c".into(),)),
+                        expr: Box::new(Identifier("c".into())),
                         subpath: "d".to_string(),
-                    },)),
-                    op: BinaryOp::Comparison(ComparisonOp::Eq,),
+                    })),
+                    op: BinaryOp::Comparison(ComparisonOp::Eq),
                     right: Box::from(Subpath(SubpathExpr {
-                        expr: Box::new(Identifier("e".into(),)),
+                        expr: Box::new(Identifier("e".into())),
                         subpath: "f".to_string(),
-                    },)),
-                },),),
-            },),),
+                    })),
+                    force_mql_semantics: false,
+                })),
+            })),
             where_clause: None,
             group_by_clause: None,
             order_by_clause: None,

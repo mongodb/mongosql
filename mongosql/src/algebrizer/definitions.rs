@@ -2074,6 +2074,7 @@ impl<'a> Algebrizer<'a> {
         let args = vec![left, right];
         let function = mir::ScalarFunction::try_from(b.op)?;
         let is_nullable = Self::determine_scalar_function_nullability(function, &args);
+        let force_mql_semantics = b.force_mql_semantics;
 
         // here we don't use the new constructor because we're setting the
         // calculated nullability
@@ -2081,7 +2082,7 @@ impl<'a> Algebrizer<'a> {
             mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                 function,
                 args,
-                force_mql_semantics: false,
+                force_mql_semantics,
                 is_nullable,
             });
 

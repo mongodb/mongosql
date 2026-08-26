@@ -25,9 +25,12 @@ impl Visitor for SingleTupleRewriteVisitor {
             // unwrapped, even if it contains only one element. Walk the LHS and each tuple
             // element individually so nested single-element tuples inside them are still
             // collapsed, but preserve the outer tuple structure on the RHS.
-            Expression::Binary(BinaryExpr { left, op, right })
-                if op == BinaryOp::In || op == BinaryOp::NotIn =>
-            {
+            Expression::Binary(BinaryExpr {
+                left,
+                op,
+                right,
+                force_mql_semantics,
+            }) if op == BinaryOp::In || op == BinaryOp::NotIn => {
                 let left = Box::new(self.visit_expression(*left));
                 let right = Box::new(match *right {
                     Expression::Tuple(elems) => Expression::Tuple(
@@ -38,7 +41,12 @@ impl Visitor for SingleTupleRewriteVisitor {
                     ),
                     other => self.visit_expression(other),
                 });
-                Expression::Binary(BinaryExpr { left, op, right })
+                Expression::Binary(BinaryExpr {
+                    left,
+                    op,
+                    right,
+                    force_mql_semantics,
+                })
             }
             Expression::Tuple(mut t) if t.len() == 1 => self.visit_expression(t.pop().unwrap()),
             _ => e.walk(self),

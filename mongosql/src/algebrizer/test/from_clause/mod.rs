@@ -808,6 +808,7 @@ test_algebrize!(
             left: Box::new(ast::Expression::Identifier("a".into())),
             op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
             right: Box::new(ast::Expression::Identifier("b".into())),
+            force_mql_semantics: false,
         }))
     })),
 );

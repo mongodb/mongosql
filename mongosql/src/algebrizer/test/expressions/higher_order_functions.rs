@@ -163,6 +163,7 @@ mod map {
                         left: Box::new(ast::Expression::Identifier("this".into())),
                         op: ast::BinaryOp::Add,
                         right: Box::new(ast::Expression::Identifier("this".into())),
+                        force_mql_semantics: false,
                     }
                 ))),
             })),
@@ -213,6 +214,7 @@ mod map {
                             expr: Box::new(ast::Expression::Identifier("foo".into())),
                             subpath: "this".to_string(),
                         })),
+                        force_mql_semantics: false,
                     }
                 ))),
             })),
@@ -281,6 +283,7 @@ mod map {
                             expr: Box::new(ast::Expression::Identifier("foo".into())),
                             subpath: "this".to_string(),
                         })),
+                        force_mql_semantics: false,
                     }
                 ))),
             })),
@@ -459,6 +462,7 @@ mod filter {
                         left: Box::new(ast::Expression::Identifier("this".into())),
                         op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
                         right: Box::new(ast::Expression::Identifier("this".into())),
+                        force_mql_semantics: false,
                     }
                 ))),
             }
@@ -511,6 +515,7 @@ mod filter {
                             expr: Box::new(ast::Expression::Identifier("foo".into())),
                             subpath: "this".to_string(),
                         })),
+                        force_mql_semantics: false,
                     }
                 ))),
             }
@@ -581,6 +586,7 @@ mod filter {
                             expr: Box::new(ast::Expression::Identifier("foo".into())),
                             subpath: "this".to_string(),
                         })),
+                        force_mql_semantics: false,
                     }
                 ))),
             }
@@ -829,6 +835,7 @@ mod reduce {
                         left: Box::new(ast::Expression::Identifier("value".into())),
                         op: ast::BinaryOp::Add,
                         right: Box::new(ast::Expression::Literal(ast::Literal::Null)),
+                        force_mql_semantics: false,
                     }
                 ))),
             }
@@ -916,8 +923,11 @@ mod reduce {
                                 left: Box::new(ast::Expression::Identifier("this".into())),
                                 op: ast::BinaryOp::Add,
                                 right: Box::new(ast::Expression::Identifier("value".into())),
+                                force_mql_semantics: false,
                             })),
+                            force_mql_semantics: false,
                         })),
+                        force_mql_semantics: false,
                     }
                 ))),
             }
@@ -1022,8 +1032,11 @@ mod reduce {
                                     expr: Box::new(ast::Expression::Identifier("foo".into())),
                                     subpath: "value".to_string(),
                                 })),
+                                force_mql_semantics: false,
                             })),
+                            force_mql_semantics: false,
                         })),
+                        force_mql_semantics: false,
                     }
                 ))),
             }
@@ -1127,6 +1140,7 @@ mod reduce {
                             expr: Box::new(ast::Expression::Identifier("foo".into())),
                             subpath: "this".to_string(),
                         })),
+                        force_mql_semantics: false,
                     }
                 ))),
             }
@@ -1247,6 +1261,7 @@ mod shadowing_variables {
                         left: Box::new(ast::Expression::Identifier("this".into())),
                         op: ast::BinaryOp::Add,
                         right: Box::new(ast::Expression::Identifier("value".into())),
+                        force_mql_semantics: false,
                     }
                 ))),
             }
@@ -1502,6 +1517,7 @@ mod shadowing_variables {
                                                                             "0".to_string()
                                                                         )
                                                                     ),
+                                                                    force_mql_semantics: false,
                                                                 }
                                                             )),
                                                             to: ast::Type::Int32,
@@ -1516,6 +1532,7 @@ mod shadowing_variables {
                                                         right: Box::new(ast::Expression::Identifier(
                                                             "value".into()
                                                         )),
+                                                        force_mql_semantics: false,
                                                     })),
                                                     op: ast::BinaryOp::Add,
                                                     right: Box::new(ast::Expression::Function(ast::FunctionExpr {
@@ -1545,12 +1562,14 @@ mod shadowing_variables {
                                                                                         ast::Literal::Boolean(false)
                                                                                     ).into()),
                                                                                 })),
+                                                                                force_mql_semantics: false,
                                                                             }
                                                                         ))),
                                                                     }))
                                                         ]),
                                                         set_quantifier: None,
                                                     })),
+                                                    force_mql_semantics: false,
                                                 }))),
                                             }))
                                     ]),
@@ -1558,9 +1577,11 @@ mod shadowing_variables {
                                 })),
                                 op: ast::BinaryOp::Add,
                                 right: Box::new(ast::Expression::Identifier("this".into())),
+                                force_mql_semantics: false,
                             })),
                             op: ast::BinaryOp::Add,
-                            right: Box::new(ast::Expression::Identifier("value".into()))
+                            right: Box::new(ast::Expression::Identifier("value".into())),
+                            force_mql_semantics: false,
                         }
                     )),
                     op: ast::BinaryOp::Add,
@@ -1597,6 +1618,7 @@ mod shadowing_variables {
                                                     ast::Literal::Integer(0)
                                                 ).into()),
                                             })),
+                                            force_mql_semantics: false,
                                         }
                                     )),
                                     to: ast::Type::String,
@@ -1609,6 +1631,7 @@ mod shadowing_variables {
                         on_null: Some(ast::Expression::Literal(ast::Literal::Integer(0)).into()),
                         on_error: Some(ast::Expression::Literal(ast::Literal::Integer(0)).into()),
                     })),
+                    force_mql_semantics: false,
                 }))),
             }
         )),

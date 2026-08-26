@@ -692,6 +692,7 @@ mod arbitrary {
                 left: Box::new(Expression::arbitrary(g)),
                 op,
                 right,
+                force_mql_semantics: false,
             }
         }
     }

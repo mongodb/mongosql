@@ -683,7 +683,8 @@ mod operator {
                     when: Box::new(Expression::Binary(BinaryExpr {
                         left: Box::new(Expression::Identifier("a".into())),
                         op: BinaryOp::Comparison(ComparisonOp::Eq),
-                        right: Box::new(Expression::Identifier("b".into()))
+                        right: Box::new(Expression::Identifier("b".into())),
+                        force_mql_semantics: false,
                     })),
                     then: Box::new(Expression::Identifier("a".into()))
                 },
@@ -691,7 +692,8 @@ mod operator {
                     when: Box::new(Expression::Binary(BinaryExpr {
                         left: Box::new(Expression::Identifier("c".into())),
                         op: BinaryOp::Comparison(ComparisonOp::Eq),
-                        right: Box::new(Expression::Identifier("d".into()))
+                        right: Box::new(Expression::Identifier("d".into())),
+                        force_mql_semantics: false,
                     })),
                     then: Box::new(Expression::Identifier("c".into()))
                 }
@@ -710,7 +712,8 @@ mod operator {
                 when: Box::new(Expression::Binary(BinaryExpr {
                     left: Box::new(Expression::Identifier("a".into())),
                     op: BinaryOp::Comparison(ComparisonOp::Eq),
-                    right: Box::new(Expression::Identifier("b".into()))
+                    right: Box::new(Expression::Identifier("b".into())),
+                    force_mql_semantics: false,
                 })),
                 then: Box::new(Expression::Identifier("a".into()))
             }],
@@ -730,7 +733,8 @@ mod operator_precedence {
             arg: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::Comparison(ComparisonOp::Eq),
-                right: Box::new(Expression::Identifier("b".into()))
+                right: Box::new(Expression::Identifier("b".into())),
+                force_mql_semantics: false,
             })),
             min: Box::new(Expression::Identifier("c".into())),
             max: Box::new(Expression::Identifier("d".into()))
@@ -751,7 +755,8 @@ mod operator_precedence {
             right: Box::new(Expression::Tuple(vec![
                 Expression::Identifier("x".into()),
                 Expression::Identifier("y".into())
-            ]))
+            ])),
+            force_mql_semantics: false,
         }),
         input = "a BETWEEN b AND c IN (x, y)",
     );
@@ -767,7 +772,8 @@ mod operator_precedence {
                 right: Box::new(Expression::Tuple(vec![
                     Expression::Identifier("y".into()),
                     Expression::Identifier("z".into()),
-                ]))
+                ])),
+                force_mql_semantics: false,
             })),
             escape: None
         }),
@@ -810,7 +816,8 @@ mod operator_precedence {
                 expr: Box::new(Expression::Identifier("a".into())),
             })),
             op: BinaryOp::And,
-            right: Box::new(Expression::Identifier("b".into()))
+            right: Box::new(Expression::Identifier("b".into())),
+            force_mql_semantics: false,
         }),
         input = "NOT a AND b",
     );
@@ -822,10 +829,12 @@ mod operator_precedence {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::And,
-                right: Box::new(Expression::Identifier("b".into()))
+                right: Box::new(Expression::Identifier("b".into())),
+                force_mql_semantics: false,
             })),
             op: BinaryOp::Or,
-            right: Box::new(Expression::Identifier("c".into()))
+            right: Box::new(Expression::Identifier("c".into())),
+            force_mql_semantics: false,
         }),
         input = "a AND b OR c",
     );
@@ -838,7 +847,8 @@ mod operator_precedence {
             expr: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::Mul,
-                right: Box::new(Expression::Identifier("b".into()))
+                right: Box::new(Expression::Identifier("b".into())),
+                force_mql_semantics: false,
             }))
         }),
         input = "NOT a * b",
@@ -853,7 +863,8 @@ mod operator_precedence {
             right: Box::new(Expression::Unary(UnaryExpr {
                 op: UnaryOp::Neg,
                 expr: Box::new(Expression::Identifier("a".into()))
-            }))
+            })),
+            force_mql_semantics: false,
         }),
         input = "b- -a",
     );
@@ -867,7 +878,8 @@ mod operator_precedence {
                 expr: Box::new(Expression::Identifier("a".into()))
             })),
             op: BinaryOp::Div,
-            right: Box::new(Expression::Identifier("b".into()))
+            right: Box::new(Expression::Identifier("b".into())),
+            force_mql_semantics: false,
         }),
         input = "-a/b",
     );
@@ -879,14 +891,17 @@ mod operator_precedence {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::Mul,
-                right: Box::new(Expression::Identifier("b".into()))
+                right: Box::new(Expression::Identifier("b".into())),
+                force_mql_semantics: false,
             })),
             op: BinaryOp::Add,
             right: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("x".into())),
                 op: BinaryOp::Mul,
-                right: Box::new(Expression::Identifier("y".into()))
-            }))
+                right: Box::new(Expression::Identifier("y".into())),
+                force_mql_semantics: false,
+            })),
+            force_mql_semantics: false,
         }),
         input = "a*b+x*y",
     );
@@ -898,14 +913,17 @@ mod operator_precedence {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::Div,
-                right: Box::new(Expression::Identifier("b".into()))
+                right: Box::new(Expression::Identifier("b".into())),
+                force_mql_semantics: false,
             })),
             op: BinaryOp::Sub,
             right: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("x".into())),
                 op: BinaryOp::Div,
-                right: Box::new(Expression::Identifier("y".into()))
-            }))
+                right: Box::new(Expression::Identifier("y".into())),
+                force_mql_semantics: false,
+            })),
+            force_mql_semantics: false,
         }),
         input = "a/b-x/y",
     );
@@ -917,10 +935,12 @@ mod operator_precedence {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::Add,
-                right: Box::new(Expression::Identifier("b".into()))
+                right: Box::new(Expression::Identifier("b".into())),
+                force_mql_semantics: false,
             })),
             op: BinaryOp::Concat,
-            right: Box::new(Expression::Identifier("c".into()))
+            right: Box::new(Expression::Identifier("c".into())),
+            force_mql_semantics: false,
         }),
         input = "a+b||c",
     );
@@ -934,8 +954,10 @@ mod operator_precedence {
             right: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::Concat,
-                right: Box::new(Expression::Identifier("b".into()))
-            }))
+                right: Box::new(Expression::Identifier("b".into())),
+                force_mql_semantics: false,
+            })),
+            force_mql_semantics: false,
         }),
         input = "c>a||b",
     );
@@ -947,10 +969,12 @@ mod operator_precedence {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::Comparison(ComparisonOp::Lt),
-                right: Box::new(Expression::Identifier("b".into()))
+                right: Box::new(Expression::Identifier("b".into())),
+                force_mql_semantics: false,
             })),
             op: BinaryOp::And,
-            right: Box::new(Expression::Identifier("c".into()))
+            right: Box::new(Expression::Identifier("c".into())),
+            force_mql_semantics: false,
         }),
         input = "a<b AND c",
     );
@@ -966,7 +990,8 @@ mod operator_precedence {
                 to: Type::Int32,
                 on_null: None,
                 on_error: None,
-            }))
+            })),
+            force_mql_semantics: false,
         }),
         input = "a * b::int",
     );
@@ -1114,7 +1139,8 @@ mod having {
                     set_quantifier: Some(SetQuantifier::Distinct),
                 })),
                 op: BinaryOp::Comparison(ComparisonOp::Gt),
-                right: Box::new(Expression::Literal(Literal::Integer(0)))
+                right: Box::new(Expression::Literal(Literal::Integer(0))),
+                force_mql_semantics: false,
             })),
             order_by_clause: None,
             limit: None,
@@ -1575,7 +1601,8 @@ mod literals {
         expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Literal(Literal::Double(2000.0))),
             op: BinaryOp::Add,
-            right: Box::new(Expression::Literal(Literal::Double(0.0000000516)))
+            right: Box::new(Expression::Literal(Literal::Double(0.0000000516))),
+            force_mql_semantics: false,
         }),
         input = "2E3 + 5.16E-8",
     );
@@ -1844,8 +1871,10 @@ mod scalar_function {
                     right: Box::new(Expression::Binary(BinaryExpr {
                         left: Box::new(Expression::Identifier("b".into())),
                         op: BinaryOp::Mul,
-                        right: Box::new(Expression::Identifier("c".into()))
-                    }))
+                        right: Box::new(Expression::Identifier("c".into())),
+                        force_mql_semantics: false,
+                    })),
+                    force_mql_semantics: false,
                 })]),
                 Expression::Identifier("d".into()),
             ]),
@@ -2463,7 +2492,8 @@ mod where_test {
             where_clause: Some(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".into())),
                 op: BinaryOp::Comparison(ComparisonOp::Gte),
-                right: Box::new(Expression::Literal(Literal::Integer(2)))
+                right: Box::new(Expression::Literal(Literal::Integer(2))),
+                force_mql_semantics: false,
             })),
             group_by_clause: None,
             having_clause: None,
@@ -3020,7 +3050,8 @@ mod subquery {
                     limit: None,
                     offset: None
                 }
-            )))))
+            ))))),
+            force_mql_semantics: false,
         }),
         input = "x IN (SELECT a)",
     );
@@ -3047,7 +3078,8 @@ mod subquery {
                     limit: None,
                     offset: None
                 }
-            )))))
+            ))))),
+            force_mql_semantics: false,
         }),
         input = "x NOT IN (SELECT a)",
     );
@@ -3698,6 +3730,7 @@ mod higher_order_functions {
                     left: Box::new(Expression::Identifier("this".into())),
                     op: BinaryOp::Mul,
                     right: Box::new(Expression::Identifier("this".into())),
+                    force_mql_semantics: false,
                 }))),
             })),
             input = "map(a, this * this)",
@@ -3804,6 +3837,7 @@ mod higher_order_functions {
                         left: Box::new(Expression::Identifier("this".into())),
                         op: BinaryOp::Comparison(ComparisonOp::Eq),
                         right: Box::new(Expression::Identifier("this".into())),
+                        force_mql_semantics: false,
                     }))),
                 })),
             input = "filter(a, this = this)",
@@ -3920,6 +3954,7 @@ mod higher_order_functions {
                         left: Box::new(Expression::Identifier(("value", true).into())),
                         op: BinaryOp::Div,
                         right: Box::new(Expression::Identifier("this".into())),
+                        force_mql_semantics: false,
                     }))),
                 })),
             input = "Reduce(a, b, `value` / this)",

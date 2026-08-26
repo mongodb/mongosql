@@ -45,10 +45,12 @@ impl Visitor for NotComparisonVisitor {
                     left,
                     op: BinaryOp::Comparison(comparison_op),
                     right,
+                    force_mql_semantics,
                 }) => Expression::Binary(BinaryExpr {
                     left,
                     op: BinaryOp::Comparison(comparison_op.negation()),
                     right,
+                    force_mql_semantics,
                 }),
                 _ => node,
             },

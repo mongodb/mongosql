@@ -340,6 +340,15 @@ pub struct BinaryExpr {
     pub left: Box<Expression>,
     pub op: BinaryOp,
     pub right: Box<Expression>,
+
+    // force_mql_semantics is used to indicate that this binary operator should be translated to its
+    // MQL version instead of the SQL version. This is relevant when a function must override SQL
+    // semantics. The particular use case that motivated this field's creation is the ARRAY_REMOVE
+    // function which is rewritten from ARRAY_REMOVE(a, x) into FILTER(a, this <> x). ARRAY_REMOVE
+    // is not intended to remove NULL values from the array unless x is NULL. However, the <>
+    // operator would remove null values from the array if it was translated using SQL 3-value null
+    // semantics. This flag ensures the scalar function is always translated with MQL semantics.
+    pub force_mql_semantics: bool,
 }
 
 #[derive(PartialEq, Debug, Clone)]

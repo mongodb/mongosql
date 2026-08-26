@@ -19,6 +19,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         op: ast::BinaryOp::Add,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -37,6 +38,7 @@ test_algebrize_expr_and_schema_check!(
         left: Box::new(ast::Expression::StringConstructor("hello".into())),
         op: ast::BinaryOp::Add,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -59,6 +61,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         op: ast::BinaryOp::Sub,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -77,6 +80,7 @@ test_algebrize_expr_and_schema_check!(
         left: Box::new(ast::Expression::StringConstructor("hello".into())),
         op: ast::BinaryOp::Sub,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -99,6 +103,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Double(42.5))),
         op: ast::BinaryOp::Div,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -127,6 +132,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         op: ast::BinaryOp::Div,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -155,8 +161,10 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Long(42))),
         op: ast::BinaryOp::Div,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
+
 test_algebrize!(
     cast_implicit_converts_expr_ext_json,
     method = algebrize_expression,
@@ -201,6 +209,7 @@ test_algebrize_expr_and_schema_check!(
         left: Box::new(ast::Expression::StringConstructor("hello".into())),
         op: ast::BinaryOp::Div,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -223,6 +232,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         op: ast::BinaryOp::Mul,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -241,6 +251,7 @@ test_algebrize_expr_and_schema_check!(
         left: Box::new(ast::Expression::StringConstructor("hello".into())),
         op: ast::BinaryOp::Mul,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -263,6 +274,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::StringConstructor("42".into())),
         op: ast::BinaryOp::Concat,
         right: Box::new(ast::Expression::StringConstructor("42".into())),
+        force_mql_semantics: false,
     }),
 );
 
@@ -281,6 +293,7 @@ test_algebrize_expr_and_schema_check!(
         left: Box::new(ast::Expression::StringConstructor("hello".into())),
         op: ast::BinaryOp::Concat,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -303,6 +316,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
         op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -325,6 +339,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
         op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gt),
         right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -347,6 +362,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
         op: ast::BinaryOp::And,
         right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -369,6 +385,7 @@ test_algebrize!(
         left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
         op: ast::BinaryOp::Or,
         right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+        force_mql_semantics: false,
     }),
 );
 
@@ -395,6 +412,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"1\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
 );
 
@@ -421,6 +439,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"1\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
 );
 
@@ -447,6 +466,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberDouble\": \"2.0\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
 );
 
@@ -473,6 +493,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"3\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
 );
 
@@ -499,6 +520,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"1\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
 );
 
@@ -525,6 +547,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"6\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
 );
 
@@ -555,6 +578,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"1\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
 );
 
@@ -585,6 +609,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"1\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
 );
 
@@ -613,6 +638,7 @@ test_algebrize!(
         )),
         op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gt),
         right: Box::new(ast::Expression::Identifier("a".into())),
+        force_mql_semantics: false,
     }),
     env = map! {
         ("foo", 1u16).into() => Schema::Document( Document {
@@ -653,6 +679,7 @@ test_algebrize!(
         )),
         op: ast::BinaryOp::Comparison(ast::ComparisonOp::Lt),
         right: Box::new(ast::Expression::Identifier("a".into())),
+        force_mql_semantics: false,
     }),
     env = map! {
         ("foo", 1u16).into() => Schema::Document( Document {
@@ -691,6 +718,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"1\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
     env = map! {
         ("foo", 1u16).into() => Schema::Document( Document {
@@ -731,6 +759,7 @@ test_algebrize!(
         right: Box::new(ast::Expression::StringConstructor(
             "{\"$numberInt\": \"1\"}".to_string()
         )),
+        force_mql_semantics: false,
     }),
     env = map! {
         ("foo", 1u16).into() => Schema::Document( Document {
@@ -779,6 +808,7 @@ mod in_operator {
                 ast::Expression::Literal(ast::Literal::Integer(2)),
                 ast::Expression::Literal(ast::Literal::Integer(3)),
             ])),
+            force_mql_semantics: false,
         }),
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
@@ -825,6 +855,7 @@ mod in_operator {
                 ast::Expression::Literal(ast::Literal::Integer(2)),
                 ast::Expression::Literal(ast::Literal::Integer(3)),
             ])),
+            force_mql_semantics: false,
         }),
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
@@ -865,6 +896,7 @@ mod in_operator {
             right: Box::new(ast::Expression::Tuple(vec![ast::Expression::Literal(
                 ast::Literal::Boolean(true)
             )])),
+            force_mql_semantics: false,
         }),
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
@@ -909,6 +941,7 @@ mod in_operator {
                 ast::Expression::Literal(ast::Literal::Integer(2)),
                 ast::Expression::Literal(ast::Literal::Integer(3))
             ])),
+            force_mql_semantics: false,
         }),
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
@@ -969,6 +1002,7 @@ mod in_operator {
                     "{\"$date\":\"2020-01-01T00:00:00Z\"}".to_string()
                 ),
             ])),
+            force_mql_semantics: false,
         }),
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
@@ -1015,6 +1049,7 @@ mod in_operator {
                 ast::Expression::StringConstructor("hello".to_string()),
                 ast::Expression::StringConstructor("world".to_string()),
             ])),
+            force_mql_semantics: false,
         }),
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
@@ -1057,6 +1092,7 @@ mod in_operator {
                 ast::Expression::StringConstructor("hello".to_string()),
                 ast::Expression::StringConstructor("world".to_string()),
             ])),
+            force_mql_semantics: false,
         }),
     );
 
@@ -1095,6 +1131,7 @@ mod in_operator {
                 ast::Expression::Literal(ast::Literal::Integer(2)),
                 ast::Expression::Literal(ast::Literal::Integer(3)),
             ])),
+            force_mql_semantics: false,
         }),
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
@@ -1141,6 +1178,241 @@ mod in_operator {
                 ast::Expression::Literal(ast::Literal::Integer(3)),
                 ast::Expression::StringConstructor("{\"$numberInt\": \"4\"}".to_string()),
             ])),
+            force_mql_semantics: false,
+        }),
+    );
+}
+
+mod force_mql_semantics {
+    use super::*;
+
+    test_algebrize!(
+        gt,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Gt,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gt),
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        gte,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Gte,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gte),
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        lt,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Lt,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Lt),
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        lte,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Lte,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Lte),
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        eq,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Eq,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        neq,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Neq,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Neq),
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        and,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::And,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+            op: ast::BinaryOp::And,
+            right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(false))),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        or,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Or,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+            op: ast::BinaryOp::Or,
+            right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(false))),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        in_expr,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Array(mir::ArrayExpr { array: vec![] }),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Array(vec![])),
+            force_mql_semantics: true,
+        }),
+    );
+
+    test_algebrize!(
+        not_in,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::NotIn,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Array(mir::ArrayExpr { array: vec![] }),
+                ],
+                force_mql_semantics: true,
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::NotIn,
+            right: Box::new(ast::Expression::Array(vec![])),
+            force_mql_semantics: true,
         }),
     );
 }

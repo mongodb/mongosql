@@ -141,6 +141,7 @@ test_algebrize_expr_and_schema_check!(
             left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             op: ast::BinaryOp::Add,
             right: Box::new(ast::Expression::StringConstructor("a".into())),
+            force_mql_semantics: false,
         })),
         target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
     }),

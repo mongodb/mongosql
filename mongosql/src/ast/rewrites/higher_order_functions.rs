@@ -130,11 +130,17 @@ impl HigherOrderFunctionsAliasVisitor {
     }
 
     #[inline(always)]
-    fn make_binary(left: Expression, op: BinaryOp, right: Expression) -> Expression {
+    fn make_binary(
+        left: Expression,
+        op: BinaryOp,
+        right: Expression,
+        force_mql_semantics: bool,
+    ) -> Expression {
         Expression::Binary(BinaryExpr {
             left: Box::new(left),
             op,
             right: Box::new(right),
+            force_mql_semantics,
         })
     }
 
@@ -202,6 +208,9 @@ impl HigherOrderFunctionsAliasVisitor {
                 this(),
                 BinaryOp::Comparison(ComparisonOp::Neq),
                 remove_expr.clone(),
+                // ARRAY_REMOVE forces MQL semantics so that nulls are not removed unless the remove
+                // expression is null.
+                true,
             ),
         ))
     }
@@ -226,7 +235,7 @@ impl HigherOrderFunctionsAliasVisitor {
         Ok(Self::make_reduce(
             array.clone(),
             Expression::Literal(init_value),
-            Self::make_binary(value(), op, this()),
+            Self::make_binary(value(), op, this(), false),
         ))
     }
 
@@ -244,6 +253,7 @@ impl HigherOrderFunctionsAliasVisitor {
             rewritten_sum,
             BinaryOp::Div,
             Self::make_size(array.clone()),
+            false,
         ))
     }
 
@@ -263,7 +273,7 @@ impl HigherOrderFunctionsAliasVisitor {
             Ok(Self::make_reduce(
                 array.clone(),
                 Expression::StringConstructor("".to_string()),
-                Self::make_binary(value(), BinaryOp::Concat, this()),
+                Self::make_binary(value(), BinaryOp::Concat, this(), false),
             ))
         } else {
             Ok(Expression::Trim(TrimExpr {
@@ -273,9 +283,10 @@ impl HigherOrderFunctionsAliasVisitor {
                     array.clone(),
                     Expression::StringConstructor("".to_string()),
                     Self::make_binary(
-                        Self::make_binary(value(), BinaryOp::Concat, sep.clone()),
+                        Self::make_binary(value(), BinaryOp::Concat, sep.clone(), false),
                         BinaryOp::Concat,
                         this(),
+                        false,
                     ),
                 )),
             }))
@@ -426,6 +437,7 @@ impl FunctionArgumentVisitor {
             left: Box::new(value()),
             op,
             right: Box::new(this()),
+            force_mql_semantics: false,
         })
     }
 

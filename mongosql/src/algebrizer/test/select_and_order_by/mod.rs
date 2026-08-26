@@ -32,6 +32,7 @@ fn select_and_order_by_column_not_in_select() {
                         left: ast::Expression::Identifier("b".into()).into(),
                         op: ast::BinaryOp::Add,
                         right: ast::Expression::Literal(ast::Literal::Integer(42)).into(),
+                        force_mql_semantics: false,
                     }),
                 },
             ]),
