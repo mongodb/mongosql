@@ -192,18 +192,44 @@ impl HigherOrderFunctionsAliasVisitor {
         ))
     }
 
-    /// Rewrite `ARRAY_REMOVE(a, x)` into `FILTER(a, this <> x)`.
+    /// Rewrite `ARRAY_REMOVE(a, NULL)` into `FILTER(a, this <> NULL)`.
+    /// For any other `x`, null elements must be retained, so rewrite
+    /// `ARRAY_REMOVE(a, x)` into `FILTER(a, this IS NULL OR this <> x)`.
     fn rewrite_array_remove(args: &[Expression]) -> Result<Expression> {
         let [array, remove_expr] = try_exact_args("ARRAY_REMOVE", args)?;
 
-        Ok(Self::make_filter(
-            array.clone(),
-            Self::make_binary(
-                this(),
-                BinaryOp::Comparison(ComparisonOp::Neq),
-                remove_expr.clone(),
-            ),
-        ))
+        let is_filtering_out_nulls = matches!(remove_expr, Expression::Literal(Literal::Null));
+        if is_filtering_out_nulls {
+            // If we're explicitly checking for null, then this is fine.
+            Ok(Self::make_filter(
+                array.clone(),
+                Self::make_binary(
+                    this(),
+                    BinaryOp::Comparison(ComparisonOp::Neq),
+                    remove_expr.clone(),
+                ),
+            ))
+        } else {
+            // Not explicitly removing nulls, so null elements must be retained:
+            // FILTER(a, this IS NULL OR this <> remove_expr)
+            let include_null_values = Expression::Is(IsExpr {
+                expr: Box::new(this()),
+                target_type: TypeOrMissing::Type(Type::Null),
+            });
+
+            Ok(Self::make_filter(
+                array.clone(),
+                Self::make_binary(
+                    include_null_values,
+                    BinaryOp::Or,
+                    Self::make_binary(
+                        this(),
+                        BinaryOp::Comparison(ComparisonOp::Neq),
+                        remove_expr.clone(),
+                    ),
+                ),
+            ))
+        }
     }
 
     /// Rewrite `ARRAY_COUNT_IF(a, f)` into `SIZE(FILTER(a, f))`.
