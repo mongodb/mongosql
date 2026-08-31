@@ -665,13 +665,18 @@ tests:
         - { "foo_flatten_group": { "x": 1 } }
         - { "foo_flatten_group": { "x": 2 } }
 
+  # The initial implementation of higher order functions relied on several incomplete and incorrect implementations in
+  # the translation pipeline. First, the optimizer did not properly handle Variable expressions when constant folding
+  # expressions nested within higher order functions. Second, the desugarer assumed the optimizer always successfully
+  # folded away null literals in expressions that required special SQL null semantics. These two issues in concert led
+  # to this test failing since `v1` would fail to properly assert SQL semantics and `v2` would fold to `NULL`.
   - description: Higher order functions must handle SQL semantics correctly and consistently
     current_db: higher_order_function_nested_sql_semantics
     query: "SELECT VALUE { 'a': a, 'v1': v1, 'v2': v2, 'v1_eq_v2': v1 = v2 } FROM (SELECT VALUE { 'a': a, 'v1': FILTER(a, this > NULL), 'v2': FILTER(a, NULL < this) } FROM filter_array) q"
     result:
         - { '': { "a": [], "v1": [], "v2": [], "v1_eq_v2": true } }
-        - { '': { "a": [1], "v1": [1], "v2": [1], "v1_eq_v2": true } }
-        - { '': { "a": [1, 2, 3], "v1": [1, 2, 3], "v2": [1, 2, 3], "v1_eq_v2": true } }
-        - { '': { "a": [1, null, 3], "v1": [1, 3], "v2": [1, 3], "v1_eq_v2": true } }
+        - { '': { "a": [1], "v1": [], "v2": [], "v1_eq_v2": true } }
+        - { '': { "a": [1, 2, 3], "v1": [], "v2": [], "v1_eq_v2": true } }
+        - { '': { "a": [1, null, 3], "v1": [], "v2": [], "v1_eq_v2": true } }
         - { '': { "a": null, "v1": null, "v2": null, "v1_eq_v2": null } }
         - { '': { "v1": null, "v2": null, "v1_eq_v2": null } }
