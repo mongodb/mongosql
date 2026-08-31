@@ -1,4 +1,5 @@
 use bson::{Bson, Document, doc};
+use std::mem;
 use tracing::instrument;
 
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
@@ -37,8 +38,27 @@ impl Partition {
         if let Some(schema) = doc {
             match_body.insert("$nor", vec![schema]);
         }
-        doc! {
-            "$match": match_body
+
+        // [TODO] Test out the changes and what that means for documents
+        if (mem::discriminant(&self.min)) != mem::discriminant(&self.max) {
+
+            let mut expr_body = doc! {
+                    "$expr": doc!{
+                        "$and": [
+                            doc! {"$gte": ["$_id", self.min.clone()]},
+                            doc! {"$lte": ["$_id", self.max.clone()]},
+                            doc! {"$ne": ["$id", ignored_ids[0].clone()]}
+                        ]
+                    }
+            };
+
+            doc! {
+                "$match" : expr_body
+            }
+        } else {
+            doc! {
+                "$match": match_body
+            }
         }
     }
 }

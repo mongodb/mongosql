@@ -1,7 +1,7 @@
 #[cfg(test)]
 #[allow(clippy::module_inception)]
 mod test {
-    use bson::{Bson, Document, doc, oid::ObjectId};
+    use bson::{Bson, Document, doc, oid::ObjectId, oid};
     use mongosql::json_schema;
 
     use crate::partitioning::{Partition, get_num_partitions};
@@ -10,6 +10,29 @@ mod test {
 
     static DEFAULT_PARTITION_KEY: LazyLock<String> = LazyLock::new(|| "_id".to_string());
     use crate::partitioning::partition::PARTITION_SIZE_IN_BYTES;
+
+    #[test]
+    fn test_generate_partition_match_with_mismatched_partition_type_bounds() {
+        let partition = Partition {
+            min: Bson::Double(20.0),
+            max: Bson::ObjectId(ObjectId::new()),
+            is_max_bound_inclusive: true
+        };
+
+        let ignored_ids = vec![Bson::Double(15.0)];
+        let partition_stage = partition.generate_match(None, &ignored_ids, &DEFAULT_PARTITION_KEY);
+
+        assert_eq!(partition_stage,
+        doc! {
+            "$expr": {
+                     "_id": {
+                        "$nin": [ignored_ids[0].clone()],
+                        "$gte": Bson::Double(20.0),
+                        "$lte": partition.max.clone()
+                    }
+            }
+        })
+    }
 
     #[test]
     fn test_generate_partition_match_without_schema_doc_max_bound_inclusive() {
