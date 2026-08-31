@@ -324,9 +324,14 @@ impl SqlNullSemanticsOperatorsDesugarerVisitor {
         let mut let_vars: Vec<LetVariable> = Vec::new();
 
         for (let_vars_idx, expr) in sql_operator.args.clone().into_iter().enumerate() {
-            // The mir optimizer ensures we will never have null literals as arguments to
-            // any of these operators.
-            let mql_operator_arg = if matches!(expr, Literal(_)) {
+            // The mir optimizer ensures we will never have null literals as arguments to any of
+            // these operators. However, we still handle the case where we have a null literal to
+            // account for changes to the optimizer that could cause this to happen. For example,
+            // consider new expressions that do not have constant folding implemented but require
+            // SQL semantics.
+            let mql_operator_arg = if matches!(expr, Literal(LiteralValue::Null)) {
+                return Literal(LiteralValue::Null);
+            } else if matches!(expr, Literal(_)) {
                 expr
             } else {
                 let let_var = LetVariable {

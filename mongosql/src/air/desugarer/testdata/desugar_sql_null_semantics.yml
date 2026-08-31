@@ -1709,3 +1709,87 @@ tests:
               },
           },
       }
+
+  - name: "desugar $sqlEq literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlEq": ["$a", { "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlIndexOfCP literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlIndexOfCP": ["$a", { "$literal": null }, "$b", "$c"] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlLt literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlLt": ["$a", { "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlLte literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlLte": ["$a", { "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlGt literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlGt": ["$a", { "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlGte literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlGte": ["$a", { "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlNe literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlNe": ["$a", { "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlNot literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlNot": [{ "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlSize literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlSize": [{ "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlStrLenBytes literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlStrLenBytes": [{ "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlStrLenCP literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlStrLenCP": [{ "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlSubstrCP literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlSubstrCP": ["$a", { "$literal": null }, "$b"] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlToLower literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlToLower": [{ "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
+
+  - name: "desugar $sqlToUpper literal null"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$sqlToUpper": [{ "$literal": null }] } } }
+    expected:
+      - { "$project": { "_id": 0, "expr": { "$literal": null } } }
