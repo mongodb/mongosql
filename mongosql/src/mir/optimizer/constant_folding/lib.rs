@@ -6,12 +6,18 @@
 ///
 use crate::{
     catalog::Catalog,
-    mir::{definitions::*, schema::SchemaInferenceState, visitor::Visitor},
+    map,
+    mir::{
+        definitions::*,
+        schema::{SchemaInferenceState, THIS_VARIABLE, VALUE_VARIABLE},
+        visitor::Visitor,
+    },
     schema::{Atomic, Satisfaction, Schema, NULLISH},
 };
 use bson::{oid::ObjectId, Decimal128};
 use chrono::Utc;
 use lazy_static::lazy_static;
+use std::collections::BTreeMap;
 use std::str::FromStr;
 
 #[derive(Clone)]
@@ -66,6 +72,23 @@ impl ConstantFoldExprVisitor<'_> {
             },
             _ => false,
         }
+    }
+
+    /// Helper to visit an expression with additional variables in scope. This is particularly
+    /// useful when visiting the function argument of a higher order function.
+    fn visit_with_variables(
+        &mut self,
+        expr: Expression,
+        variables: &mut BTreeMap<&'static str, Schema>,
+    ) -> Expression {
+        let new_state = self.state.with_variables(variables);
+        let mut sub_visitor = ConstantFoldExprVisitor {
+            state: &new_state,
+            changed: false,
+        };
+        let result = sub_visitor.visit_expression(expr);
+        self.changed |= sub_visitor.changed;
+        result
     }
 
     // Constant folds boolean functions
@@ -1641,6 +1664,72 @@ impl Visitor for ConstantFoldExprVisitor<'_> {
 
         self.changed |= changed;
         folded
+    }
+
+    // When visiting a higher order function, we need to ensure that variables
+    // `this` and `value` exist in the SchemaInferenceState as appropriate
+    // (`this` exists in `Map`, `Filter`, and `Reduce`, and `value` exists in
+    // `Reduce` only). This is necessary because variables do not appear in the
+    // global state that is provided to the optimizer at the top-level. If an
+    // expression nested inside a higher order function references `this` or
+    // `value`, this optimizer may fail to fold that expression because it will
+    // not be able to fetch the schema for these variables.
+    //
+    // TODO: SQL-3454: Implement improved constant folding for higher order
+    // functions. Currently, we always map `this` and `value` to Schema::Any
+    // when they appear. SQL-3454 will improve this by using the actual schemas
+    // of these variables.
+    fn visit_higher_order_function_application(
+        &mut self,
+        node: HigherOrderFunctionApplication,
+    ) -> HigherOrderFunctionApplication {
+        match node {
+            HigherOrderFunctionApplication::Map(n) => {
+                let array = self.visit_expression(*n.array);
+                let f = self.visit_with_variables(
+                    *n.f,
+                    &mut map! {
+                        THIS_VARIABLE => Schema::Any
+                    },
+                );
+                HigherOrderFunctionApplication::Map(MapExpr {
+                    array: Box::new(array),
+                    f: Box::new(f),
+                    is_nullable: n.is_nullable,
+                })
+            }
+            HigherOrderFunctionApplication::Filter(n) => {
+                let array = self.visit_expression(*n.array);
+                let f = self.visit_with_variables(
+                    *n.f,
+                    &mut map! {
+                        THIS_VARIABLE => Schema::Any
+                    },
+                );
+                HigherOrderFunctionApplication::Filter(FilterExpr {
+                    array: Box::new(array),
+                    f: Box::new(f),
+                    is_nullable: n.is_nullable,
+                })
+            }
+            HigherOrderFunctionApplication::Reduce(n) => {
+                let array = self.visit_expression(*n.array);
+                let init_value = self.visit_expression(*n.init_value);
+                let f = self.visit_with_variables(
+                    *n.f,
+                    &mut map! {
+                        THIS_VARIABLE => Schema::Any,
+                        VALUE_VARIABLE => Schema::Any,
+                    },
+                );
+                HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                    array: Box::new(array),
+                    init_value: Box::new(init_value),
+                    f: Box::new(f),
+                    is_nullable: n.is_nullable,
+                })
+            }
+        }
     }
 
     fn visit_stage(&mut self, st: Stage) -> Stage {

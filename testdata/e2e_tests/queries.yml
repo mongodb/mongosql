@@ -333,3 +333,29 @@ dataset:
           bsonType: "int"
         y:
           bsonType: "int"
+
+  - db: "higher_order_function_nested_sql_semantics"
+    collection:
+      name: "filter_array"
+      docs:
+        - { "_id": 0, "a": [] }
+        - { "_id": 1, "a": [ 1 ] }
+        - { "_id": 2, "a": [ 1, 2, 3 ] }
+        - { "_id": 3, "a": [ 1, null, 3 ] }
+        - { "_id": 4, "a": null }
+        - { "_id": 5 }
+    schema:
+      bsonType: "object"
+      required: [ "_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          anyOf:
+            - bsonType: "array"
+              items:
+                anyOf:
+                  - bsonType: "int"
+                  - bsonType: !!str "null"
+            - bsonType: !!str "null"
