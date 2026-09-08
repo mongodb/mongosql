@@ -105,7 +105,7 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_wildcard_min_uses_match_language() {
+    fn test_generate_partition_match_with_wildcard_min_uses_expr() {
         let partition = Partition {
             min: Bson::MinKey,
             max: Bson::String("my_user_id".to_string()),
@@ -118,10 +118,12 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "_id": {
-                        "$nin": [ignored_ids[0].clone()],
-                        "$gte": Bson::MinKey,
-                        "$lte": Bson::String("my_user_id".to_string())
+                    "$expr": {
+                        "$and": [
+                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
+                            {"$gte": ["$_id", Bson::MinKey]},
+                            {"$lte": ["$_id", Bson::String("my_user_id".to_string())]}
+                        ]
                     }
                 }
             }
@@ -168,10 +170,12 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "_id": {
-                        "$nin": [ignored_ids[0].clone()],
-                        "$gte": Bson::MinKey,
-                        "$lte": Bson::MaxKey
+                    "$expr": {
+                        "$and": [
+                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
+                            {"$gte": ["$_id", Bson::MinKey]},
+                            {"$lte": ["$_id", Bson::MaxKey]}
+                        ]
                     }
                 }
             }
@@ -193,10 +197,12 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "_id": {
-                        "$nin": [ignored_ids[0].clone()],
-                        "$gte": Bson::MinKey,
-                        "$lt": Bson::MaxKey
+                    "$expr": {
+                        "$and": [
+                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
+                            {"$gte": ["$_id", Bson::MinKey]},
+                            {"$lt": ["$_id", Bson::MaxKey]}
+                        ]
                     }
                 }
             }
@@ -231,10 +237,12 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "_id": {
-                        "$nin": [ignored_ids[0].clone()],
-                        "$gte": Bson::MinKey,
-                        "$lte": Bson::MaxKey
+                    "$expr": {
+                        "$and": [
+                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
+                            {"$gte": ["$_id", Bson::MinKey]},
+                            {"$lte": ["$_id", Bson::MaxKey]}
+                        ]
                     },
                     "$nor": [{
                         "$jsonSchema": bson_schema
@@ -272,10 +280,12 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "_id": {
-                        "$nin": [ignored_ids[0].clone()],
-                        "$gte": Bson::MinKey,
-                        "$lt": Bson::MaxKey
+                    "$expr": {
+                        "$and": [
+                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
+                            {"$gte": ["$_id", Bson::MinKey]},
+                            {"$lt": ["$_id", Bson::MaxKey]}
+                        ]
                     },
                     "$nor": [{
                         "$jsonSchema": bson_schema

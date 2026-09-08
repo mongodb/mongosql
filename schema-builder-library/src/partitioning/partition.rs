@@ -5,10 +5,6 @@ pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 
 /// Returns true when `min` and `max` can be compared using match-language range operators.
 fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
-    fn is_wildcard(bound: &Bson) -> bool {
-        matches!(bound, Bson::MinKey | Bson::MaxKey)
-    }
-
     fn is_numeric(bound: &Bson) -> bool {
         matches!(
             bound,
@@ -16,10 +12,7 @@ fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
         )
     }
 
-    is_wildcard(min)
-        || is_wildcard(max)
-        || (is_numeric(min) && is_numeric(max))
-        || min.element_type() == max.element_type()
+    (is_numeric(min) && is_numeric(max)) || min.element_type() == max.element_type()
 }
 
 #[derive(Debug, PartialEq, Clone)]
