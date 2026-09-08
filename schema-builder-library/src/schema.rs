@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bson::{Document, doc};
+use bson::{Bson, Document, doc};
 use futures::TryStreamExt as _;
 use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
@@ -84,7 +84,10 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     initial_schema_doc: Option<Arc<Schema>>,
     single_partition: SinglePartition,
 ) -> Result<Schema, Error<S::Error>> {
-    let mut ignored_ids = Vec::new();
+    // At most one blocker at a time: a document that cannot match a $jsonSchema derived
+    // from itself sits at `partition.min`, where the inclusive `$gte` bound cannot exclude
+    // it. Once it is skipped, `min` advances past it and the bound takes over.
+    let mut ignored_id: Option<Bson> = None;
     let mut partition = single_partition.partition;
     let partition_key = single_partition.partition_key.as_str();
     let hint = single_partition.hint;
@@ -108,7 +111,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             .transpose()?;
 
         let pipeline = vec![
-            partition.generate_match(doc, &ignored_ids, partition_key),
+            partition.generate_match(doc, ignored_id.as_slice(), partition_key),
             doc! { "$sort": {partition_key: 1}},
             doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
         ];
@@ -141,13 +144,6 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
                 continue;
             };
         }
-        // Documents are processed in `partition_key` order and `partition.min` advances to
-        // the last one seen, so every ignored id below the minimum is already excluded by the
-        // `$gte` bound in the match. Only ids at the minimum itself still need to be listed.
-        // Without this, `ignored_ids` -- and the `$nin` array resent on every subsequent
-        // query for this partition -- grows without bound.
-        ignored_ids.retain(|id| *id == partition.min);
-
         if no_result {
             break;
         }
@@ -165,9 +161,10 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         // `partition.min` is such a document: the `$gte` bound is inclusive, so it would be
         // handed back forever. Ignoring it by id breaks the cycle. Every iteration is
         // therefore either forward progress or the permanent removal of one blocker.
-        if new_schema == schema {
-            ignored_ids.push(partition.min.clone());
-        }
+        //
+        // Otherwise `partition.min` has advanced past any previous blocker, which the `$gte`
+        // bound now excludes on its own, so the id no longer needs to be listed.
+        ignored_id = (new_schema == schema).then(|| partition.min.clone());
 
         schema = new_schema;
 
