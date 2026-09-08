@@ -126,40 +126,12 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
 
         let mut no_result = true;
         let mut iter_schema = Schema::Unsat;
-        // Carried across documents: the value of `schema.union(&iter_schema)` as of the
-        // previous document. Neither operand changes between the end of one document's
-        // check and the start of the next, so it can be reused instead of recomputed.
-        //
-        // Before the first document this is just `schema`: `iter_schema` is `Unsat`, and
-        // `union` returns the other operand simplified when either side is `Unsat`, while
-        // `schema` is already simplified everywhere it is assigned.
-        let mut old_schema = schema.clone();
         let mut cursor = Box::pin(cursor);
         while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
             info!(db, collection, "processing partition {partition_ix}");
             if let Some(id) = doc.get(partition_key) {
                 partition.min = id.clone();
-
-                // Some documents cannot match a $jsonSchema derived from themselves, and so are
-                // returned by the query above no matter how much schema we have accumulated. The
-                // known cases are field names containing a `.`, which $jsonSchema's `required`
-                // keyword resolves as a path rather than as a literal name, and empty keys on
-                // older servers due to a bug. See SERVER-92443 and
-                // https://github.com/10gen/schema-manager-rs/pull/754 for more context. To avoid
-                // getting caught in an infinite loop, we push to a list of ignored IDs in the
-                // event empty keys or field names containing a `.` exists in the partition.
-                //
-                // Note that the comparison must be against the accumulated `schema`, not against
-                // `iter_schema` alone: `iter_schema` restarts at `Unsat` on every iteration, so
-                // comparing against it would never ignore the first document of a batch, and a
-                // batch holding exactly one such document would loop forever.
                 iter_schema = iter_schema.union(&schema_for_document(&doc));
-                let new_schema = schema.union(&iter_schema);
-
-                if old_schema == new_schema {
-                    ignored_ids.push(id.clone());
-                }
-                old_schema = new_schema;
                 no_result = false;
             } else {
                 warn!(
@@ -180,10 +152,24 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             break;
         }
 
-        // `old_schema` already holds `schema.union(&iter_schema)` as of the last document,
-        // produced by the same call on the same operands, so reuse it rather than
-        // recomputing the union.
-        schema = old_schema;
+        let new_schema = schema.union(&iter_schema);
+
+        // Some documents cannot match a $jsonSchema derived from themselves, and so are
+        // returned by the query above no matter how much schema we have accumulated. The
+        // known cases are field names containing a `.`, which $jsonSchema's `required`
+        // keyword resolves as a path rather than as a literal name, and empty keys on
+        // older servers due to a bug. See SERVER-92443 and
+        // https://github.com/10gen/schema-manager-rs/pull/754 for more context.
+        //
+        // If the whole batch failed to widen the accumulated schema, then the document at
+        // `partition.min` is such a document: the `$gte` bound is inclusive, so it would be
+        // handed back forever. Ignoring it by id breaks the cycle. Every iteration is
+        // therefore either forward progress or the permanent removal of one blocker.
+        if new_schema == schema {
+            ignored_ids.push(partition.min.clone());
+        }
+
+        schema = new_schema;
 
         // If the schema for this partition becomes unstable, we should do at most one more
         // iteration to see if we detect any additional properties. After two iterations with an
