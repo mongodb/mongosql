@@ -97,22 +97,15 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         .unwrap_or(Schema::Unsat);
 
     let mut saw_unstable = false;
-    let mut schema_match_doc: Option<Document> = None;
-    let mut schema_changed = true;
 
     loop {
         info!(db, collection, "querying partition: {partition_ix}");
 
-        // Converting the accumulated schema is expensive (there is no try_from for a
-        // schema reference, so it clones), and the result only changes when `schema`
-        // does -- which it stops doing once the partition's shapes are all known. Cache
-        // the converted document and rebuild it only after `schema` actually widens.
-        if schema_changed {
-            schema_match_doc = (schema != Schema::Unsat)
-                .then(|| bson::Document::try_from(schema.clone()))
-                .transpose()?;
-        }
-        let doc = schema_match_doc.clone();
+        // This is a somewhat expensive clone, but there isn't a try_from for
+        // a schema reference :(
+        let doc = (schema != Schema::Unsat)
+            .then(|| bson::Document::try_from(schema.clone()))
+            .transpose()?;
 
         let pipeline = vec![
             partition.generate_match(doc, &ignored_ids, partition_key),
@@ -136,7 +129,11 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         // Carried across documents: the value of `schema.union(&iter_schema)` as of the
         // previous document. Neither operand changes between the end of one document's
         // check and the start of the next, so it can be reused instead of recomputed.
-        let mut old_schema = schema.union(&iter_schema);
+        //
+        // Before the first document this is just `schema`: `iter_schema` is `Unsat`, and
+        // `union` returns the other operand simplified when either side is `Unsat`, while
+        // `schema` is already simplified everywhere it is assigned.
+        let mut old_schema = schema.clone();
         let mut cursor = Box::pin(cursor);
         while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
             info!(db, collection, "processing partition {partition_ix}");
@@ -186,7 +183,6 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         // `old_schema` already holds `schema.union(&iter_schema)` as of the last document,
         // produced by the same call on the same operands, so reuse it rather than
         // recomputing the union.
-        schema_changed = old_schema != schema;
         schema = old_schema;
 
         // If the schema for this partition becomes unstable, we should do at most one more
