@@ -28,16 +28,8 @@ mod test {
                     "$expr": {
                         "$and": [
                             {"$not": {"$in": ["$_id", {"$literal": vec![Bson::Int64(100), Bson::Int64(200)]}]}},
-                            {"$or": [
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "string"]},
-                                    {"$gte": ["$_id", Bson::String("my_user_id".to_string())]}
-                                ]},
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "long"]},
-                                    {"$lte": ["$_id", Bson::Int64(5000)]}
-                                ]}
-                            ]}
+                            {"$gte": ["$_id", Bson::String("my_user_id".to_string())]},
+                            {"$lte": ["$_id", Bson::Int64(5000)]}
                         ]
                     }
                 }
@@ -76,16 +68,8 @@ mod test {
                     "$expr": {
                         "$and": [
                             {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
-                            {"$or": [
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "long"]},
-                                    {"$gte": ["$_id", Bson::Int64(0)]}
-                                ]},
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "string"]},
-                                    {"$lte": ["$_id", Bson::String("my_user_id".to_string())]}
-                                ]}
-                            ]}
+                            {"$gte": ["$_id", Bson::Int64(0)]},
+                            {"$lte": ["$_id", Bson::String("my_user_id".to_string())]}
                         ]
                     },
                     "$nor": [{
@@ -161,16 +145,8 @@ mod test {
                     "$expr": {
                         "$and": [
                             {"$not": {"$in": ["$_id", {"$literal": vec![Bson::Int64(100)]}]}},
-                            {"$or": [
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "string"]},
-                                    {"$gte": ["$_id", Bson::String("my_user_id".to_string())]}
-                                ]},
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "long"]},
-                                    {"$lt": ["$_id", Bson::Int64(5000)]}
-                                ]}
-                            ]}
+                            {"$gte": ["$_id", Bson::String("my_user_id".to_string())]},
+                            {"$lt": ["$_id", Bson::Int64(5000)]}
                         ]
                     }
                 }
@@ -329,16 +305,8 @@ mod test {
                     "$expr": {
                         "$and": [
                             {"$not": {"$in": ["$_id", {"$literal": ignored_ids.clone()}]}},
-                            {"$or": [
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "long"]},
-                                    {"$gte": ["$_id", Bson::Int64(10)]}
-                                ]},
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "string"]},
-                                    {"$lte": ["$_id", Bson::String("S".to_string())]}
-                                ]}
-                            ]}
+                            {"$gte": ["$_id", Bson::Int64(10)]},
+                            {"$lte": ["$_id", Bson::String("S".to_string())]}
                         ]
                     }
                 }
@@ -347,9 +315,10 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_long_and_object_id_bounds_excludes_strings() {
-        // Only documents whose `_id` is a long or an ObjectId fall in this partition; string
-        // `_id`s sorting between the bounds are intentionally excluded.
+    fn test_generate_partition_match_with_long_and_object_id_bounds() {
+        // `$expr` comparisons use BSON total sort order, so this partition covers every key
+        // between the bounds regardless of type -- including the string `_id`s that sort
+        // between longs and ObjectIds.
         let partition = Partition {
             min: Bson::Int64(10),
             max: Bson::ObjectId(ObjectId::new()),
@@ -365,16 +334,8 @@ mod test {
                     "$expr": {
                         "$and": [
                             {"$not": {"$in": ["$_id", {"$literal": ignored_ids.clone()}]}},
-                            {"$or": [
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "long"]},
-                                    {"$gte": ["$_id", Bson::Int64(10)]}
-                                ]},
-                                {"$and": [
-                                    {"$eq": [{"$type": "$_id"}, "objectId"]},
-                                    {"$lte": ["$_id", partition.max.clone()]}
-                                ]}
-                            ]}
+                            {"$gte": ["$_id", Bson::Int64(10)]},
+                            {"$lte": ["$_id", partition.max.clone()]}
                         ]
                     }
                 }

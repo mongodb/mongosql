@@ -22,33 +22,6 @@ fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
         || min.element_type() == max.element_type()
 }
 
-/// Returns the string `$type` reports for `bound`, for use in `$expr` type predicates.
-fn type_name(bound: &Bson) -> &'static str {
-    match bound {
-        Bson::Double(_) => "double",
-        Bson::String(_) => "string",
-        Bson::Array(_) => "array",
-        Bson::Document(_) => "object",
-        Bson::Boolean(_) => "bool",
-        Bson::Null => "null",
-        Bson::RegularExpression(_) => "regex",
-        Bson::JavaScriptCode(_) => "javascript",
-        Bson::JavaScriptCodeWithScope(_) => "javascriptWithScope",
-        Bson::Int32(_) => "int",
-        Bson::Int64(_) => "long",
-        Bson::Timestamp(_) => "timestamp",
-        Bson::Binary(_) => "binData",
-        Bson::ObjectId(_) => "objectId",
-        Bson::DateTime(_) => "date",
-        Bson::Symbol(_) => "symbol",
-        Bson::Decimal128(_) => "decimal",
-        Bson::Undefined => "undefined",
-        Bson::MaxKey => "maxKey",
-        Bson::MinKey => "minKey",
-        Bson::DbPointer(_) => "dbPointer",
-    }
-}
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct Partition {
     pub min: Bson,
@@ -62,8 +35,8 @@ impl Partition {
     // only be based on the Partition bounds and the ignored_ids list.
     // If the min and max bounds are not comparable in match language, the $expr language will be used.
     //
-    // Both branches share the same logic: a document is in the partition if its partition key type
-    // matches the type of one of the bounds.
+    //  $expr comparisons use BSON total ort order, so a partition key of any type can fall between the bounds, while match language
+    // is type-bracketed and only matches keys that have the exact type as bound's type.
     #[instrument(level = "trace", skip_all)]
     pub fn generate_match(
         &self,
@@ -81,27 +54,14 @@ impl Partition {
         // $expr language
         if !bounds_are_comparable(&self.min, &self.max) {
             let key_path = format!("${partition_key}");
-            // Each bound constrains only documents of that bound's own BSON type. Note that partition key
-            // values whose type matches neither bound are excluded.
-            // So if the bound types are (ObjectId, String) but some ids are Int32, those ids will be excluded.
             let mut expr_body = doc! {
                 "$expr": {
                     "$and": [
                         // $literal keeps a $-prefixed ignored value from being read as a
                         // field path.
                         doc! {"$not": {"$in": [&key_path, {"$literal": ignored_ids.to_vec()}]}},
-                        doc! {
-                            "$or": [
-                                doc! {"$and": [
-                                    doc! {"$eq": [{"$type": &key_path}, type_name(&self.min)]},
-                                    doc! {"$gte": [&key_path, self.min.clone()]},
-                                ]},
-                                doc! {"$and": [
-                                    doc! {"$eq": [{"$type": &key_path}, type_name(&self.max)]},
-                                    doc! {lt_op: [&key_path, self.max.clone()]},
-                                ]},
-                            ]
-                        },
+                        doc! {"$gte": [&key_path, self.min.clone()]},
+                        doc! {lt_op: [&key_path, self.max.clone()]},
                     ]
                 }
             };
