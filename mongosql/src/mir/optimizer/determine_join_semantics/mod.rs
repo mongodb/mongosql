@@ -25,6 +25,12 @@
 ///     filter, or we'd lose proper null semantics by omitting the filter and
 ///     converting to an unfiltered equijoin $lookup.
 ///
+/// (Important note: recall that there is no such thing as a "RIGHT" join in the
+/// MongoSQL abstract model (mir). RIGHT joins are rewritten to LEFT joins at
+/// algebrization time; similarly, CROSS joins are rewritten to INNER joins.
+/// This is why this optimization is only concerned with the distinction between
+/// LEFT and INNER joins and does not reference RIGHT or CROSS joins.)
+///
 #[cfg(test)]
 mod test;
 
