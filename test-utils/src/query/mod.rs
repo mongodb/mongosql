@@ -382,8 +382,7 @@ pub fn assert_result_sets_equal(
                 .iter()
                 .position(|e| compare_documents(e, a, type_compare))
             {
-                None => assert!(
-                    false,
+                None => panic!(
                     "unexpected query result for {}\nexpected results: {:?}\nactual results: {:?}",
                     desc, og_expected, actual
                 ),
