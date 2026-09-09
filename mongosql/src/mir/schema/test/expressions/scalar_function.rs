@@ -302,7 +302,7 @@ mod and {
     );
 
     test_schema!(
-        may_be_null,
+        may_be_null_because_arg_may_be_null,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -318,7 +318,7 @@ mod and {
     );
 
     test_schema!(
-        may_be_missing,
+        may_be_null_because_arg_may_be_missing,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -334,13 +334,30 @@ mod and {
     );
 
     test_schema!(
+        may_be_null_because_arg_must_be_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(LiteralValue::Boolean(true))
+            ],
+        )),
+        schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    // AND MUST be NULL iff all arguments MUST be NULL.
+    test_schema!(
         must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::And,
             vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true))
+                Expression::Literal(LiteralValue::Null),
             ],
         )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
@@ -483,7 +500,7 @@ mod or {
     );
 
     test_schema!(
-        may_be_null,
+        may_be_null_because_arg_may_be_null,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -499,7 +516,7 @@ mod or {
     );
 
     test_schema!(
-        may_be_missing,
+        may_be_null_because_arg_may_be_missing,
         expected = Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
@@ -515,13 +532,30 @@ mod or {
     );
 
     test_schema!(
+        may_be_null_because_arg_must_be_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(LiteralValue::Boolean(true))
+            ],
+        )),
+        schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    // OR MUST be NULL iff all arguments MUST be NULL.
+    test_schema!(
         must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::Or,
             vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true))
+                Expression::Literal(LiteralValue::Null)
             ],
         )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},

@@ -1955,12 +1955,40 @@ impl ScalarFunction {
                 // `And` and `Or` are variadic operators, but we require them to have at least two
                 // arguments.
                 self.ensure_minimum_arg_count(arg_schemas.len(), 2)?;
-                self.propagate_variadic_null_arguments(
-                    state,
-                    arg_schemas,
-                    BOOLEAN_OR_NULLISH.clone(),
-                    Schema::Atomic(Atomic::Boolean),
-                )
+
+                // `And` and `Or` evaluate to NULL iff all of their arguments MUST be nullish. If
+                // any of their arguments MAY be nullish, then the result MAY be nullish. Otherwise,
+                // the result is BOOLEAN. We do not use `propagate_variadic_null_arguments` here
+                // because that assumes if at least one argument MUST be nullish, then the result is
+                // NULL. For `And` and `Or`, that assumption is incorrect:
+                //   - `false AND null` is `false`, a boolean; and
+                //   - `true OR null` is `true`, a boolean.
+                let mut all_must_be_nullish = true;
+                let mut any_may_be_nullish = false;
+                for (arg, arg_schema) in arg_schemas.iter() {
+                    if !state.check_satisfies(arg_schema, &BOOLEAN_OR_NULLISH) {
+                        return Err(Error::SchemaChecking {
+                            name: self.as_str(),
+                            required: BOOLEAN_OR_NULLISH.clone().into(),
+                            found: arg_schema.clone().into(),
+                            var_cause: arg.as_var_cause(),
+                        });
+                    }
+                    let sat = arg_schema.satisfies(&NULLISH);
+                    all_must_be_nullish = all_must_be_nullish && sat == Satisfaction::Must;
+                    any_may_be_nullish = any_may_be_nullish || sat != Satisfaction::Not;
+                }
+
+                if all_must_be_nullish {
+                    Ok(Schema::Atomic(Atomic::Null))
+                } else if any_may_be_nullish {
+                    Ok(Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Boolean),
+                        Schema::Atomic(Atomic::Null),
+                    ]))
+                } else {
+                    Ok(Schema::Atomic(Atomic::Boolean))
+                }
             }
             // Conditional scalar functions.
             NullIf => {
