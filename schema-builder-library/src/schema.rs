@@ -84,9 +84,8 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     initial_schema_doc: Option<Arc<Schema>>,
     single_partition: SinglePartition,
 ) -> Result<Schema, Error<S::Error>> {
-    // At most one blocker at a time: a document that cannot match a $jsonSchema derived
-    // from itself sits at `partition.min`, where the inclusive `$gte` bound cannot exclude
-    // it. Once it is skipped, `min` advances past it and the bound takes over.
+    // At most one blocker at a time: it sits at `partition.min`, which the inclusive
+    // `$gte` bound cannot exclude. See the `ignored_min_id` assignment below.
     let mut ignored_min_id: Option<Bson> = None;
     let mut partition = single_partition.partition;
     let partition_key = single_partition.partition_key.as_str();
@@ -150,27 +149,16 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
 
         let new_schema = schema.union(&iter_schema);
 
-        // A document only reaches us if it failed `$nor: [$jsonSchema]`, i.e. the server
-        // judged it not to match the schema accumulated so far. If the batch also failed to
-        // widen that schema, the two facts contradict each other: our `Schema` already
-        // covers the document, yet the `$jsonSchema` rendering of that `Schema` does not
-        // match it. The gap is in what the operator can express, not in the data -- its
-        // `required` keyword resolves `"a.b"` as the path `a` -> `b` rather than as a
-        // literal key, and empty keys behave likewise on servers affected by SERVER-92443.
-        // See https://github.com/10gen/schema-manager-rs/pull/754 for more context.
+        // A batch that widened nothing means `schema` already covers what came back, yet
+        // `$nor: [$jsonSchema]` returned it anyway -- so the document at `partition.min`
+        // cannot match the `$jsonSchema` rendering of the very schema it contributed to.
+        // `required` resolves `"a.b"` as the path `a` -> `b`, and empty keys behave likewise
+        // on servers affected by SERVER-92443; see
+        // https://github.com/10gen/schema-manager-rs/pull/754. Neither the schema filter nor
+        // the inclusive `$gte` bound can drop it, so record its id -- its contribution is
+        // already folded into `schema`, so excluding it from here on loses nothing.
         //
-        // No amount of further accumulation will make such a document match, so the schema
-        // filter can never exclude it. The `$gte` bound cannot either, being inclusive of
-        // `partition.min`. Recording its id is the only thing left, which makes every
-        // iteration either forward progress or the permanent removal of one blocker.
-        //
-        // (Once the schema is unstable it stops absorbing new keys, so this can also fire
-        // for a document whose fields were deliberately discarded rather than covered.
-        // Ignoring it is consistent with that decision, and the `saw_unstable` break below
-        // bounds the loop either way.)
-        //
-        // Otherwise `partition.min` has advanced past any previous blocker, which the `$gte`
-        // bound now excludes on its own, so the id no longer needs to be listed.
+        // Otherwise, `min` has advanced past any previous blocker and `$gte` excludes it.
         ignored_min_id = (new_schema == schema).then(|| partition.min.clone());
 
         schema = new_schema;

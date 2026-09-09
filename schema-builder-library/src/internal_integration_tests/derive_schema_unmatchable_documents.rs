@@ -1,43 +1,18 @@
-//! Regression tests for documents that cannot match a `$jsonSchema` derived from
-//! themselves.
+//! Regression tests for documents that cannot match a `$jsonSchema` derived from the
+//! schema they contributed to. Such a document is handed back by
+//! `derive_schema_for_partition` on every iteration, and once it is the one at the
+//! inclusive `$gte` lower bound nothing excludes it, so the loop spins (SQL-3436). The
+//! bug is a hang, not a wrong answer, so each test races derivation against `TIMEOUT`:
+//! the timeout is the real assertion and the schema equality check is the secondary
+//! one, guarding a fix that terminates by discarding data.
 //!
-//! `derive_schema_for_partition` makes progress by re-querying a partition with
-//! `$nor: [$jsonSchema]`, so that documents already described by the accumulated
-//! schema stop coming back. That only works if a document matches the schema it
-//! contributed to. A document that cannot match its own `$jsonSchema` is returned
-//! forever, no matter how much schema has been accumulated, and once it is the
-//! document sitting at the inclusive `$gte` lower bound of the partition, nothing
-//! excludes it and the derivation loop spins. `ignored_min_id` exists solely to
-//! break that cycle.
-//!
-//! There are two known ways for a document to be unmatchable by its own schema:
-//!
-//!   1. A field name containing a `.`. The `required` keyword resolves `"a.b"` as
-//!      the path `a` -> `b`, which is absent, so the constraint can never be
-//!      satisfied. This is how `$jsonSchema` is specified to behave, so it holds on
-//!      every server version.
-//!   2. An empty field name, on servers affected by SERVER-92443. This is the case
-//!      the original `ignored_ids` workaround was written for. See
-//!      https://github.com/10gen/schema-manager-rs/pull/754 for context.
-//!
-//! What these tests actually assert is that schema derivation **terminates**. The
-//! failure mode of the bug (SQL-3436) is not a wrong answer but an infinite loop:
-//! every input to the query is unchanged from one iteration to the next -- `schema`
-//! stops widening, `partition.min` stops advancing, and nothing is added to the
-//! exclusion list -- so the loop reissues an identical aggregate forever and the call
-//! never returns. In production that presents as a schema-building job that hangs
-//! rather than one that fails.
-//!
-//! A hang cannot be asserted directly, so each test races the derivation against
-//! `TIMEOUT` and treats expiry as the failure. That makes these tests unusual for
-//! this suite: a *timeout* is the real assertion, and the schema equality check below
-//! is the secondary one that guards against a fix that terminates by discarding data.
-//!
-//! These tests use dotted field names because they are the version-independent case:
-//! case 2 reproduces only against affected server versions, so it cannot be asserted
-//! from a test suite that runs against whatever `mongod` is at hand. The bug and the
-//! fix are not specific to dots -- any future third cause would land in the same code
-//! path -- so read the dotted documents below as a stand-in for the whole class.
+//! Two known causes: a field name containing a `.`, which `required` resolves as a path
+//! (`"a.b"` as `a` -> `b`) rather than a literal key; and an empty field name on servers
+//! affected by SERVER-92443 (see https://github.com/10gen/schema-manager-rs/pull/754).
+//! In both cases the key must appear in *every* document: `required` is the intersection
+//! of the unioned documents' required sets, so a key only some documents carry drops out,
+//! and the document then matches on `properties`, which compares keys literally. These
+//! tests use dots because that is the version-independent case.
 
 use crate::{derive_schema_for_collection, internal_integration_tests::create_mdb_client};
 use bson::{Document, doc};
@@ -47,19 +22,15 @@ use std::time::Duration;
 
 const DB_NAME: &str = "unmatchable_document_regression";
 
-/// Deriving a schema should never take anywhere near this long for a handful of tiny
-/// documents; exceeding it means the derivation loop in `derive_schema_for_partition`
-/// is not terminating. Generous on purpose -- it is a liveness bound, not a
-/// performance one, so a slow machine or a cold `mongod` must not trip it, while an
-/// actual infinite loop overruns it by any margin.
+/// A liveness bound, not a performance one: generous enough that a slow machine cannot
+/// trip it, while an actual infinite loop overruns it by any margin.
 const TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Asserts that deriving a schema for a collection holding `docs` terminates, and
 /// that the derived schema is the union of the schemas of every document -- i.e.
-/// that nothing was dropped. The latter matters because an unmatchable document is
-/// only ever recorded in `ignored_min_id` *after* its contribution has been folded
-/// into the accumulated schema; a fix that simply bailed out of the loop, or that
-/// skipped such documents before reading them, would terminate but lose information.
+/// that nothing was dropped -- an unmatchable document is recorded in `ignored_min_id`
+/// only *after* its contribution has been folded in, so a fix that bailed out of the
+/// loop, or skipped such documents up front, would terminate but lose information.
 #[allow(clippy::unwrap_used)]
 async fn assert_derivation_terminates(coll_name: &str, docs: Vec<Document>) {
     let expected = docs.iter().fold(Schema::Unsat, |acc, doc| {
@@ -107,12 +78,9 @@ macro_rules! test_derivation_terminates {
     };
 }
 
-// A collection holding a single unmatchable document is the guaranteed instance of the
-// bug: it is the only member of its batch and it sits at the partition minimum, so
-// neither the `$nor` schema filter nor the inclusive `$gte` bound can exclude it. The
-// pre-fix code compared each document against `iter_schema`, which restarts at `Unsat`
-// every batch, so the first document of a batch could never be recognized as already
-// covered -- and a batch of one has nothing but a first document.
+// A single unmatchable document is the guaranteed instance of the bug: it is alone in
+// its batch and sits at the partition minimum, so neither the schema filter nor the
+// inclusive `$gte` bound can exclude it.
 test_derivation_terminates!(
     single_dotted_document,
     docs = vec![doc! {"_id": 0, "a.b": 1}]
@@ -128,11 +96,16 @@ test_derivation_terminates!(
     docs = vec![doc! {"_id": 0, "a": [{"b.c": 1}]}]
 );
 
-// More generally, the loop fails to terminate whenever the trailing batch of a
-// partition holds exactly one unmatchable document, i.e. when the number of such
-// documents is congruent to 1 modulo PARTITION_DOCS_PER_ITERATION. Uniform shapes are
-// used here so that the arithmetic is exact; with differing shapes the loop reaches the
-// same stuck state, just an iteration or two later.
+// More generally the loop hangs once a batch holds a single unmatchable document: it is that
+// batch's first, which the pre-fix comparison against `iter_schema` (reset to `Unsat` every
+// batch) could never recognize, and it sits at the inclusive `$gte` bound.
+//
+// A document is unmatchable only while its dotted key survives in `required`, which is the
+// *intersection* of the unioned required sets -- so every document must carry the same dotted
+// key. Differing dotted keys all drop out and then match via `properties`, which compares
+// keys literally. The counts below are specific to these documents sharing one shape:
+// duplicates within a batch are recognized and skipped, so a batch of one arises exactly at a
+// count congruent to 1 modulo PARTITION_DOCS_PER_ITERATION.
 test_derivation_terminates!(
     dotted_documents_one_over_a_full_batch,
     docs = (0..21).map(|i| doc! {"_id": i, "a.b": i}).collect()
@@ -143,9 +116,20 @@ test_derivation_terminates!(
     docs = (0..41).map(|i| doc! {"_id": i, "a.b": i}).collect()
 );
 
-// Controls. The first has no trailing batch of one, and the second has no unmatchable
-// document at all; neither should ever have been affected, so a failure here means the
-// fix broke ordinary derivation rather than that the bug is unfixed.
+// The count is not what matters. These two share `"a.b"`, so it survives the `required`
+// intersection and both stay unmatchable, but they differ elsewhere -- so neither is ever
+// recognized as a duplicate, `min` lands on the second, and the next batch holds it alone.
+// A count of two, nowhere near 1 modulo PARTITION_DOCS_PER_ITERATION.
+test_derivation_terminates!(
+    shared_dotted_key_with_differing_shapes,
+    docs = vec![
+        doc! {"_id": 0, "a.b": 0, "u0": 0},
+        doc! {"_id": 1, "a.b": 1, "u1": 1},
+    ]
+);
+
+// Controls: no trailing batch of one, and no unmatchable document at all. A failure here
+// means the fix broke ordinary derivation rather than that the bug is unfixed.
 test_derivation_terminates!(
     dotted_documents_filling_whole_batches,
     docs = (0..40).map(|i| doc! {"_id": i, "a.b": i}).collect()
