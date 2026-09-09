@@ -65,34 +65,38 @@ dataset:
     collection:
       name: "parents"
       docs:
-        - { "_id": 1, "name": "P1" }
-        - { "_id": null, "name": "P2"}
+        - { "_id": 1, "nullable_field": 10, "non_nullable_field": 10 }
+        - { "_id": 2, "nullable_field": null, "non_nullable_field": 10 }
     schema:
       bsonType: "object"
-      required: [ "_id", "name" ]
+      required: [ "_id", "nullable_field", "non_nullable_field" ]
       additionalProperties: false
       properties:
         _id:
+          bsonType: "int"
+        nullable_field:
           anyOf:
             - bsonType: "int"
             - bsonType: !!str "null"
-        name:
-          bsonType: "string"
+        non_nullable_field:
+          bsonType: "int"
 
   - db: "spec_query_join"
     collection:
       name: "children"
       docs:
-        - { "_id": 1, "parentId": 1 }
-        - { "_id": 2, "parentId": null }
+        - { "_id": 1, "nullable_field": 10, "non_nullable_field": 10 }
+        - { "_id": 2, "nullable_field": null, "non_nullable_field": 10 }
     schema:
       bsonType: "object"
-      required: [ "_id", "parentId" ]
+      required: [ "_id", "nullable_field", "non_nullable_field" ]
       additionalProperties: false
       properties:
         _id:
           bsonType: "int"
-        parentId:
+        nullable_field:
           anyOf:
             - bsonType: "int"
             - bsonType: !!str "null"
+        non_nullable_field:
+          bsonType: "int"
