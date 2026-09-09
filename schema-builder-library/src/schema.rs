@@ -150,17 +150,24 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
 
         let new_schema = schema.union(&iter_schema);
 
-        // Some documents cannot match a $jsonSchema derived from themselves, and so are
-        // returned by the query above no matter how much schema we have accumulated. The
-        // known cases are field names containing a `.`, which $jsonSchema's `required`
-        // keyword resolves as a path rather than as a literal name, and empty keys on
-        // older servers due to a bug. See SERVER-92443 and
-        // https://github.com/10gen/schema-manager-rs/pull/754 for more context.
+        // A document only reaches us if it failed `$nor: [$jsonSchema]`, i.e. the server
+        // judged it not to match the schema accumulated so far. If the batch also failed to
+        // widen that schema, the two facts contradict each other: our `Schema` already
+        // covers the document, yet the `$jsonSchema` rendering of that `Schema` does not
+        // match it. The gap is in what the operator can express, not in the data -- its
+        // `required` keyword resolves `"a.b"` as the path `a` -> `b` rather than as a
+        // literal key, and empty keys behave likewise on servers affected by SERVER-92443.
+        // See https://github.com/10gen/schema-manager-rs/pull/754 for more context.
         //
-        // If the whole batch failed to widen the accumulated schema, then the document at
-        // `partition.min` is such a document: the `$gte` bound is inclusive, so it would be
-        // handed back forever. Ignoring it by id breaks the cycle. Every iteration is
-        // therefore either forward progress or the permanent removal of one blocker.
+        // No amount of further accumulation will make such a document match, so the schema
+        // filter can never exclude it. The `$gte` bound cannot either, being inclusive of
+        // `partition.min`. Recording its id is the only thing left, which makes every
+        // iteration either forward progress or the permanent removal of one blocker.
+        //
+        // (Once the schema is unstable it stops absorbing new keys, so this can also fire
+        // for a document whose fields were deliberately discarded rather than covered.
+        // Ignoring it is consistent with that decision, and the `saw_unstable` break below
+        // bounds the loop either way.)
         //
         // Otherwise `partition.min` has advanced past any previous blocker, which the `$gte`
         // bound now excludes on its own, so the id no longer needs to be listed.
