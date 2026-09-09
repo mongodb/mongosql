@@ -31,6 +31,13 @@ tests:
         }
       - { "bar2": { "_id": 1, "foo": 43 } }
 
+  - description: left join retains all rows from left hand side including those with with null data on the join key
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p.name AS parent_name FROM children AS c LEFT JOIN parents AS p ON c.parentId = p._id"
+    result:
+      - { "": { "child_id": 1, "parent_name": "P1" } }
+      - { "": { "child_id": 2 } }
+
   - description: right join correctness test
     current_db: spec_query_join
     query: "SELECT * from bar2 AS bar2 RIGHT JOIN bar as bar ON bar2.foo = bar.foo"
@@ -40,6 +47,13 @@ tests:
           "bar2": { "_id": 0, "foo": 42, "baz": 63 },
         }
       - { "bar": { "_id": 0, "foo": 1 } }
+
+  - description: right join retains all rows from right hand side including those with with null data on the join key
+    current_db: spec_query_join
+    query: "SELECT p.name AS parent_name, c._id AS child_id FROM children c RIGHT JOIN parents p ON c.parentId = p._id"
+    result:
+      - { "": { "parent_name": "P1", "child_id": 1 } }
+      - { "": { "parent_name": "P2" } }
 
   - description: natural join is not supported
     current_db: spec_query_join

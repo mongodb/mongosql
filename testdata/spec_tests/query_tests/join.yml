@@ -60,3 +60,39 @@ dataset:
       properties:
         x:
           bsonType: "int"
+
+  - db: "spec_query_join"
+    collection:
+      name: "parents"
+      docs:
+        - { "_id": 1, "name": "P1" }
+        - { "_id": null, "name": "P2"}
+    schema:
+      bsonType: "object"
+      required: [ "_id", "name" ]
+      additionalProperties: false
+      properties:
+        _id:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        name:
+          bsonType: "string"
+
+  - db: "spec_query_join"
+    collection:
+      name: "children"
+      docs:
+        - { "_id": 1, "parentId": 1 }
+        - { "_id": 2, "parentId": null }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "parentId" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        parentId:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
