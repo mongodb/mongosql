@@ -191,7 +191,7 @@ impl Visitor for JoinSemanticsOptimizerVisitor<'_> {
                             }
 
                             self.changed = true;
-                            if local_field.is_nullable && foreign_field.is_nullable {
+                            if both_nullable {
                                 Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
                                     join_type: j.join_type,
                                     source: Box::new(Stage::Filter(Filter {
