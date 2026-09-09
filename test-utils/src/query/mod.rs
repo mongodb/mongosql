@@ -343,3 +343,212 @@ pub fn run_query(client: &Client, translation: Translation) -> Result<Vec<Docume
 
     Ok(result.into_iter().map(|d| d.unwrap()).collect())
 }
+
+/// assert_result_sets_equal compares two result sets for equality. It ensures
+/// that all expected results appear in the actual result set, and that no
+/// extra results appear in the actual result set.
+pub fn assert_result_sets_equal(
+    mut expected: Vec<Document>,
+    actual: Vec<Document>,
+    type_compare: bool,
+    ordered: bool,
+    desc: String,
+) {
+    assert_eq!(
+        expected.len(),
+        actual.len(),
+        "{}: unexpected number of query results\nexpected results: {:?}\nactual results: {:?}",
+        desc,
+        expected,
+        actual,
+    );
+
+    if ordered {
+        for (index, (e, a)) in expected.iter().zip(actual.iter()).enumerate() {
+            assert!(
+                // because NaN != NaN, we have to use custom comparison functions
+                compare_documents(e, a, type_compare),
+                "unexpected query result for {} at index {}, \nexpected: {:?}\nactual: {:?}",
+                desc,
+                index,
+                e,
+                a
+            );
+        }
+    } else {
+        let og_expected = expected.clone();
+        for a in actual.iter() {
+            match expected
+                .iter()
+                .position(|e| compare_documents(e, a, type_compare))
+            {
+                None => assert!(
+                    false,
+                    "unexpected query result for {}\nexpected results: {:?}\nactual results: {:?}",
+                    desc, og_expected, actual
+                ),
+                Some(idx) => {
+                    expected.remove(idx);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::assert_result_sets_equal;
+    use mongodb::bson::doc;
+
+    #[test]
+    fn assert_result_sets_equal_unordered_empty() {
+        let expected = vec![];
+        let actual = vec![];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_ordered_empty() {
+        let expected = vec![];
+        let actual = vec![];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_unordered_singleton() {
+        let expected = vec![doc! {"a": 1}];
+        let actual = vec![doc! {"a": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_ordered_singleton() {
+        let expected = vec![doc! {"a": 1}];
+        let actual = vec![doc! {"a": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_singleton() {
+        let expected = vec![doc! {"a": 1}];
+        let actual = vec![doc! {"b": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_singleton() {
+        let expected = vec![doc! {"a": 1}];
+        let actual = vec![doc! {"b": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_unordered_multiple() {
+        let expected = vec![doc! {"a": 1}, doc! {"b": 1}, doc! {"c": 1}];
+        let actual = vec![doc! {"b": 1}, doc! {"c": 1}, doc! {"a": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_ordered_multiple() {
+        let expected = vec![doc! {"a": 1}, doc! {"b": 1}, doc! {"c": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"b": 1}, doc! {"c": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_multiple() {
+        let expected = vec![doc! {"a": 1}, doc! {"b": 1}, doc! {"c": 1}];
+        let actual = vec![doc! {"c": 1}, doc! {"x": 1}, doc! {"a": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_multiple() {
+        let expected = vec![doc! {"a": 1}, doc! {"b": 1}, doc! {"c": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"c": 1}, doc! {"b": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_different_lengths() {
+        let expected = vec![doc! {"a": 1}, doc! {"b": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"b": 1}, doc! {"c": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_different_lengths() {
+        let expected = vec![doc! {"a": 1}, doc! {"b": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"b": 1}, doc! {"c": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_unordered_duplicates() {
+        let expected = vec![doc! {"a": 1}, doc! {"a": 1}, doc! {"b": 1}, doc! {"b": 1}];
+        let actual = vec![doc! {"b": 1}, doc! {"a": 1}, doc! {"b": 1}, doc! {"a": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_ordered_duplicates() {
+        let expected = vec![doc! {"a": 1}, doc! {"a": 1}, doc! {"b": 1}, doc! {"b": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"a": 1}, doc! {"b": 1}, doc! {"b": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_duplicates() {
+        let expected = vec![doc! {"a": 1}, doc! {"a": 1}, doc! {"c": 1}, doc! {"c": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"c": 1}, doc! {"a": 1}, doc! {"b": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_duplicates() {
+        let expected = vec![doc! {"a": 1}, doc! {"a": 1}, doc! {"b": 1}, doc! {"b": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"a": 1}, doc! {"b": 1}, doc! {"c": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_duplicate_actuals() {
+        let expected = vec![doc! {"a": 1}, doc! {"b": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"a": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_duplicate_expecteds() {
+        let expected = vec![doc! {"a": 1}, doc! {"a": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"b": 1}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_duplicate_actuals() {
+        let expected = vec![doc! {"a": 1}, doc! {"b": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"a": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_duplicate_expecteds() {
+        let expected = vec![doc! {"a": 1}, doc! {"a": 1}];
+        let actual = vec![doc! {"a": 1}, doc! {"b": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+}
