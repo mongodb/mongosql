@@ -87,8 +87,12 @@ macro_rules! test_determine_join_semantics_no_op {
 }
 
 fn make_standard_join(condition: Option<Expression>) -> Stage {
+    make_join_with_type(JoinType::Inner, condition)
+}
+
+fn make_join_with_type(join_type: JoinType, condition: Option<Expression>) -> Stage {
     Stage::Join(Join {
-        join_type: JoinType::Inner,
+        join_type,
         left: mir_project_collection(None, "local", None, None),
         right: mir_project_collection(None, "foreign", None, None),
         condition,
@@ -199,6 +203,17 @@ mod do_not_change {
                 is_nullable: true,
             }
         )))
+    );
+
+    test_determine_join_semantics_no_op!(
+        when_both_may_be_nullable_in_left_join,
+        make_join_with_type(
+            JoinType::Left,
+            Some(make_equality_condition(
+                *mir_field_access("local", "may_be_null", true),
+                *mir_field_access("foreign", "may_be_null", true),
+            ))
+        )
     );
 }
 
