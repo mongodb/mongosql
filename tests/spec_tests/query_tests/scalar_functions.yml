@@ -325,42 +325,42 @@ tests:
 
   - description: MOD correctness tests
     current_db: spec_query_scalar_functions
-    query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM mod AS c"
+    query: "SELECT VALUE {'_id': _id, 'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM mod AS c"
     result:
-      - {'': {'v': { "$numberInt": "-80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberInt": "-3" }}}
-      - {'': {'v': { "$numberInt": "0" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "0" }}}
-      - {'': {'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-7" }, 'n': { "$numberInt": "3" }}}
-      - {'': {'v': { "$numberInt": "80" }, 'divisor': { "$numberDecimal": "0" }, 'n': null }}
-      - {'': {'v': { "$numberInt": "80" }, 'divisor': null, 'n': null }}
-      - {'': {'v': { "$numberInt": "80" }, 'n': null }}
-      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberLong": "3" }}}
-      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "3" }}}
-      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberLong": "3" }}}
-      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
-      - {'': { 'v': { "$numberLong": "80" }, 'divisor': null, 'n': null }}
-      - {'': { 'v': { "$numberLong": "80" }, 'n': null }}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "3" }}}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDouble": "3" }}}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "3" }}}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3.0000000000000e1" }}}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': null, 'n': null }}
-      - {'': { 'v': { "$numberDouble": "80" }, 'n': null }}
-      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDecimal": "3" }}}
-      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDecimal": "3" }}}
-      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDecimal": "3.00000000000000E1" }}}
-      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
-      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': null, 'n': null }}
-      - {'': { 'v': { "$numberDecimal": "80" }, 'n': null }}
-      - {'': { 'v': { "$numberDouble": "NaN" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "Infinity" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "80" }}}
-      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "80" }}}
-      - {'': { 'v': null, 'divisor': { "$numberInt": "7" }, 'n': null }}
-      - {'': { 'v': null, 'divisor': null, 'n': null }}
-      - {'': { 'v': null, 'n': null }}
-      - {'': { 'n': null }}
+      - {'': { "_id": 0, 'v': { "$numberInt": "-80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberInt": "-3" }}}
+      - {'': { "_id": 1, 'v': { "$numberInt": "0" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "0" }}}
+      - {'': { "_id": 2, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-7" }, 'n': { "$numberInt": "3" }}}
+      - {'': { "_id": 3, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDecimal": "0" }, 'n': null }}
+      - {'': { "_id": 4, 'v': { "$numberInt": "80" }, 'divisor': null, 'n': null }}
+      - {'': { "_id": 5, 'v': { "$numberInt": "80" }, 'n': null }}
+      - {'': { "_id": 6, 'v': { "$numberLong": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { "_id": 7, 'v': { "$numberLong": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { "_id": 8, 'v': { "$numberLong": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { "_id": 9, 'v': { "$numberLong": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { "_id": 10, 'v': { "$numberLong": "80" }, 'divisor': null, 'n': null }}
+      - {'': { "_id": 11, 'v': { "$numberLong": "80" }, 'n': null }}
+      - {'': { "_id": 12, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { "_id": 13, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { "_id": 14, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { "_id": 15, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3.0000000000000e0" }}}
+      - {'': { "_id": 16, 'v': { "$numberDouble": "80" }, 'divisor': null, 'n': null }}
+      - {'': { "_id": 17, 'v': { "$numberDouble": "80" }, 'n': null }}
+      - {'': { "_id": 18, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { "_id": 19, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { "_id": 20, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDecimal": "3.00000000000000E0" }}}
+      - {'': { "_id": 21, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { "_id": 22, 'v': { "$numberDecimal": "80" }, 'divisor': null, 'n': null }}
+      - {'': { "_id": 23, 'v': { "$numberDecimal": "80" }, 'n': null }}
+      - {'': { "_id": 24, 'v': { "$numberDouble": "NaN" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { "_id": 25, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { "_id": 26, 'v': { "$numberDouble": "Infinity" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { "_id": 27, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "80" }}}
+      - {'': { "_id": 28, 'v': { "$numberDouble": "-Infinity" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { "_id": 29, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "80" }}}
+      - {'': { "_id": 30, 'v': null, 'divisor': { "$numberInt": "7" }, 'n': null }}
+      - {'': { "_id": 31, 'v': null, 'divisor': null, 'n': null }}
+      - {'': { "_id": 32, 'v': null, 'n': null }}
+      - {'': { "_id": 33, 'n': null }}
 
   - description: POW correctness tests
     current_db: spec_query_scalar_functions
