@@ -60,3 +60,45 @@ dataset:
       properties:
         x:
           bsonType: "int"
+
+  - db: "spec_query_join"
+    collection:
+      name: "parents"
+      docs:
+        - { "_id": 1, "nullable_field": 10, "non_nullable_field": 10 }
+        - { "_id": 2, "nullable_field": null, "non_nullable_field": 10 }
+        - { "_id": 3, "nullable_field": 2500, "non_nullable_field": 2500 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "nullable_field", "non_nullable_field" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        nullable_field:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        non_nullable_field:
+          bsonType: "int"
+
+  - db: "spec_query_join"
+    collection:
+      name: "children"
+      docs:
+        - { "_id": 1, "nullable_field": 10, "non_nullable_field": 10 }
+        - { "_id": 2, "nullable_field": null, "non_nullable_field": 10 }
+        - { "_id": 3, "nullable_field": 24, "non_nullable_field": 24 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "nullable_field", "non_nullable_field" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        nullable_field:
+          anyOf:
+            - bsonType: "int"
+            - bsonType: !!str "null"
+        non_nullable_field:
+          bsonType: "int"

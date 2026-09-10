@@ -1,7 +1,7 @@
 /// Optimizes Join stages by converting them to EquiJoin stages when possible.
 /// If a Join stage's right source is a collection source and the condition is
 /// a simple equality comparison of fields (one from the left and one from the
-/// right), then the Join can be converted into an EquiJoin.
+/// right), then the Join can be converted into an EquiJoin in most cases.
 ///
 /// Note that the intent here is to enable the translator and codegen to produce
 /// an equijoin-style $lookup stage in the final pipeline. This style $lookup
@@ -16,9 +16,20 @@
 ///     replace the Join condition with a literal false value.
 ///   - If the schema indicates either the local or the foreign field must NOT
 ///     be null or missing, no filter is needed.
-///   - Otherwise, the schema indicates both MAY be null or missing. Therefore,
-///     a Filter stage that asserts the existence of the local field is placed
-///     before the EquiJoin stage.
+///   - Otherwise, the schema indicates both MAY be null or missing. For INNER
+///     joins, this case can still be handled by an EquiJoin: a Filter stage
+///     that asserts the existence of the local field is placed before the
+///     EquiJoin stage. For LEFT joins, this case cannot be lowered to an
+///     EquiJoin while still preserving SQL null semantics. This is because we'd
+///     either lose rows where the local field has nullish data by adding a
+///     filter, or we'd lose proper null semantics by omitting the filter and
+///     converting to an unfiltered equijoin $lookup.
+///
+/// (Important note: recall that there is no such thing as a "RIGHT" join in the
+/// MongoSQL abstract model (mir). RIGHT joins are rewritten to LEFT joins at
+/// algebrization time; similarly, CROSS joins are rewritten to INNER joins.
+/// This is why this optimization is only concerned with the distinction between
+/// LEFT and INNER joins and does not reference RIGHT or CROSS joins.)
 ///
 #[cfg(test)]
 mod test;
@@ -28,7 +39,7 @@ use crate::{
         optimizer::Optimizer,
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        EquiJoin, Expression, FieldAccess, FieldPath, Filter, MqlStage, ScalarFunction,
+        EquiJoin, Expression, FieldAccess, FieldPath, Filter, JoinType, MqlStage, ScalarFunction,
         ScalarFunctionApplication, Stage,
     },
     schema::ResultSet,
@@ -173,8 +184,20 @@ impl Visitor for JoinSemanticsOptimizerVisitor<'_> {
                         // -- one from the left and one from the right -- we cannot rewrite.
                         None => node,
                         Some((local_field, foreign_field)) => {
+                            let both_nullable =
+                                local_field.is_nullable && foreign_field.is_nullable;
+
+                            // LEFT JOINs cannot be converted to EquiJoins if both fields are
+                            // nullable. This is because we need to retain all rows on the LHS but
+                            // do not want those rows to match rows from the RHS when the join keys
+                            // are both null. In this case, we skip this optimization in favor of
+                            // these being lowered to LateralJoins later in the optimizer.
+                            if both_nullable && j.join_type == JoinType::Left {
+                                return node;
+                            }
+
                             self.changed = true;
-                            if local_field.is_nullable && foreign_field.is_nullable {
+                            if both_nullable {
                                 Stage::MqlIntrinsic(MqlStage::EquiJoin(EquiJoin {
                                     join_type: j.join_type,
                                     source: Box::new(Stage::Filter(Filter {

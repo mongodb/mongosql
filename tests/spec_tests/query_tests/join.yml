@@ -41,6 +41,134 @@ tests:
         }
       - { "bar": { "_id": 0, "foo": 1 } }
 
+  # INNER JOIN with non-nullable fields on both sides of the ON condition retains all matching rows
+  - description: inner join with non_nullable join keys
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.non_nullable_field AS child_data, p.non_nullable_field AS parent_data FROM children c INNER JOIN parents p ON c.non_nullable_field = p.non_nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 1, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+
+  # INNER JOIN with non-nullable LHS join key and nullable RHS join key retains all matching rows where the RHS join key
+  # is not null.
+  - description: inner join with non_nullable LHS join key and nullable RHS join key
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.non_nullable_field AS child_data, p.nullable_field AS parent_data FROM children c INNER JOIN parents p ON c.non_nullable_field = p.nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+
+  # INNER JOIN with nullable LHS join key and non-nullable RHS join key retains all matching rows where the LHS join key
+  # is not null.
+  - description: inner join with nullable LHS join key nullable and non_nullable RHS join key
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.nullable_field AS child_data, p.non_nullable_field AS parent_data FROM children c INNER JOIN parents p ON c.nullable_field = p.non_nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 1, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+
+  # INNER JOIN with nullable join keys on both sides of the ON condition retains all matching rows where neither join
+  # key is null.
+  - description: inner join with nullable join keys
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.nullable_field AS child_data, p.nullable_field AS parent_data FROM children c INNER JOIN parents p ON c.nullable_field = p.nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+
+  # LEFT JOIN with non-nullable join keys on both sides of the ON condition retains all matching rows and all rows from
+  # the LHS that do not match. For rows that do not match, no parent_id or parent_data is returned.
+  - description: left join with non_nullable join keys
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.non_nullable_field AS child_data, p.non_nullable_field AS parent_data FROM children c LEFT JOIN parents p ON c.non_nullable_field = p.non_nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 1, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 3, "child_data": 24 } }
+
+  # LEFT JOIN with non-nullable LHS join key and nullable RHS join key retains all matching rows where the RHS join key
+  # is not null and all rows from the LHS that do not match. For rows that do not match, no parent_id or parent_data is
+  # returned.
+  - description: left join with non_nullable LHS join key and nullable RHS join key
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.non_nullable_field AS child_data, p.nullable_field AS parent_data FROM children c LEFT JOIN parents p ON c.non_nullable_field = p.nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 3, "child_data": 24 } }
+
+  # LEFT JOIN with nullable LHS join key and non-nullable RHS join key retains all matching rows where the LHS join key
+  # is not null and all rows from the LHS that do not match. For this data, that includes a row with null LHS join key
+  # data and a row with non-null data that does not match; in those rows, no parent_id or parent_data is returned.
+  - description: left join with nullable LHS join key nullable and non_nullable RHS join key
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.nullable_field AS child_data, p.non_nullable_field AS parent_data FROM children c LEFT JOIN parents p ON c.nullable_field = p.non_nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 1, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "child_data": null } }
+      - { "": { "child_id": 3, "child_data": 24 } }
+
+  # LEFT JOIN with nullable join keys on both sides of the ON condition retains all matching rows where neither join key
+  # is null and all rows from the LHS that do not match. For this data, that includes a row with null LHS join key data
+  # and a row with non-null data that does not match; in those rows, no parent_id or parent_data is returned.
+  - description: left join with nullable join keys
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.nullable_field AS child_data, p.nullable_field AS parent_data FROM children c LEFT JOIN parents p ON c.nullable_field = p.nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "child_data": null } }
+      - { "": { "child_id": 3, "child_data": 24 } }
+
+  # RIGHT JOIN with non-nullable join keys on both sides of the ON condition retains all matching rows and all rows from
+  # the RHS that do not match. For rows that do not match, no child_id or child_data is returned.
+  - description: right join with non_nullable join keys
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.non_nullable_field AS child_data, p.non_nullable_field AS parent_data FROM children c RIGHT JOIN parents p ON c.non_nullable_field = p.non_nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 1, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+      - { "": { "parent_id": 3, "parent_data": 2500 } }
+
+  # RIGHT JOIN with non-nullable LHS join key and nullable RHS join key retains all matching rows where the RHS join key
+  # is not null and all rows from the RHS that do not match. For this data, that includes a row with null RHS join key
+  # data and a row with non-null data that does not match; in those rows, no child_id or child_data is returned.
+  - description: right join with non_nullable LHS join key and nullable RHS join key
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.non_nullable_field AS child_data, p.nullable_field AS parent_data FROM children c RIGHT JOIN parents p ON c.non_nullable_field = p.nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 2, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "parent_id": 2, "parent_data": null } }
+      - { "": { "parent_id": 3, "parent_data": 2500 } }
+
+  # RIGHT JOIN with nullable LHS join key and non-nullable RHS join key retains all matching rows where the LHS join key
+  # is not null and all rows from the RHS that do not match. For rows that do not match, no parent_id or parent_data is
+  # returned.
+  - description: right join with nullable LHS join key nullable and non_nullable RHS join key
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.nullable_field AS child_data, p.non_nullable_field AS parent_data FROM children c RIGHT JOIN parents p ON c.nullable_field = p.non_nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "child_id": 1, "parent_id": 2, "child_data": 10, "parent_data": 10 } }
+      - { "": { "parent_id": 3, "parent_data": 2500 } }
+
+  # RIGHT JOIN with nullable join keys on both sides of the ON condition retains all matching rows where neither join
+  # key is null and all rows from the RHS that do not match. For this data, that includes a row with null RHS join key
+  #  # data and a row with non-null data that does not match; in those rows, no child_id or child_data is returned.
+  - description: right join with nullable join keys
+    current_db: spec_query_join
+    query: "SELECT c._id AS child_id, p._id AS parent_id, c.nullable_field AS child_data, p.nullable_field AS parent_data FROM children c RIGHT JOIN parents p ON c.nullable_field = p.nullable_field"
+    result:
+      - { "": { "child_id": 1, "parent_id": 1, "child_data": 10, "parent_data": 10 } }
+      - { "": { "parent_id": 2, "parent_data": null } }
+      - { "": { "parent_id": 3, "parent_data": 2500 } }
+
   - description: natural join is not supported
     current_db: spec_query_join
     query: "SELECT * FROM bar NATURAL JOIN coll"
