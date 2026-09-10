@@ -12,7 +12,7 @@ mod test {
     use crate::partitioning::partition::PARTITION_SIZE_IN_BYTES;
 
     #[test]
-    fn test_generate_partition_match_with_mismatched_bson_types() {
+    fn generate_partition_match_with_mismatched_bson_types_without_schema_inclusive() {
         let partition = Partition {
             min: Bson::String("my_user_id".to_string()),
             max: Bson::Int64(5000),
@@ -38,7 +38,7 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_mismatched_bson_types_and_schema() {
+    fn generate_partition_match_with_mismatched_bson_types_and_schema_inclusive() {
         let partition = Partition {
             min: Bson::Int64(0),
             max: Bson::String("my_user_id".to_string()),
@@ -81,7 +81,8 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_mixed_numeric_bounds_uses_match_language() {
+    fn generate_partition_match_with_mixed_numeric_bounds_without_schema_exclusive_uses_match_language()
+     {
         let partition = Partition {
             min: Bson::Int64(1),
             max: Bson::Double(5000.0),
@@ -105,7 +106,7 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_wildcard_min_uses_expr() {
+    fn generate_partition_match_with_wildcard_min_uses_expr() {
         let partition = Partition {
             min: Bson::MinKey,
             max: Bson::String("my_user_id".to_string()),
@@ -131,7 +132,7 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_mismatched_bson_types_max_bound_exclusive() {
+    fn generate_partition_match_with_mismatched_bson_types_max_bound_exclusive() {
         let partition = Partition {
             min: Bson::String("my_user_id".to_string()),
             max: Bson::Int64(5000),
@@ -157,7 +158,7 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_without_schema_doc_max_bound_inclusive() {
+    fn generate_partition_match_without_schema_doc_max_bound_inclusive() {
         let partition = Partition {
             min: Bson::MinKey,
             max: Bson::MaxKey,
@@ -181,7 +182,7 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_without_schema_doc_max_bound_exclusive() {
+    fn generate_partition_match_without_schema_doc_max_bound_exclusive() {
         let partition = Partition {
             min: Bson::MinKey,
             max: Bson::MaxKey,
@@ -206,7 +207,7 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_schema_doc_max_bound_inclusive() {
+    fn generate_partition_match_with_schema_doc_max_bound_inclusive() {
         let partition = Partition {
             min: Bson::MinKey,
             max: Bson::MaxKey,
@@ -247,7 +248,7 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_schema_doc_max_bound_exclusive() {
+    fn generate_partition_match_with_schema_doc_max_bound_exclusive() {
         let partition = Partition {
             min: Bson::MinKey,
             max: Bson::MaxKey,
@@ -288,58 +289,43 @@ mod test {
     }
 
     #[test]
-    fn test_generate_partition_match_with_mismatched_id_fields_dataset_bounds() {
-        // Bounds taken from the `mismatched_id_fields_small` dataset, whose `_id` values mix
-        // int64, string, and ObjectId. int64 and string are not comparable in match language,
-        // so this exercises the `$expr` fallback.
+    fn generate_schema_with_mismatched_bson_types_with_schema_exclusive() {
         let partition = Partition {
-            min: Bson::Int64(10),
-            max: Bson::String("S".to_string()),
-            is_max_bound_inclusive: true,
+            min: Bson::Int64(0),
+            max: Bson::String("my_user_id".to_string()),
+            is_max_bound_inclusive: false,
         };
 
-        let ignored_ids = vec![Bson::Int64(13), Bson::String("id_string_0001".to_string())];
-        let match_stage = partition.generate_match(None, &ignored_ids, &DEFAULT_PARTITION_KEY);
-        assert_eq!(
-            match_stage,
-            doc! {
-                "$match": {
-                    "$expr": {
-                        "$and": [
-                            {"$not": {"$in": ["$_id", {"$literal": ignored_ids.clone()}]}},
-                            {"$gte": ["$_id", Bson::Int64(10)]},
-                            {"$lte": ["$_id", Bson::String("S".to_string())]}
-                        ]
-                    }
-                }
-            }
+        let schema = schema_for_document(&doc! {
+            "name": "AzureDiamond",
+            "password": "hunter2",
+            "iq": 140,
+        });
+
+        let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
+        let match_stage = partition.generate_match(
+            Some(Document::try_from(schema.clone()).unwrap()),
+            &ignored_ids,
+            DEFAULT_PARTITION_KEY.as_str(),
         );
-    }
-
-    #[test]
-    fn test_generate_partition_match_with_long_and_object_id_bounds() {
-        // `$expr` comparisons use BSON total sort order, so this partition covers every key
-        // between the bounds regardless of type -- including the string `_id`s that sort
-        // between longs and ObjectIds.
-        let partition = Partition {
-            min: Bson::Int64(10),
-            max: Bson::ObjectId(ObjectId::new()),
-            is_max_bound_inclusive: true,
-        };
-
-        let ignored_ids = vec![Bson::Int64(13)];
-        let match_stage = partition.generate_match(None, &ignored_ids, &DEFAULT_PARTITION_KEY);
+        let bson_schema = json_schema::Schema::try_from(schema)
+            .unwrap()
+            .to_bson()
+            .unwrap();
         assert_eq!(
             match_stage,
             doc! {
                 "$match": {
                     "$expr": {
                         "$and": [
-                            {"$not": {"$in": ["$_id", {"$literal": ignored_ids.clone()}]}},
-                            {"$gte": ["$_id", Bson::Int64(10)]},
-                            {"$lte": ["$_id", partition.max.clone()]}
+                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
+                            {"$gte": ["$_id", Bson::Int64(0)]},
+                            {"$lt": ["$_id", Bson::String("my_user_id".to_string())]}
                         ]
-                    }
+                    },
+                    "$nor": [{
+                        "$jsonSchema": bson_schema
+                    }]
                 }
             }
         );
