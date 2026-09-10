@@ -24,9 +24,9 @@ describe("service impl", () => {
             "admin",
             "config",
             "local",
+            "mismatched_id_fields_small",
             "nonuniform",
             "uniform",
-            "mismatched_id_fields_small"
           ]
         `);
     });

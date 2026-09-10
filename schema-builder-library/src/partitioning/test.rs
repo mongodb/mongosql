@@ -170,12 +170,10 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "$expr": {
-                        "$and": [
-                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
-                            {"$gte": ["$_id", Bson::MinKey]},
-                            {"$lte": ["$_id", Bson::MaxKey]}
-                        ]
+                    "_id": {
+                        "$nin": &ignored_ids,
+                        "$gte": Bson::MinKey,
+                        "$lte": Bson::MaxKey
                     }
                 }
             }
@@ -197,12 +195,10 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "$expr": {
-                        "$and": [
-                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
-                            {"$gte": ["$_id", Bson::MinKey]},
-                            {"$lt": ["$_id", Bson::MaxKey]}
-                        ]
+                    "_id": {
+                        "$nin": &ignored_ids,
+                        "$gte": Bson::MinKey,
+                        "$lt": Bson::MaxKey
                     }
                 }
             }
@@ -237,12 +233,10 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "$expr": {
-                        "$and": [
-                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
-                            {"$gte": ["$_id", Bson::MinKey]},
-                            {"$lte": ["$_id", Bson::MaxKey]}
-                        ]
+                    "_id": {
+                        "$nin": &ignored_ids,
+                        "$gte": Bson::MinKey,
+                        "$lte": Bson::MaxKey
                     },
                     "$nor": [{
                         "$jsonSchema": bson_schema
@@ -280,12 +274,10 @@ mod test {
             match_stage,
             doc! {
                 "$match": {
-                    "$expr": {
-                        "$and": [
-                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
-                            {"$gte": ["$_id", Bson::MinKey]},
-                            {"$lt": ["$_id", Bson::MaxKey]}
-                        ]
+                    "_id": {
+                        "$nin": &ignored_ids,
+                        "$gte": Bson::MinKey,
+                        "$lt": Bson::MaxKey
                     },
                     "$nor": [{
                         "$jsonSchema": bson_schema
