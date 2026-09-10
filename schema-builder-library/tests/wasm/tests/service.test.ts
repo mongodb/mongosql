@@ -26,6 +26,7 @@ describe("service impl", () => {
             "local",
             "nonuniform",
             "uniform",
+            "mismatched_id_fields_small"
           ]
         `);
     });

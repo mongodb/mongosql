@@ -4,6 +4,7 @@ use tracing::instrument;
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 
 /// Returns true when `min` and `max` can be compared using match-language range operators.
+/// They can be compared if they are both numeric types, if they are the same type, or if one is MinKey and the other is MaxKey
 fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
     fn is_numeric(bound: &Bson) -> bool {
         matches!(
@@ -12,7 +13,9 @@ fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
         )
     }
 
-    (is_numeric(min) && is_numeric(max)) || min.element_type() == max.element_type()
+    (is_numeric(min) && is_numeric(max))
+        || min.element_type() == max.element_type()
+        || matches!((min, max), (Bson::MinKey, Bson::MaxKey))
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -28,8 +31,8 @@ impl Partition {
     // only be based on the Partition bounds and the ignored_ids list.
     // If the min and max bounds are not comparable in match language, the $expr language will be used.
     //
-    //  $expr comparisons use BSON total ort order, so a partition key of any type can fall between the bounds, while match language
-    // is type-bracketed and only matches keys that have the exact type as bound's type.
+    //  $expr comparisons use BSON total sort order, so a partition key of any type can fall between the bounds, while match language
+    // is type-bracketed and only matches keys that have the same type as the bound.
     #[instrument(level = "trace", skip_all)]
     pub fn generate_match(
         &self,
