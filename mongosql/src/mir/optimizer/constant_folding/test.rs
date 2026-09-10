@@ -4450,3 +4450,119 @@ mod cast {
         );
     }
 }
+
+mod higher_order_functions {
+    use super::*;
+
+    use crate::mir::schema::THIS_VARIABLE;
+
+    test_constant_fold!(
+        fold_nested_scalar_function_with_null_literal_argument_to_null_inside_hof_map,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Map(MapExpr {
+                    array: Box::new(Expression::Array(ArrayExpr { array: vec![] })),
+                    f: Box::new(Expression::Literal(LiteralValue::Null)),
+                    is_nullable: true,
+                })
+            )],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Map(MapExpr {
+                    array: Box::new(Expression::Array(ArrayExpr { array: vec![] })),
+                    f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Add,
+                        vec![
+                            Expression::Literal(LiteralValue::Null),
+                            Expression::Variable(Variable {
+                                name: THIS_VARIABLE.to_string(),
+                                is_nullable: false,
+                            }),
+                        ],
+                    ))),
+                    is_nullable: true,
+                })
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_constant_fold!(
+        fold_nested_scalar_function_with_null_literal_argument_to_null_inside_hof_filter,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Filter(FilterExpr {
+                    array: Box::new(Expression::Array(ArrayExpr { array: vec![] })),
+                    f: Box::new(Expression::Literal(LiteralValue::Null)),
+                    is_nullable: true,
+                })
+            )],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Filter(FilterExpr {
+                    array: Box::new(Expression::Array(ArrayExpr { array: vec![] })),
+                    f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Lte,
+                        vec![
+                            Expression::Variable(Variable {
+                                name: THIS_VARIABLE.to_string(),
+                                is_nullable: false,
+                            }),
+                            Expression::Literal(LiteralValue::Null),
+                        ],
+                    ))),
+                    is_nullable: true,
+                })
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_constant_fold!(
+        fold_nested_scalar_function_with_null_literal_argument_to_null_inside_hof_reduce,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                    array: Box::new(Expression::Array(ArrayExpr { array: vec![] })),
+                    init_value: Box::new(Expression::Literal(LiteralValue::Integer(0))),
+                    f: Box::new(Expression::Literal(LiteralValue::Null)),
+                    is_nullable: true,
+                })
+            )],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::HigherOrderFunction(
+                HigherOrderFunctionApplication::Reduce(ReduceExpr {
+                    array: Box::new(Expression::Array(ArrayExpr { array: vec![] })),
+                    init_value: Box::new(Expression::Literal(LiteralValue::Integer(0))),
+                    f: Box::new(Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Sub,
+                        vec![
+                            Expression::Variable(Variable {
+                                name: THIS_VARIABLE.to_string(),
+                                is_nullable: false,
+                            }),
+                            Expression::Literal(LiteralValue::Null),
+                        ],
+                    ))),
+                    is_nullable: true,
+                })
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+}
