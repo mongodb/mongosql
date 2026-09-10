@@ -587,4 +587,96 @@ mod test {
         let actual = vec![doc! {"a": [[1], [2, 3]]}, doc! {"a": [[6]]}];
         assert_result_sets_equal(expected, actual, false, true, "test".into());
     }
+
+    #[test]
+    fn assert_result_sets_equal_unordered_with_nested_documents() {
+        let expected = vec![
+            doc! {"a": {"b": 1}},
+            doc! {"a": {"b": 2}},
+            doc! {"a": {"b": 3}},
+        ];
+        let actual = vec![
+            doc! {"a": {"b": 3}},
+            doc! {"a": {"b": 2}},
+            doc! {"a": {"b": 1}},
+        ];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_ordered_with_nested_documents() {
+        let expected = vec![
+            doc! {"a": {"b": 1}},
+            doc! {"a": {"b": 2}},
+            doc! {"a": {"b": 3}},
+        ];
+        let actual = vec![
+            doc! {"a": {"b": 1}},
+            doc! {"a": {"b": 2}},
+            doc! {"a": {"b": 3}},
+        ];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_with_nested_documents_different_values() {
+        let expected = vec![
+            doc! {"a": {"b": 1}},
+            doc! {"a": {"b": 2}},
+            doc! {"a": {"b": 3}},
+        ];
+        let actual = vec![
+            doc! {"a": {"b": 3}},
+            doc! {"a": {"b": 2}},
+            doc! {"a": {"b": 4}},
+        ];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_with_nested_documents_different_values() {
+        let expected = vec![
+            doc! {"a": {"b": 1}},
+            doc! {"a": {"b": 2}},
+            doc! {"a": {"b": 3}},
+        ];
+        let actual = vec![
+            doc! {"a": {"b": 1}},
+            doc! {"a": {"b": 4}},
+            doc! {"a": {"b": 3}},
+        ];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_unordered_with_nested_documents_same_values_different_order() {
+        let expected = vec![
+            doc! {"a": {"b": 1, "c": 1}},
+            doc! {"a": {"b": 2, "c": 2}},
+            doc! {"a": {"b": 3, "c": 3}},
+        ];
+        let actual = vec![
+            doc! {"a": {"c": 3, "b": 3}},
+            doc! {"a": {"c": 1, "b": 1}},
+            doc! {"a": {"b": 2, "c": 2}},
+        ];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_ordered_with_nested_documents_same_values_different_order() {
+        let expected = vec![
+            doc! {"a": {"b": 1, "c": 1}},
+            doc! {"a": {"b": 2, "c": 2}},
+            doc! {"a": {"b": 3, "c": 3}},
+        ];
+        let actual = vec![
+            doc! {"a": {"c": 1, "b": 1}},
+            doc! {"a": {"b": 2, "c": 2}},
+            doc! {"a": {"c": 3, "b": 3}},
+        ];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
 }
