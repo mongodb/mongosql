@@ -10,7 +10,7 @@ use sql_engines_common_test_infra::{
     parse_yaml_test_file, sanitize_description, Error as cti_err, TestGenerator, YamlTestCase,
     YamlTestFile,
 };
-use std::{collections::HashSet, env, fs::File, io::Write, path::PathBuf};
+use std::{env, fs::File, io::Write, path::PathBuf};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryTestExpectations {
@@ -121,60 +121,36 @@ impl TestGenerator for QueryTestGenerator {
 
 /// Compare arrays of Bson values, allowing for NaN == NaN == true.
 ///
-/// This is not ideal (ballooning O). Because arrays may contain duplicate values,
-/// we MUST check every value in the expected array against every value in the actual array. Using the HashSet
-/// to mark seen indices, we can ensure that we don't check the same value twice.
-/// Since the query tests are small, this shouldn't be much of an impact.
+/// Note that arrays are considered ordered in MongoDB and in MongoSQL. This
+/// function should never be modified to make array comparisons unordered as
+/// that would break the contract of what arrays mean in MongoDB and MongoSQL.
 pub fn compare_arrays(expected: &[Bson], actual: &[Bson], type_compare: bool) -> bool {
     if expected.len() != actual.len() {
         return false;
     }
-    let mut seen_indices = HashSet::new();
-    expected.iter().all(|e| {
-        actual.iter().enumerate().any(|(i, a)| {
-            if seen_indices.contains(&i) {
-                return false;
-            }
-            if let Bson::Document(d) = e {
-                if let Bson::Document(ad) = a {
-                    if compare_documents(d, ad, type_compare) {
-                        return seen_indices.insert(i);
-                    }
-                } else {
-                    return false;
-                }
-            }
-            if let Bson::Array(ea) = e {
-                if let Bson::Array(aa) = a {
-                    if compare_arrays(ea, aa, type_compare) {
-                        return seen_indices.insert(i);
-                    }
-                } else {
-                    return false;
-                }
-            }
-            if type_compare {
-                if e.element_type() == a.element_type() {
-                    return seen_indices.insert(i);
-                } else {
-                    return false;
-                }
-            }
-            if is_numeric(e) && is_numeric(a) {
-                let d = numeric_to_double(e);
-                let ad = numeric_to_double(a);
-                if compare_doubles_for_test(d, ad) {
-                    return seen_indices.insert(i);
-                } else {
-                    return false;
-                }
-            }
-            if e == a {
-                return seen_indices.insert(i);
-            }
-            false
+
+    expected
+        .iter()
+        .zip(actual.iter())
+        .all(|(expected_value, actual_value)| {
+            compare_bson_values(expected_value, actual_value, type_compare)
         })
-    })
+}
+
+fn compare_bson_values(expected: &Bson, actual: &Bson, type_compare: bool) -> bool {
+    match (expected, actual) {
+        (Bson::Document(expected_document), Bson::Document(actual_document)) => {
+            compare_documents(expected_document, actual_document, type_compare)
+        }
+        (Bson::Array(expected_array), Bson::Array(actual_array)) => {
+            compare_arrays(expected_array, actual_array, type_compare)
+        }
+        _ if type_compare => expected.element_type() == actual.element_type(),
+        _ if is_numeric(expected) && is_numeric(actual) => {
+            compare_doubles_for_test(numeric_to_double(expected), numeric_to_double(actual))
+        }
+        _ => expected == actual,
+    }
 }
 
 // According to the IEEE 754 standard, a 64-bit floating-point number (double precision) has a
@@ -274,22 +250,7 @@ pub fn compare_documents(expected: &Document, actual: &Document, type_compare: b
     expected
         .iter()
         .all(|(ek, expected_value)| match actual.get(ek) {
-            Some(actual_value) => match (expected_value, actual_value) {
-                (Bson::Document(expected_document), Bson::Document(actual_document)) => {
-                    compare_documents(expected_document, actual_document, type_compare)
-                }
-                (Bson::Array(expected_array), Bson::Array(actual_array)) => {
-                    compare_arrays(expected_array, actual_array, type_compare)
-                }
-                _ if type_compare => expected_value.element_type() == actual_value.element_type(),
-                _ if is_numeric(expected_value) && is_numeric(actual_value) => {
-                    compare_doubles_for_test(
-                        numeric_to_double(expected_value),
-                        numeric_to_double(actual_value),
-                    )
-                }
-                _ => expected_value == actual_value,
-            },
+            Some(actual_value) => compare_bson_values(expected_value, actual_value, type_compare),
             None => false,
         })
 }
@@ -548,6 +509,82 @@ mod test {
     fn assert_result_sets_not_equal_ordered_duplicate_expecteds() {
         let expected = vec![doc! {"a": 1}, doc! {"a": 1}];
         let actual = vec![doc! {"a": 1}, doc! {"b": 1}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_unordered_with_arrays() {
+        let expected = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 5, 6]}];
+        let actual = vec![doc! {"a": [4, 5, 6]}, doc! {"a": [1, 2, 3]}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_ordered_with_arrays() {
+        let expected = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 5, 6]}];
+        let actual = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 5, 6]}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_with_arrays_different_values() {
+        let expected = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 5, 6]}];
+        let actual = vec![doc! {"a": [4, 5, 6]}, doc! {"a": [1, 20, 30]}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_with_arrays_different_values() {
+        let expected = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 5, 6]}];
+        let actual = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 50, 6]}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_with_arrays_same_values_different_order() {
+        let expected = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 5, 6]}];
+        let actual = vec![doc! {"a": [4, 5, 6]}, doc! {"a": [2, 1, 3]}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_with_arrays_same_values_different_order() {
+        let expected = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 5, 6]}];
+        let actual = vec![doc! {"a": [1, 2, 3]}, doc! {"a": [4, 6, 5]}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_unordered_with_nested_arrays() {
+        let expected = vec![doc! {"a": [[1], [2, 3]]}, doc! {"a": [[4, 5, 6]]}];
+        let actual = vec![doc! {"a": [[4, 5, 6]]}, doc! {"a": [[1], [2, 3]]}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    fn assert_result_sets_equal_ordered_with_nested_arrays() {
+        let expected = vec![doc! {"a": [[1], [2, 3]]}, doc! {"a": [[4, 5, 6]]}];
+        let actual = vec![doc! {"a": [[1], [2, 3]]}, doc! {"a": [[4, 5, 6]]}];
+        assert_result_sets_equal(expected, actual, false, true, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_unordered_with_nested_arrays() {
+        let expected = vec![doc! {"a": [[1], [2], [3]]}, doc! {"a": [[4], [5, 6]]}];
+        let actual = vec![doc! {"a": [[4], [5, 6]]}, doc! {"a": [[1], [3], [2]]}];
+        assert_result_sets_equal(expected, actual, false, false, "test".into());
+    }
+
+    #[test]
+    #[should_panic]
+    fn assert_result_sets_not_equal_ordered_with_nested_arrays() {
+        let expected = vec![doc! {"a": [[1], [2, 3]]}, doc! {"a": [[4, 5, 6]]}];
+        let actual = vec![doc! {"a": [[1], [2, 3]]}, doc! {"a": [[6]]}];
         assert_result_sets_equal(expected, actual, false, true, "test".into());
     }
 }
