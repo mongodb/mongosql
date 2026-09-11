@@ -792,7 +792,7 @@ functions:
         working_dir: mongosql-rs/testdata
         script: |
           ${prepare_shell}
-          curl -LO https://mongosql-noexpire.s3.us-east-2.amazonaws.com/schema_manager/schema-builder-library-new.tar.gz
+          curl -LO https://mongosql-noexpire.s3.us-east-2.amazonaws.com/schema_manager/schema-builder-library.tar.gz
   "decompress schema-builder-library testdata":
     - command: shell.exec
       params:
