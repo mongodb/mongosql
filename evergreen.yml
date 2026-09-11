@@ -804,7 +804,7 @@ functions:
           rm -rf testdata/schema-builder-library/
           echo "Removal complete"
           echo "Decompressing integration test data..."
-          tar -xzvf testdata/schema-builder-library-new.tar.gz --directory testdata
+          tar -xzvf testdata/schema-builder-library.tar.gz --directory testdata
           echo "Decompression complete"
 
   "generate static code analysis":
