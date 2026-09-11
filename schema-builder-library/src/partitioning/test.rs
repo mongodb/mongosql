@@ -38,7 +38,7 @@ mod test {
     }
 
     #[test]
-    fn generate_partition_match_with_mismatched_bson_types_and_schema_inclusive() {
+    fn generate_partition_match_with_mismatched_bson_types_with_schema_inclusive() {
         let partition = Partition {
             min: Bson::Int64(0),
             max: Bson::String("my_user_id".to_string()),
@@ -106,7 +106,7 @@ mod test {
     }
 
     #[test]
-    fn generate_partition_match_with_wildcard_min_uses_expr() {
+    fn generate_partition_match_with_wildcard_min_without_schema_inclusive_uses_expr() {
         let partition = Partition {
             min: Bson::MinKey,
             max: Bson::String("my_user_id".to_string()),
@@ -124,6 +124,32 @@ mod test {
                             {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
                             {"$gte": ["$_id", Bson::MinKey]},
                             {"$lte": ["$_id", Bson::String("my_user_id".to_string())]}
+                        ]
+                    }
+                }
+            }
+        );
+    }
+
+    #[test]
+    fn generate_partition_match_with_wildcard_max_without_schema_inclusive_uses_expr() {
+        let partition = Partition {
+            min: Bson::String("my_user_id".to_string()),
+            max: Bson::MaxKey,
+            is_max_bound_inclusive: true,
+        };
+
+        let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
+        let match_stage = partition.generate_match(None, &ignored_ids, &DEFAULT_PARTITION_KEY);
+        assert_eq!(
+            match_stage,
+            doc! {
+                "$match": {
+                    "$expr": {
+                        "$and": [
+                            {"$not": {"$in": ["$_id", {"$literal": vec![ignored_ids[0].clone()]}]}},
+                            {"$gte": ["$_id", Bson::String("my_user_id".to_string())]},
+                            {"$lte": ["$_id", Bson::MaxKey]}
                         ]
                     }
                 }
