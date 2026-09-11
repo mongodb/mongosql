@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bson::{Document, doc};
+use bson::{Bson, Document, doc};
 use futures::TryStreamExt as _;
 use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
@@ -84,7 +84,9 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     initial_schema_doc: Option<Arc<Schema>>,
     single_partition: SinglePartition,
 ) -> Result<Schema, Error<S::Error>> {
-    let mut ignored_ids = Vec::new();
+    // At most one blocker at a time: it sits at `partition.min`, which the inclusive
+    // `$gte` bound cannot exclude. See the `ignored_min_id` assignment below.
+    let mut ignored_min_id: Option<Bson> = None;
     let mut partition = single_partition.partition;
     let partition_key = single_partition.partition_key.as_str();
     let hint = single_partition.hint;
@@ -108,7 +110,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             .transpose()?;
 
         let pipeline = vec![
-            partition.generate_match(doc, &ignored_ids, partition_key),
+            partition.generate_match(doc, ignored_min_id.as_slice(), partition_key),
             doc! { "$sort": {partition_key: 1}},
             doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
         ];
@@ -131,20 +133,13 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             info!(db, collection, "processing partition {partition_ix}");
             if let Some(id) = doc.get(partition_key) {
                 partition.min = id.clone();
-                let old_schema = iter_schema.clone();
                 iter_schema = iter_schema.union(&schema_for_document(&doc));
-
-                // There is a bug in Server where $jsonSchema operator don't work with empty keys.
-                // To avoid getting caught in an infinite loop, we push to a list of ignored IDs in the event
-                // empty keys exists in the partition.
-                // See SERVER-92443 and https://github.com/10gen/schema-manager-rs/pull/754 for more context.
-
-                if old_schema == iter_schema {
-                    ignored_ids.push(id.clone());
-                }
                 no_result = false;
             } else {
-                warn!(db, collection, "document {partition_key} field");
+                warn!(
+                    db,
+                    collection, "document is missing the {partition_key} field"
+                );
                 continue;
             };
         }
@@ -152,7 +147,21 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             break;
         }
 
-        schema = schema.union(&iter_schema);
+        let new_schema = schema.union(&iter_schema);
+
+        // A batch that widened nothing means `schema` already covers what came back, yet
+        // `$nor: [$jsonSchema]` returned it anyway -- so the document at `partition.min`
+        // cannot match the `$jsonSchema` rendering of the very schema it contributed to.
+        // `required` resolves `"a.b"` as the path `a` -> `b`, and empty keys behave likewise
+        // on servers affected by SERVER-92443; see
+        // https://github.com/10gen/schema-manager-rs/pull/754. Neither the schema filter nor
+        // the inclusive `$gte` bound can drop it, so record its id -- its contribution is
+        // already folded into `schema`, so excluding it from here on loses nothing.
+        //
+        // Otherwise, `min` has advanced past any previous blocker and `$gte` excludes it.
+        ignored_min_id = (new_schema == schema).then(|| partition.min.clone());
+
+        schema = new_schema;
 
         // If the schema for this partition becomes unstable, we should do at most one more
         // iteration to see if we detect any additional properties. After two iterations with an

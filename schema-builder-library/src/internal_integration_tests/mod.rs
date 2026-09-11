@@ -3,6 +3,10 @@ mod consts;
 
 #[cfg(feature = "integration")]
 #[cfg(test)]
+mod derive_schema_unmatchable_documents;
+
+#[cfg(feature = "integration")]
+#[cfg(test)]
 mod get_bounds;
 
 #[cfg(feature = "integration")]
