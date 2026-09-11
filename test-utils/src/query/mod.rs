@@ -329,7 +329,7 @@ pub fn assert_result_sets_equal(
             assert!(
                 // because NaN != NaN, we have to use custom comparison functions
                 compare_documents(e, a, type_compare),
-                "unexpected query result for {} at index {}, \nexpected: {:?}\nactual: {:?}",
+                "unexpected query result for {desc} at index {index}, \nexpected: {e:?}\nactual: {a:?}",
                 desc,
                 index,
                 e,
