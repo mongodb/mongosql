@@ -46,9 +46,23 @@ impl Partition {
             "$lt"
         };
 
-        // If the min and max bounds are not comparable in match language, fall back to the
-        // $expr language
-        if !bounds_are_comparable(&self.min, &self.max) {
+        if bounds_are_comparable(&self.min, &self.max) {
+            let mut match_body = doc! {
+                partition_key: {
+                    "$nin": ignored_ids,
+                    "$gte": self.min.clone(),
+                    lt_op: self.max.clone(),
+                }
+            };
+            if let Some(schema) = doc {
+                match_body.insert("$nor", vec![schema]);
+            }
+            doc! {
+                "$match": match_body
+            }
+        } else {
+            // If the min and max bounds are not comparable in match language, fall back to
+            // $expr language
             let key_path = format!("${partition_key}");
             let mut expr_body = doc! {
                 "$expr": {
@@ -70,20 +84,6 @@ impl Partition {
 
             doc! {
                 "$match": expr_body
-            }
-        } else {
-            let mut match_body = doc! {
-                partition_key: {
-                    "$nin": ignored_ids,
-                    "$gte": self.min.clone(),
-                    lt_op: self.max.clone(),
-                }
-            };
-            if let Some(schema) = doc {
-                match_body.insert("$nor", vec![schema]);
-            }
-            doc! {
-                "$match": match_body
             }
         }
     }
