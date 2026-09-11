@@ -110,6 +110,13 @@ lazy_static! {
         is_max_bound_inclusive: true,
     },];
 
+    pub static ref MISMATCHED_ID_TYPES_PARTITIONS: Vec<Partition> = vec![Partition {
+        min: Bson::Int64(1),
+        max: Bson::String("Z".to_string()),
+        is_max_bound_inclusive: true,
+    },];
+
+
     // Using the same math above, we know that
     // 90MB / 400B = 235929
     pub static ref NUM_DOCS_IN_SMALL_COLLECTION: i64 =

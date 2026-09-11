@@ -130,7 +130,10 @@ lazy_static! {
 
 pub const UNIFORM_DB_NAME: &str = "uniform";
 pub const NONUNIFORM_DB_NAME: &str = "nonuniform";
+pub const MISMATCHED_TYPES_DB_NAME: &str = "mismatched_id_fields_small";
+
 pub const SMALL_COLL_NAME: &str = "small";
 pub const LARGE_COLL_NAME: &str = "large";
 pub const UNITARY_COLL_NAME: &str = "unit";
+pub const MISMATCHED_TYPES_COLL_NAME: &str = "small";
 pub const VIEW_NAME: &str = "test_view";

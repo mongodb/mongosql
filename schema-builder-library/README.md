@@ -16,7 +16,7 @@ The goals of this project are:
 The `schema-builder-library` integration tests cover library method correctness against a live
 database. These tests require a running enterprise mongod server (version at least 6.0). They also
 require that data be loaded in before running the tests. The data is
-stored [here](https://mongosql-noexpire.s3.us-east-2.amazonaws.com/schema_manager/schema-builder-library.tar.gz).
+stored [here](https://mongosql-noexpire.s3.us-east-2.amazonaws.com/schema_manager/schema-builder-library-new.tar.gz).
 After decompressing the data, to load it into the database,
 use the [sql-engines-common-test-infra](https://github.com/mongodb/sql-engines-common-test-infra)
 `data-loader` tool. See `cargo run --bin data-loader -- --help` in that repo for more details.
