@@ -1,15 +1,15 @@
 use crate::{
+    SchemaCheckingMode,
     catalog::Catalog,
     map, mir,
     mir::{
-        optimizer::{dead_code_elimination::DeadCodeEliminator, Optimizer},
+        optimizer::{Optimizer, dead_code_elimination::DeadCodeEliminator},
         schema::{SchemaCache, SchemaInferenceState},
         *,
     },
     schema::{Atomic, Document, Satisfaction, Schema, SchemaEnvironment},
     set, unchecked_unique_linked_hash_map,
     util::{mir_collection, mir_field_access},
-    SchemaCheckingMode,
 };
 use agg_ast::definitions::Namespace;
 use lazy_static::lazy_static;

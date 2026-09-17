@@ -25,13 +25,13 @@ mod test;
 use super::Optimizer;
 use crate::mir::optimizer::util::ContainsSubqueryVisitor;
 use crate::{
+    SchemaCheckingMode,
     mir::{
-        binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor, Derived, EquiJoin,
-        Expression, Filter, Group, Join, JoinType, LateralJoin, Limit, MatchFilter, MqlStage,
-        Offset, Project, ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
+        Derived, EquiJoin, Expression, Filter, Group, Join, JoinType, LateralJoin, Limit,
+        MatchFilter, MqlStage, Offset, Project, ScalarFunction, ScalarFunctionApplication, Set,
+        Sort, Stage, Unwind, binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor,
     },
     schema::ResultSet,
-    SchemaCheckingMode,
 };
 use std::collections::HashSet;
 

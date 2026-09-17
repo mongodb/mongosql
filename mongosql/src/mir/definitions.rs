@@ -1,8 +1,8 @@
 use crate::{
     mir::{
+        Error,
         binding_tuple::{BindingTuple, Key},
         schema::SchemaCache,
-        Error,
     },
     schema::{ResultSet, Satisfaction, Schema},
     util::unique_linked_hash_map::UniqueLinkedHashMap,

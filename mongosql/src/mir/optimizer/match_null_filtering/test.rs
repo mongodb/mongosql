@@ -2,10 +2,10 @@ use crate::{
     catalog::Catalog,
     map,
     mir::{
-        optimizer::{match_null_filtering::MatchNullFilteringOptimizer, Optimizer},
-        schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
         Derived, ExistsExpr, Expression, FieldAccess, Filter, LiteralValue, Project,
         ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
+        optimizer::{Optimizer, match_null_filtering::MatchNullFilteringOptimizer},
+        schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
     },
     unchecked_unique_linked_hash_map,
     util::mir_collection,

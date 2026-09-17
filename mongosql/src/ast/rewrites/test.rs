@@ -62,8 +62,11 @@ mod positional_sort_key {
     test_rewrite!(
         recursively_rewrite_in_subquery_expr,
         pass = PositionalSortKeyRewritePass,
-        expected = Ok("SELECT b AS b, (SELECT a AS a FROM foo ORDER BY a ASC LIMIT 1) AS c FROM bar ORDER BY c ASC"),
-        input = "SELECT b AS b, (SELECT a AS a FROM foo ORDER BY 1 LIMIT 1) AS c FROM bar ORDER BY 2",
+        expected = Ok(
+            "SELECT b AS b, (SELECT a AS a FROM foo ORDER BY a ASC LIMIT 1) AS c FROM bar ORDER BY c ASC"
+        ),
+        input =
+            "SELECT b AS b, (SELECT a AS a FROM foo ORDER BY 1 LIMIT 1) AS c FROM bar ORDER BY 2",
     );
     test_rewrite!(
         subquery_does_not_pollute_parent_state,
@@ -111,8 +114,9 @@ mod positional_sort_key {
     test_rewrite!(
         rewrite_both_parent_and_derived_table,
         pass = PositionalSortKeyRewritePass,
-        expected =
-            Ok("SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo ORDER BY a ASC) AS sub ORDER BY b ASC"),
+        expected = Ok(
+            "SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo ORDER BY a ASC) AS sub ORDER BY b ASC"
+        ),
         input = "SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo ORDER BY 1) AS sub ORDER BY 1",
     );
     test_rewrite!(
@@ -208,13 +212,17 @@ mod aggregate {
     test_rewrite!(
         different_funcs_in_select_by_clause,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1, _agg2 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2"),
+        expected = Ok(
+            "SELECT _agg1, _agg2 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2"
+        ),
         input = "SELECT SUM(x), COUNT(y) FROM foo",
     );
     test_rewrite!(
         identical_funcs_in_select_clause,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2"),
+        expected = Ok(
+            "SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2"
+        ),
         input = "SELECT SUM(x), SUM(x+1), SUM(x+1), SUM(x) FROM foo",
     );
 
@@ -230,8 +238,9 @@ mod aggregate {
     test_rewrite!(
         one_func_in_having_clause_no_group_by,
         pass = AggregateRewritePass,
-        expected =
-            Ok("SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1 HAVING _agg1 > 42"),
+        expected = Ok(
+            "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1 HAVING _agg1 > 42"
+        ),
         input = "SELECT * FROM foo HAVING SUM(x) > 42",
     );
     test_rewrite!(
@@ -243,19 +252,25 @@ mod aggregate {
     test_rewrite!(
         different_funcs_in_having_clause_with_group_by,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2 HAVING _agg1 > 42 AND _agg2 < 42"),
+        expected = Ok(
+            "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2 HAVING _agg1 > 42 AND _agg2 < 42"
+        ),
         input = "SELECT * FROM foo GROUP BY x HAVING SUM(x) > 42 AND COUNT(y) < 42",
     );
     test_rewrite!(
         identical_funcs_in_having_clause_with_group_by,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS _agg1 HAVING _agg1 < 42 AND _agg1 > 24"),
+        expected = Ok(
+            "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS _agg1 HAVING _agg1 < 42 AND _agg1 > 24"
+        ),
         input = "SELECT * FROM foo GROUP BY x HAVING SUM(x) < 42 AND SUM(x) > 24",
     );
     test_rewrite!(
         identical_funcs_in_having_clause_alias_order_dictated_by_select,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2 HAVING _agg2 > 42 AND _agg1 < 42"),
+        expected = Ok(
+            "SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2 HAVING _agg2 > 42 AND _agg1 < 42"
+        ),
         input = "SELECT SUM(x), SUM(x+1), SUM(x+1), SUM(x) FROM foo HAVING SUM(x+1) > 42 AND SUM(x) < 42",
     );
 
@@ -263,43 +278,57 @@ mod aggregate {
     test_rewrite!(
         top_level_select_and_subquery_select_different_funcs,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok(
+            "SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"
+        ),
         input = "SELECT SUM(x) FROM (SELECT COUNT(y)) AS z",
     );
     test_rewrite!(
         top_level_select_and_subquery_select_identical_funcs,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok(
+            "SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"
+        ),
         input = "SELECT SUM(x) FROM (SELECT SUM(x)) AS z",
     );
     test_rewrite!(
         top_level_select_and_subquery_group_by_aggregate_not_modified,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM (SELECT * FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok(
+            "SELECT _agg1 FROM (SELECT * FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"
+        ),
         input = "SELECT SUM(x) FROM (SELECT * FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z",
     );
     test_rewrite!(
         top_level_select_and_subquery_having,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM (SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok(
+            "SELECT _agg1 FROM (SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"
+        ),
         input = "SELECT SUM(x) FROM (SELECT * FROM foo HAVING COUNT(y) > 42) AS z",
     );
     test_rewrite!(
         top_level_select_and_subquery_exists,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM foo WHERE EXISTS(SELECT * FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok(
+            "SELECT _agg1 FROM foo WHERE EXISTS(SELECT * FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"
+        ),
         input = "SELECT SUM(x) FROM foo WHERE EXISTS(SELECT * FROM bar HAVING COUNT(y) > 42)",
     );
     test_rewrite!(
         subquery_in_func_in_top_level_select,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1)) AS _agg1"),
+        expected = Ok(
+            "SELECT _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1)) AS _agg1"
+        ),
         input = "SELECT SUM(x <> ANY(SELECT SUM(x) FROM bar)) FROM foo",
     );
     test_rewrite!(
         subquery_in_func_in_group_by_agg_list,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1)) AS z"),
+        expected = Ok(
+            "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1)) AS z"
+        ),
         input = "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x <> ANY(SELECT SUM(x) FROM bar)) AS z",
     );
 
@@ -388,8 +417,9 @@ mod aggregate {
     test_rewrite!(
         nested_all,
         pass = AggregateRewritePass,
-        expected =
-            Ok("SELECT _agg2 GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(_agg1) AS _agg2"),
+        expected = Ok(
+            "SELECT _agg2 GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(_agg1) AS _agg2"
+        ),
         input = "SELECT SUM(ALL SUM(ALL x))",
     );
 
@@ -405,7 +435,9 @@ mod aggregate {
     test_rewrite!(
         multiple_multi_arg_counts_rewritten_to_doc_arg,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT({'_arg0': a, '_arg1': b}) AS c1, COUNT({'_arg0': b, '_arg1': c, '_arg2': e.f}) AS c2"),
+        expected = Ok(
+            "SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT({'_arg0': a, '_arg1': b}) AS c1, COUNT({'_arg0': b, '_arg1': c, '_arg2': e.f}) AS c2"
+        ),
         input = "SELECT * FROM foo GROUP BY NULL AS n AGGREGATE COUNT(a, b) AS c1, COUNT(b, c, e.f) AS c2",
     );
     test_rewrite!(
@@ -508,7 +540,9 @@ mod select {
     test_rewrite!(
         select_values_subquery_not_top_level,
         pass = SelectRewritePass,
-        expected = Ok("SELECT VALUE {'a': a, 'sub1': (SELECT VALUE {'b': b} FROM (SELECT VALUE {'c': d}) AS sub2)} FROM foo AS foo"),
+        expected = Ok(
+            "SELECT VALUE {'a': a, 'sub1': (SELECT VALUE {'b': b} FROM (SELECT VALUE {'c': d}) AS sub2)} FROM foo AS foo"
+        ),
         input = "SELECT a AS a, (SELECT b AS b FROM (SELECT VALUE {'c': d}) AS sub2) AS sub1 FROM foo AS foo",
     );
     test_rewrite!(
@@ -649,19 +683,25 @@ mod add_alias {
     test_rewrite!(
         counter_multiple_nested_subqueries,
         pass = AddAliasRewritePass,
-        expected = Ok("SELECT 1 + 2 AS _1, (SELECT 3 + a AS _1, 4 + b AS _2 FROM (SELECT 5 + 6 AS _1) AS sub) AS _2, 7 + 8 AS _3"),
+        expected = Ok(
+            "SELECT 1 + 2 AS _1, (SELECT 3 + a AS _1, 4 + b AS _2 FROM (SELECT 5 + 6 AS _1) AS sub) AS _2, 7 + 8 AS _3"
+        ),
         input = "SELECT 1 + 2, (SELECT 3 + a, 4 + b FROM (SELECT 5+6) AS sub), 7+8",
     );
     test_rewrite!(
         group_by_in_subquery,
         pass = AddAliasRewritePass,
-        expected = Ok("SELECT 1 + 2 AS _1, (SELECT * FROM bar AS bar GROUP BY a, c + d AS _groupKey2) AS _2, b AS b FROM foo AS foo GROUP BY b + e AS _groupKey1, d"),
+        expected = Ok(
+            "SELECT 1 + 2 AS _1, (SELECT * FROM bar AS bar GROUP BY a, c + d AS _groupKey2) AS _2, b AS b FROM foo AS foo GROUP BY b + e AS _groupKey1, d"
+        ),
         input = "SELECT 1 + 2, (SELECT * FROM bar AS bar GROUP BY a, c + d), b FROM foo AS foo GROUP BY b + e, d",
     );
     test_rewrite!(
         group_by_with_subquery_key,
         pass = AddAliasRewritePass,
-        expected = Ok("SELECT a + b AS _1, b AS b GROUP BY a, (SELECT a + b AS _1, c + d AS _2) AS _groupKey2, c, c * d AS _groupKey4, e"),
+        expected = Ok(
+            "SELECT a + b AS _1, b AS b GROUP BY a, (SELECT a + b AS _1, c + d AS _2) AS _groupKey2, c, c * d AS _groupKey4, e"
+        ),
         input = "SELECT a + b, b GROUP BY a, (SELECT a + b, c + d), c, c * d, e",
     );
 }
@@ -808,7 +848,9 @@ mod group_by_select_alias {
     test_rewrite!(
         tableau_generated_query,
         pass = GroupBySelectAliasRewritePass,
-        expected = Ok("SELECT str2 FROM Calcs WHERE ((NOT (Calcs.str2 IN ('eight', 'eleven', 'fifteen', 'five'))) OR (Calcs.str2 IS NULL)) GROUP BY Calcs.str2 AS str2"),
+        expected = Ok(
+            "SELECT str2 FROM Calcs WHERE ((NOT (Calcs.str2 IN ('eight', 'eleven', 'fifteen', 'five'))) OR (Calcs.str2 IS NULL)) GROUP BY Calcs.str2 AS str2"
+        ),
         input = "SELECT Calcs.str2 AS str2 FROM Calcs WHERE ((NOT (Calcs.str2 IN ('eight', 'eleven', 'fifteen', 'five'))) OR (Calcs.str2 IS NULL)) GROUP BY str2",
     );
 }
@@ -878,17 +920,21 @@ mod optional_parameters {
         test_rewrite!(
             unwind_composite_a_b_in_derived,
             pass = ExtendedUnwindRewritePass,
-            expected =
-                Ok("SELECT a.b.c AS c FROM (SELECT * FROM UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b)) AS zaz"),
-            input = "SELECT a.b.c AS c FROM (SELECT * FROM UNWIND(foo WITH PATHS => (a[].b[]))) AS zaz",
+            expected = Ok(
+                "SELECT a.b.c AS c FROM (SELECT * FROM UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b)) AS zaz"
+            ),
+            input =
+                "SELECT a.b.c AS c FROM (SELECT * FROM UNWIND(foo WITH PATHS => (a[].b[]))) AS zaz",
         );
 
         test_rewrite!(
             unwind_nested_composite_a_b,
             pass = ExtendedUnwindRewritePass,
-            expected =
-                Ok("SELECT a.b.c AS c FROM UNWIND(UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b) WITH PATH => x)"),
-            input = "SELECT a.b.c AS c FROM UNWIND(UNWIND(foo WITH PATHS => (a[].b[])) WITH PATH => x)",
+            expected = Ok(
+                "SELECT a.b.c AS c FROM UNWIND(UNWIND(UNWIND(foo WITH PATH => a) WITH PATH => a.b) WITH PATH => x)"
+            ),
+            input =
+                "SELECT a.b.c AS c FROM UNWIND(UNWIND(foo WITH PATHS => (a[].b[])) WITH PATH => x)",
         );
 
         test_rewrite!(
@@ -914,7 +960,8 @@ mod optional_parameters {
             pass = ExtendedUnwindRewritePass,
             expected = Ok(
                 "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => a_ix, PATH => a) \
-                   WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"),
+                   WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"
+            ),
             input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[].b[], b[]), INDEX => ix)",
         );
 
@@ -923,7 +970,8 @@ mod optional_parameters {
             pass = ExtendedUnwindRewritePass,
             expected = Ok(
                 "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => FOOO, PATH => a) \
-                   WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"),
+                   WITH INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, PATH => b)"
+            ),
             input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[INDEX=>FOOO].b[], b[]), INDEX => ix)",
         );
 
@@ -932,7 +980,8 @@ mod optional_parameters {
             pass = ExtendedUnwindRewritePass,
             expected = Ok(
                 "SELECT a.b.c AS c, a_ix, b_ix, b.d AS d FROM UNWIND(UNWIND(UNWIND(foo WITH INDEX => FOOO, OUTER => true, PATH => a) \
-                   WITH OUTER => false, INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, OUTER => true, PATH => b)"),
+                   WITH OUTER => false, INDEX => a_b_ix, PATH => a.b) WITH INDEX => b_ix, OUTER => true, PATH => b)"
+            ),
             input = "SELECT a.b.c AS c, a_ix, b_ix, b.d as d FROM UNWIND(foo WITH PATHS => (a[INDEX=>FOOO].b[OUTER=>false], b[]), INDEX => ix, OUTER => true)",
         );
     }
@@ -1010,7 +1059,9 @@ mod optional_parameters {
         test_rewrite!(
             recursively_apply_rewrite,
             pass = OptionalParameterRewritePass,
-            expected = Ok("SELECT CASE WHEN (CASE a WHEN 1 THEN true ELSE NULL END) THEN true ELSE NULL END FROM foo"),
+            expected = Ok(
+                "SELECT CASE WHEN (CASE a WHEN 1 THEN true ELSE NULL END) THEN true ELSE NULL END FROM foo"
+            ),
             input = "SELECT CASE WHEN (CASE a WHEN 1 THEN true END) THEN true END FROM foo",
         );
     }
@@ -1069,7 +1120,9 @@ mod with_query {
     test_rewrite!(
         rewrite_in_derived,
         pass = WithQueryRewritePass,
-        expected = Ok("SELECT * FROM (SELECT * FROM (SELECT a FROM (SELECT a FROM bar) AS foo) AS craz) AS baz"),
+        expected = Ok(
+            "SELECT * FROM (SELECT * FROM (SELECT a FROM (SELECT a FROM bar) AS foo) AS craz) AS baz"
+        ),
         input = "WITH foo AS (SELECT a FROM bar), baz AS (SELECT * FROM (SELECT a FROM foo) AS craz) (SELECT * FROM baz)",
     );
 
@@ -1094,7 +1147,9 @@ mod not {
     test_rewrite!(
         recursive,
         pass = NotComparisonRewritePass,
-        expected = Ok("SELECT (SELECT a >= 1 FROM bar LIMIT 1) <> (SELECT b <= 1 FROM baz LIMIT 1) FROM foo"),
+        expected = Ok(
+            "SELECT (SELECT a >= 1 FROM bar LIMIT 1) <> (SELECT b <= 1 FROM baz LIMIT 1) FROM foo"
+        ),
         input = "SELECT NOT (SELECT NOT a < 1 FROM bar LIMIT 1) = (SELECT NOT b > 1 FROM baz LIMIT 1) FROM foo",
     );
 }

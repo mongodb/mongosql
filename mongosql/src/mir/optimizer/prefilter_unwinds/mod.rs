@@ -22,15 +22,15 @@ mod test;
 
 use super::Optimizer;
 use crate::{
+    SchemaCheckingMode,
     mir::{
-        schema::{SchemaCache, SchemaInferenceState},
-        visitor::Visitor,
         ElemMatch, Expression, FieldPath, Filter, LiteralValue, MatchFilter,
         MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
         MatchLanguageLogicalOp, MatchQuery, MqlStage, ScalarFunction, ScalarFunctionApplication,
         Stage, Unwind,
+        schema::{SchemaCache, SchemaInferenceState},
+        visitor::Visitor,
     },
-    SchemaCheckingMode,
 };
 
 pub(crate) struct PrefilterUnwindsOptimizer {}
@@ -331,9 +331,11 @@ fn get_between_literals(args: &Vec<Expression>) -> Option<(LiteralValue, Literal
         return None;
     }
     match args.as_slice() {
-        [Expression::FieldAccess(_), Expression::Literal(lit1), Expression::Literal(lit2)] => {
-            Some((lit1.clone(), lit2.clone()))
-        }
+        [
+            Expression::FieldAccess(_),
+            Expression::Literal(lit1),
+            Expression::Literal(lit2),
+        ] => Some((lit1.clone(), lit2.clone())),
         _ => None,
     }
 }

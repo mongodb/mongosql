@@ -1,12 +1,12 @@
 use crate::{
     map,
     mir::{
-        schema::{Atomic, Document, Error as mir_error, Group, ResultSet, SchemaCache},
         AggregationExpr, AggregationFunction, AggregationFunctionApplication, AliasedAggregation,
         AliasedExpr, Collection, Expression, FieldAccess, LiteralValue, OptionallyAliasedExpr,
         Stage,
+        schema::{Atomic, Document, Error as mir_error, Group, ResultSet, SchemaCache},
     },
-    schema::{Satisfaction, Schema, ANY_DOCUMENT},
+    schema::{ANY_DOCUMENT, Satisfaction, Schema},
     set, test_schema,
 };
 use agg_ast::definitions::Namespace;

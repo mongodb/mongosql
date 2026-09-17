@@ -1,8 +1,7 @@
 use crate::ast::{
-    self,
+    self, CollectionSource,
     rewrites::{Pass, Result},
     visitor::Visitor,
-    CollectionSource,
 };
 
 /// Adds aliases to any AliasedExprs or CollectionSources that are missing one.

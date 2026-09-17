@@ -2,7 +2,7 @@ use crate::{
     air::{self, SqlOperator, TrimOperator},
     codegen::{MqlCodeGenerator, Result},
 };
-use bson::{bson, doc, Bson};
+use bson::{Bson, bson, doc};
 use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
 impl MqlCodeGenerator {

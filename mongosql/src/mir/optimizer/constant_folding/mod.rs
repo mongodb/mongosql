@@ -10,8 +10,8 @@ mod test;
 mod lib;
 use super::Optimizer;
 use crate::{
-    mir::{schema::SchemaInferenceState, visitor::Visitor, Stage},
     SchemaCheckingMode,
+    mir::{Stage, schema::SchemaInferenceState, visitor::Visitor},
 };
 pub(crate) use lib::ConstantFoldExprVisitor;
 

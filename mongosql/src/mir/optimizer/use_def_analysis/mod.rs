@@ -36,9 +36,9 @@ use mongosql_datastructures::binding_tuple::BindingTuple;
 
 use crate::{
     mir::{
-        binding_tuple::Key, optimizer::util::insert_field_path_and_all_ancestors, visitor::Visitor,
         ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group, MatchFilter, MatchQuery,
         MqlStage, Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
+        binding_tuple::Key, optimizer::util::insert_field_path_and_all_ancestors, visitor::Visitor,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };

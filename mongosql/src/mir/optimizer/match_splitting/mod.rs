@@ -10,16 +10,16 @@ mod test;
 
 use super::Optimizer;
 use crate::{
+    SchemaCheckingMode,
     mir::{
-        schema::{SchemaCache, SchemaInferenceState},
-        visitor::Visitor,
         Expression::*,
         Filter,
         ScalarFunction::*,
         Stage,
         Stage::*,
+        schema::{SchemaCache, SchemaInferenceState},
+        visitor::Visitor,
     },
-    SchemaCheckingMode,
 };
 
 pub(crate) struct MatchSplittingOptimizer {}

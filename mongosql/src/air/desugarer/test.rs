@@ -1,8 +1,7 @@
 use crate::air::{
-    self,
+    self, Stage,
     desugarer::{self, Pass},
     visitor::Visitor,
-    Stage,
 };
 use agg_ast::definitions as agg_ast;
 use itertools::Itertools;
@@ -224,7 +223,7 @@ mod all_desugarer_passes {
     use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
     use super::*;
-    use crate::air::{desugarer::desugar_pipeline, Project};
+    use crate::air::{Project, desugarer::desugar_pipeline};
 
     struct ProjectKeySortVisitor;
     impl Visitor for ProjectKeySortVisitor {

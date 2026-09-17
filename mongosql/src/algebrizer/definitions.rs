@@ -1,22 +1,21 @@
 use crate::mir::ArrayExpr;
 use crate::schema::Schema;
 use crate::{
+    SchemaCheckingMode,
     algebrizer::errors::{Error, HigherOrderFunctionErrorCause},
     ast::{self, pretty_print::PrettyPrint},
     catalog::Catalog,
     map,
     mir::{
-        self,
+        self, AliasedExpr, Expression, FieldAccess, OptionallyAliasedExpr, ReferenceExpr,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{CachedSchema, SchemaCache, SchemaInferenceState, THIS_VARIABLE, VALUE_VARIABLE},
-        AliasedExpr, Expression, FieldAccess, OptionallyAliasedExpr, ReferenceExpr,
     },
     schema::{
-        self, Satisfaction, SchemaEnvironment, ANY_DOCUMENT, BOOLEAN_OR_NULLISH,
-        INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH, STRING_OR_NULLISH,
+        self, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH,
+        NULLISH, STRING_OR_NULLISH, Satisfaction, SchemaEnvironment,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
-    SchemaCheckingMode,
 };
 use std::{
     cell::RefCell,
@@ -128,7 +127,7 @@ impl TryFrom<ast::FunctionName> for mir::ScalarFunction {
             | ast::FunctionName::StddevPop
             | ast::FunctionName::StddevSamp
             | ast::FunctionName::Sum => {
-                return Err(Error::AggregationInPlaceOfScalar(f.pretty_print().unwrap()))
+                return Err(Error::AggregationInPlaceOfScalar(f.pretty_print().unwrap()));
             }
         })
     }
@@ -205,7 +204,7 @@ impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
             | ast::FunctionName::ArrayAll
             | ast::FunctionName::ArrayAny
             | ast::FunctionName::ArrayJoin => {
-                return Err(Error::ScalarInPlaceOfAggregation(f.pretty_print().unwrap()))
+                return Err(Error::ScalarInPlaceOfAggregation(f.pretty_print().unwrap()));
             }
         })
     }
@@ -1907,7 +1906,7 @@ impl<'a> Algebrizer<'a> {
             | (ast::FunctionName::StddevPop, _)
             | (ast::FunctionName::StddevSamp, _)
             | (ast::FunctionName::Sum, _) => {
-                return Err(Error::AggregationInPlaceOfScalar(f.pretty_print().unwrap()))
+                return Err(Error::AggregationInPlaceOfScalar(f.pretty_print().unwrap()));
             }
             (ast::FunctionName::LTrim, _)
             | (ast::FunctionName::RTrim, _)
@@ -2434,9 +2433,7 @@ impl<'a> Algebrizer<'a> {
     fn algebrize_cast(&self, c: ast::CastExpr) -> Result<mir::Expression> {
         use crate::ast::Type::*;
         macro_rules! null_expr {
-            () => {{
-                Box::new(ast::Expression::Literal(ast::Literal::Null))
-            }};
+            () => {{ Box::new(ast::Expression::Literal(ast::Literal::Null)) }};
         }
 
         let itc_algebrizer = self.with_implicit_type_conversion_ctx(true);

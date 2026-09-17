@@ -13,14 +13,13 @@ macro_rules! test_method {
             use crate::{
                 map,
                 mir::{
-                    self,
-                    binding_tuple::Key,
-                    schema::SchemaCache,
-                    Collection,
+                    self, Collection,
                     Expression::{self, *},
                     Filter, Group,
                     LiteralValue::*,
                     Project, Stage, Unwind,
+                    binding_tuple::Key,
+                    schema::SchemaCache,
                 },
                 set, unchecked_unique_linked_hash_map,
             };
@@ -42,11 +41,7 @@ macro_rules! test_method_uses {
             use crate::{
                 map,
                 mir::{
-                    self,
-                    binding_tuple::Key,
-                    optimizer::use_def_analysis::FieldPath,
-                    schema::SchemaCache,
-                    AggregationExpr, AggregationFunction, AggregationFunctionApplication,
+                    self, AggregationExpr, AggregationFunction, AggregationFunctionApplication,
                     AliasedAggregation, AliasedExpr, Collection, ExistsExpr,
                     Expression::{self, *},
                     Filter, Group,
@@ -56,6 +51,9 @@ macro_rules! test_method_uses {
                     OptionallyAliasedExpr, Project, ReferenceExpr, ScalarFunction,
                     ScalarFunctionApplication, Sort, SortSpecification, Stage, SubqueryComparison,
                     SubqueryComparisonOp, SubqueryExpr, SubqueryModifier,
+                    binding_tuple::Key,
+                    optimizer::use_def_analysis::FieldPath,
+                    schema::SchemaCache,
                 },
                 set, unchecked_unique_linked_hash_map,
             };
@@ -89,10 +87,7 @@ macro_rules! test_substitute {
             use crate::{
                 map,
                 mir::{
-                    self,
-                    binding_tuple::Key,
-                    schema::SchemaCache,
-                    AggregationExpr, AggregationFunction, AggregationFunctionApplication,
+                    self, AggregationExpr, AggregationFunction, AggregationFunctionApplication,
                     AliasedAggregation, AliasedExpr, Collection,
                     Expression::{self, *},
                     Filter, Group,
@@ -100,6 +95,8 @@ macro_rules! test_substitute {
                     MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp, MatchQuery,
                     MqlStage, OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
                     ScalarFunctionApplication, Sort, SortSpecification, Stage,
+                    binding_tuple::Key,
+                    schema::SchemaCache,
                 },
                 set,
             };

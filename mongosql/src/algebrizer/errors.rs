@@ -6,7 +6,7 @@ use crate::{
         binding_tuple::{DatasourceName, Key},
     },
     schema::Satisfaction,
-    usererror::{util::generate_suggestion, UserError, UserErrorDisplay},
+    usererror::{UserError, UserErrorDisplay, util::generate_suggestion},
 };
 use std::collections::HashSet;
 
@@ -181,51 +181,96 @@ impl UserError for Error {
             }
             Error::HigherOrderFunctionWrapper { name, cause, error } => {
                 let (cause_desc, cause_message) = match cause {
-                    HigherOrderFunctionErrorCause::ArrayArg => ("array", "The first argument must be semantically valid, and must evaluate to either an Array, Null, or Missing."),
-                    HigherOrderFunctionErrorCause::InitialValue => ("initial value", "The second argument, the initial value, must be semantically valid but was not."),
-                    HigherOrderFunctionErrorCause::FunctionArg => ("function", "Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type."),
+                    HigherOrderFunctionErrorCause::ArrayArg => (
+                        "array",
+                        "The first argument must be semantically valid, and must evaluate to either an Array, Null, or Missing.",
+                    ),
+                    HigherOrderFunctionErrorCause::InitialValue => (
+                        "initial value",
+                        "The second argument, the initial value, must be semantically valid but was not.",
+                    ),
+                    HigherOrderFunctionErrorCause::FunctionArg => (
+                        "function",
+                        "Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type.",
+                    ),
                 };
                 let sub_error_message = error
                     .user_message()
                     .unwrap_or_else(|| error.technical_message());
-                Some(format!("Invalid {cause_desc} argument for `{name}`: {cause_message} Sub-Error Code {}: {}", error.code(), sub_error_message))
+                Some(format!(
+                    "Invalid {cause_desc} argument for `{name}`: {cause_message} Sub-Error Code {}: {}",
+                    error.code(),
+                    sub_error_message
+                ))
             }
         }
     }
 
     fn technical_message(&self) -> String {
-        match self{
-            Error::NonStarStandardSelectBody => "standard SELECT expressions can only contain *".to_string(),
+        match self {
+            Error::NonStarStandardSelectBody => {
+                "standard SELECT expressions can only contain *".to_string()
+            }
             Error::ArrayDatasourceMustBeLiteral => "array datasource must be constant".to_string(),
-            Error::NoSuchDatasource(datasource_name) => format!("no such datasource: {datasource_name:?}"),
+            Error::NoSuchDatasource(datasource_name) => {
+                format!("no such datasource: {datasource_name:?}")
+            }
             Error::FieldNotFound(field, _, clause_type, scope_level) => format!(
-                "field `{field}` in the `{clause_type}` clause at the {scope_level} scope level cannot be resolved to any datasource"),
+                "field `{field}` in the `{clause_type}` clause at the {scope_level} scope level cannot be resolved to any datasource"
+            ),
             Error::AmbiguousField(field, clause_type, scope_level) => format!(
-                "ambiguous field `{field}` in the `{clause_type}` clause at the {scope_level} scope level"),
+                "ambiguous field `{field}` in the `{clause_type}` clause at the {scope_level} scope level"
+            ),
             Error::StarInNonCount => "* argument only valid in COUNT function".to_string(),
-            Error::AggregationInPlaceOfScalar(func) => format!("aggregation function {func} used in scalar position"),
-            Error::ScalarInPlaceOfAggregation(func) => format!("scalar function {func} used in aggregation position"),
-            Error::NonAggregationInPlaceOfAggregation(pos) => format!("non-aggregation expression found in GROUP BY aggregation function list at position {pos}"),
-            Error::AggregationFunctionMustHaveOneArgument => "aggregation functions must have exactly one argument".to_string(),
+            Error::AggregationInPlaceOfScalar(func) => {
+                format!("aggregation function {func} used in scalar position")
+            }
+            Error::ScalarInPlaceOfAggregation(func) => {
+                format!("scalar function {func} used in aggregation position")
+            }
+            Error::NonAggregationInPlaceOfAggregation(pos) => format!(
+                "non-aggregation expression found in GROUP BY aggregation function list at position {pos}"
+            ),
+            Error::AggregationFunctionMustHaveOneArgument => {
+                "aggregation functions must have exactly one argument".to_string()
+            }
             Error::DistinctScalarFunction => "scalar functions don't support DISTINCT".to_string(),
-            Error::DerivedDatasourceOverlappingKeys(s1, s2, derived_name, sat) => format!("derived source {derived_name} {sat:?} have overlapping keys between schemata {s1:?} and {s2:?}"),
+            Error::DerivedDatasourceOverlappingKeys(s1, s2, derived_name, sat) => format!(
+                "derived source {derived_name} {sat:?} have overlapping keys between schemata {s1:?} and {s2:?}"
+            ),
             Error::SchemaChecking(error) => error.technical_message(),
             Error::NoOuterJoinCondition => "OUTER JOINs must specify a JOIN condition".to_string(),
-            Error::DuplicateKey(key) => format!("cannot create schema environment with duplicate key: {key:?}"),
-            Error::InvalidSubqueryDegree => "subquery expressions must have a degree of 1".to_string(),
+            Error::DuplicateKey(key) => {
+                format!("cannot create schema environment with duplicate key: {key:?}")
+            }
+            Error::InvalidSubqueryDegree => {
+                "subquery expressions must have a degree of 1".to_string()
+            }
             Error::DuplicateDocumentKey(key) => format!("found duplicate document key {key:?}"),
-            Error::DuplicateFlattenOption(flatten_opt) => format!("found duplicate FLATTEN option {flatten_opt:?}"),
-            Error::CannotEnumerateAllFieldPaths(schema) => format!("cannot exhaustively enumerate all field paths in schema {schema:?}"),
-            Error::PolymorphicObjectSchema(field) => format!("cannot flatten field {field:?} since it has a polymorphic object schema"),
-            Error::DuplicateUnwindOption(unwind_opt) => format!("found duplicate UNWIND option {unwind_opt:?}"),
+            Error::DuplicateFlattenOption(flatten_opt) => {
+                format!("found duplicate FLATTEN option {flatten_opt:?}")
+            }
+            Error::CannotEnumerateAllFieldPaths(schema) => {
+                format!("cannot exhaustively enumerate all field paths in schema {schema:?}")
+            }
+            Error::PolymorphicObjectSchema(field) => {
+                format!("cannot flatten field {field:?} since it has a polymorphic object schema")
+            }
+            Error::DuplicateUnwindOption(unwind_opt) => {
+                format!("found duplicate UNWIND option {unwind_opt:?}")
+            }
             Error::NoUnwindPath => "UNWIND must specify a PATH option".to_string(),
             Error::InvalidUnwindPath => "UNWIND PATH option must be an identifier".to_string(),
             Error::InvalidCast(ast_type) => format!("invalid CAST target type '{ast_type:?}'"),
-            Error::InvalidSortKey(e) =>
-                format!("sort key field path must be a pure field path with no expressions in this context. found {e:?}"),
+            Error::InvalidSortKey(e) => format!(
+                "sort key field path must be a pure field path with no expressions in this context. found {e:?}"
+            ),
             Error::HigherOrderFunctionWrapper { name, cause, error } => {
-                format!("`{name}` with cause {cause:?}: sub-error: {}", error.technical_message())
-            },
+                format!(
+                    "`{name}` with cause {cause:?}: sub-error: {}",
+                    error.technical_message()
+                )
+            }
         }
     }
 }

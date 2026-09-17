@@ -6,4 +6,4 @@ mod test;
 
 #[cfg(test)]
 pub use lalrpop::parse_expression;
-pub use lalrpop::{parse_query, Error};
+pub use lalrpop::{Error, parse_query};

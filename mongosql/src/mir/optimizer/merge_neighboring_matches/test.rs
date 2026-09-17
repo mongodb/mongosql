@@ -3,8 +3,8 @@ mod merge_neighboring_matches_tests {
     use crate::{
         map,
         mir::{
-            binding_tuple::DatasourceName::Bottom, schema::SchemaCache, Expression::*,
-            LiteralValue::*,
+            Expression::*, LiteralValue::*, binding_tuple::DatasourceName::Bottom,
+            schema::SchemaCache,
         },
         set, unchecked_unique_linked_hash_map, util,
     };

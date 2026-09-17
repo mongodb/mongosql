@@ -7,9 +7,9 @@
 use crate::{
     catalog::Catalog,
     mir::{definitions::*, schema::SchemaInferenceState, visitor::Visitor},
-    schema::{Atomic, Satisfaction, Schema, NULLISH},
+    schema::{Atomic, NULLISH, Satisfaction, Schema},
 };
-use bson::{oid::ObjectId, Decimal128};
+use bson::{Decimal128, oid::ObjectId};
 use chrono::Utc;
 use lazy_static::lazy_static;
 use std::str::FromStr;
@@ -500,37 +500,37 @@ impl ConstantFoldExprVisitor<'_> {
         } else {
             panic!("Substring must have two or three args")
         };
-        match (string, start, len)
-        { (
-            Expression::Literal(LiteralValue::String(st)),
-            Expression::Literal(LiteralValue::Integer(start)),
-            Expression::Literal(LiteralValue::Integer(len)),
-        ) => {
-            let string_len = st.len() as i32;
-            let end = if len < 0 {
-                cmp::max(start, string_len)
-            } else {
-                start + len
-            };
-            if start >= string_len || end < 0 {
-                (
-                    Expression::Literal(LiteralValue::String("".to_string())),
-                    true,
-                )
-            } else {
-                let start = cmp::max(start, 0);
-                let end = cmp::min(end, string_len);
-                let len = end - start;
-                let substr = st
-                    .chars()
-                    .skip(start as usize)
-                    .take(len as usize)
-                    .collect::<String>();
-                (Expression::Literal(LiteralValue::String(substr)), true)
+        match (string, start, len) {
+            (
+                Expression::Literal(LiteralValue::String(st)),
+                Expression::Literal(LiteralValue::Integer(start)),
+                Expression::Literal(LiteralValue::Integer(len)),
+            ) => {
+                let string_len = st.len() as i32;
+                let end = if len < 0 {
+                    cmp::max(start, string_len)
+                } else {
+                    start + len
+                };
+                if start >= string_len || end < 0 {
+                    (
+                        Expression::Literal(LiteralValue::String("".to_string())),
+                        true,
+                    )
+                } else {
+                    let start = cmp::max(start, 0);
+                    let end = cmp::min(end, string_len);
+                    let len = end - start;
+                    let substr = st
+                        .chars()
+                        .skip(start as usize)
+                        .take(len as usize)
+                        .collect::<String>();
+                    (Expression::Literal(LiteralValue::String(substr)), true)
+                }
             }
-        } _ => {
-            (Expression::ScalarFunction(sf), false)
-        }}
+            _ => (Expression::ScalarFunction(sf), false),
+        }
     }
 
     // Constant folds the concat function
@@ -551,14 +551,18 @@ impl ConstantFoldExprVisitor<'_> {
                 Expression::Literal(LiteralValue::String(val)) => {
                     if result.is_empty() {
                         result.push(expr);
-                    } else { match result.last().unwrap().clone()
-                    { Expression::Literal(LiteralValue::String(prev_val)) => {
-                        changed = true;
-                        result.pop();
-                        result.push(Expression::Literal(LiteralValue::String(prev_val + val)));
-                    } _ => {
-                        result.push(expr)
-                    }}}
+                    } else {
+                        match result.last().unwrap().clone() {
+                            Expression::Literal(LiteralValue::String(prev_val)) => {
+                                changed = true;
+                                result.pop();
+                                result.push(Expression::Literal(LiteralValue::String(
+                                    prev_val + val,
+                                )));
+                            }
+                            _ => result.push(expr),
+                        }
+                    }
                 }
                 _ => result.push(expr),
             }
@@ -1019,7 +1023,7 @@ impl ConstantFoldExprVisitor<'_> {
 
             // Decimal128s are trivially converted to themselves.
             LiteralValue::Decimal128(v) => {
-                return Some(Ok(Expression::Literal(LiteralValue::Decimal128(*v))))
+                return Some(Ok(Expression::Literal(LiteralValue::Decimal128(*v))));
             }
 
             // Strings may be converted to decimal128 if they represent numeric values in range of
@@ -1628,12 +1632,12 @@ impl Visitor for ConstantFoldExprVisitor<'_> {
                 // not have a proof of this. The clone should be relatively cheap.
                 // Initially, I had a panic, and all of our query tests still pass, but I am not
                 // condifident on removing this clone and possibly breaking some customer query.
-                match self.fold_field_access_expr(f.clone())
-                { (Expression::FieldAccess(fa), changed) => {
-                    (Expression::MqlIntrinsicFieldExistence(fa), changed)
-                } _ => {
-                    (Expression::MqlIntrinsicFieldExistence(f), false)
-                }}
+                match self.fold_field_access_expr(f.clone()) {
+                    (Expression::FieldAccess(fa), changed) => {
+                        (Expression::MqlIntrinsicFieldExistence(fa), changed)
+                    }
+                    _ => (Expression::MqlIntrinsicFieldExistence(f), false),
+                }
             }
         };
 

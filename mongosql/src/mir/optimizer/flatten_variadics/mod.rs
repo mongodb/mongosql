@@ -18,11 +18,11 @@
 mod test;
 
 use crate::{
-    mir::{
-        schema::SchemaInferenceState, visitor::Visitor, Expression, ScalarFunction,
-        ScalarFunctionApplication, Stage,
-    },
     SchemaCheckingMode,
+    mir::{
+        Expression, ScalarFunction, ScalarFunctionApplication, Stage, schema::SchemaInferenceState,
+        visitor::Visitor,
+    },
 };
 
 use super::Optimizer;

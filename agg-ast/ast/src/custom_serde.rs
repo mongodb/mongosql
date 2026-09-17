@@ -1020,15 +1020,14 @@ impl<'de> Deserialize<'de> for Cond {
             _ => return Err(serde_err::custom("unexpected value for $cond operator")),
         }
 
-        match (r#if, then, r#else) { (Some(r#if), Some(then), Some(r#else)) => {
-            Ok(Cond {
+        match (r#if, then, r#else) {
+            (Some(r#if), Some(then), Some(r#else)) => Ok(Cond {
                 r#if: Box::new(r#if),
                 then: Box::new(then),
                 r#else: Box::new(r#else),
-            })
-        } _ => {
-            Err(serde_err::custom("incorrect arguments to $cond document"))
-        }}
+            }),
+            _ => Err(serde_err::custom("incorrect arguments to $cond document")),
+        }
     }
 }
 

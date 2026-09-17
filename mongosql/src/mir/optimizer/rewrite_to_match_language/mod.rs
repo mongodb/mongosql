@@ -27,18 +27,18 @@ mod test;
 
 use crate::mir::ArrayExpr;
 use crate::{
+    SchemaCheckingMode,
     mir::{
-        optimizer::Optimizer,
-        schema::{SchemaCache, SchemaInferenceState},
-        visitor::Visitor,
         Expression, FieldPath, IsExpr, LikeExpr, LiteralValue, MatchFalse, MatchFilter,
         MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageIn, MatchLanguageInOp,
         MatchLanguageLogical, MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType,
         MatchQuery, MqlStage, ScalarFunction, ScalarFunctionApplication, Stage, Type,
         TypeOrMissing,
+        optimizer::Optimizer,
+        schema::{SchemaCache, SchemaInferenceState},
+        visitor::Visitor,
     },
-    util::{convert_sql_pattern, LIKE_OPTIONS},
-    SchemaCheckingMode,
+    util::{LIKE_OPTIONS, convert_sql_pattern},
 };
 
 pub(crate) struct MatchLanguageRewriter;

@@ -4,7 +4,7 @@ macro_rules! test_user_error_messages {
         fn $func_name() {
             #[allow(unused_imports)]
             use crate::{
-                mir::schema::{Error, ANY_SCHEMA_ADDENDUM},
+                mir::schema::{ANY_SCHEMA_ADDENDUM, Error},
                 usererror::UserError,
             };
 
@@ -20,8 +20,8 @@ macro_rules! test_user_error_messages {
 mod schema_checking {
     use crate::{
         schema::{
-            Atomic, Schema, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, NUMERIC_OR_NULLISH,
-            STRING_OR_NULLISH,
+            ANY_DOCUMENT, Atomic, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, NUMERIC_OR_NULLISH,
+            STRING_OR_NULLISH, Schema,
         },
         set,
     };
@@ -316,10 +316,10 @@ mod access_missing_field {
 mod higher_order_function_wrapper {
     use crate::{
         mir::schema::{
-            errors::{HigherOrderFunctionErrorCause, IncorrectArgCountPrecision},
             VALUE_VARIABLE,
+            errors::{HigherOrderFunctionErrorCause, IncorrectArgCountPrecision},
         },
-        schema::{Atomic, Schema, NUMERIC_OR_NULLISH},
+        schema::{Atomic, NUMERIC_OR_NULLISH, Schema},
     };
 
     test_user_error_messages! {

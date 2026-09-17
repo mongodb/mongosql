@@ -2,7 +2,7 @@ use crate::{
     air::{self, AggregationFunction, ProjectItem},
     codegen::{MqlCodeGenerator, MqlTranslation, Result},
 };
-use bson::{bson, doc, Bson};
+use bson::{Bson, bson, doc};
 
 impl MqlCodeGenerator {
     pub fn codegen_stage(&self, stage: air::Stage) -> Result<MqlTranslation> {

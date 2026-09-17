@@ -2,10 +2,10 @@ use crate::{
     catalog::Catalog,
     map,
     mir::{
-        optimizer::{lower_joins::LowerJoinsOptimizer, Optimizer},
-        schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
         Expression, Filter, Join, JoinType, LateralJoin, MqlStage, ScalarFunction,
         ScalarFunctionApplication, Stage,
+        optimizer::{Optimizer, lower_joins::LowerJoinsOptimizer},
+        schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
     },
     schema::SchemaEnvironment,
     util::{mir_field_access, mir_project_collection},

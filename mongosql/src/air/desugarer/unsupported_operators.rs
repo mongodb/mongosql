@@ -1,15 +1,14 @@
 use crate::{
     air::{
-        self,
+        self, Expression, Is, Let, LetVariable, Like, LiteralValue, MqlOperator,
+        MqlSemanticOperator, RegexMatch, SqlConvert, SqlDivide, SqlOperator, SqlSemanticOperator,
+        Stage, Switch, SwitchCase, Type,
         desugarer::{Error, Pass, Result},
         util::sql_op_to_mql_op,
         visitor::Visitor,
-        Expression, Is, Let, LetVariable, Like, LiteralValue, MqlOperator, MqlSemanticOperator,
-        RegexMatch, SqlConvert, SqlDivide, SqlOperator, SqlSemanticOperator, Stage, Switch,
-        SwitchCase, Type,
     },
     make_cond_expr,
-    util::{convert_sql_pattern, LIKE_OPTIONS},
+    util::{LIKE_OPTIONS, convert_sql_pattern},
 };
 
 /// Desugars any Sql operators that do not exist in Mql (e.g. Between, Like,

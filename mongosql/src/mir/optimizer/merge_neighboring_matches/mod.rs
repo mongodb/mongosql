@@ -13,11 +13,11 @@ use super::Optimizer;
 use crate::mir::optimizer::util::ContainsSubqueryVisitor;
 use crate::mir::{MatchFilter, MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, MqlStage};
 use crate::{
-    mir::{
-        schema::SchemaInferenceState, visitor::Visitor, Expression, Filter, ScalarFunction,
-        ScalarFunctionApplication, Stage,
-    },
     SchemaCheckingMode,
+    mir::{
+        Expression, Filter, ScalarFunction, ScalarFunctionApplication, Stage,
+        schema::SchemaInferenceState, visitor::Visitor,
+    },
 };
 
 pub(crate) struct MergeNeighboringMatchesOptimizer {}

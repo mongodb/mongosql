@@ -110,8 +110,8 @@ fn nation_schema() -> Schema {
 // referencing the `n1` and `n2` nation aliases.
 fn nation_names_match_condition() -> crate::mir::MatchQuery {
     use crate::mir::{
-        schema::SchemaCache, LiteralValue, MatchLanguageComparison, MatchLanguageComparisonOp,
-        MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery,
+        LiteralValue, MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
+        MatchLanguageLogicalOp, MatchQuery, schema::SchemaCache,
     };
     use crate::util::mir_field_path;
 
@@ -150,12 +150,7 @@ macro_rules! test_move_stage {
                 catalog::Catalog,
                 map,
                 mir::{
-                    self,
-                    binding_tuple::{BindingTuple, Key},
-                    optimizer::stage_movement::StageMovementOptimizer,
-                    schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
-                    visitor::Visitor,
-                    ArraySource, Collection, Derived, EquiJoin,
+                    self, ArraySource, Collection, Derived, EquiJoin,
                     Expression::{self, *},
                     FieldAccess, FieldPath, Filter, Group, Join, JoinType, LateralJoin, Limit,
                     LiteralValue,
@@ -165,6 +160,10 @@ macro_rules! test_move_stage {
                     Project, ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Set,
                     SetOperation, Sort, SortSpecification, Stage, SubqueryComparison, SubqueryExpr,
                     TypeAssertionExpr, Unwind,
+                    binding_tuple::{BindingTuple, Key},
+                    optimizer::stage_movement::StageMovementOptimizer,
+                    schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
+                    visitor::Visitor,
                 },
                 schema::SchemaEnvironment,
                 set, unchecked_unique_linked_hash_map,

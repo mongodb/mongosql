@@ -10,10 +10,10 @@ use crate::{
         *,
     },
     schema::{
-        Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
-        ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, BOOLEAN_OR_NULLISH,
-        DATE_OR_NULLISH, EMPTY_DOCUMENT, INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH,
-        NUMERIC, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
+        ANY_ARRAY, ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, Atomic,
+        BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, Document, EMPTY_DOCUMENT, INTEGER_LONG_OR_NULLISH,
+        INTEGER_OR_NULLISH, NULLISH, NUMERIC, NUMERIC_OR_NULLISH, ResultSet, STRING_OR_NULLISH,
+        Satisfaction, Schema, SchemaEnvironment,
     },
     set,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -1623,8 +1623,10 @@ trait SqlFunction {
         arg_schema: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         // 1. Assert that the arg schema has exactly 2 arguments
-        let [(in_operator_lhs, in_operator_lhs_schema), (in_operator_rhs, in_operator_rhs_schema)] =
-            arg_schema
+        let [
+            (in_operator_lhs, in_operator_lhs_schema),
+            (in_operator_rhs, in_operator_rhs_schema),
+        ] = arg_schema
         else {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),

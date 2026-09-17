@@ -1,5 +1,5 @@
 mod match_splitting_test {
-    use crate::mir::{schema::SchemaCache, Expression::*, LiteralValue::*, ScalarFunction::*};
+    use crate::mir::{Expression::*, LiteralValue::*, ScalarFunction::*, schema::SchemaCache};
 
     macro_rules! test_match_splitting {
         ($func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021,) => {

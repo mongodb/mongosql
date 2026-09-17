@@ -3108,7 +3108,7 @@ test_constant_fold!(
 mod cast {
     use super::*;
 
-    use crate::schema::{Atomic, Schema, NULLISH};
+    use crate::schema::{Atomic, NULLISH, Schema};
 
     macro_rules! test_constant_fold_cast_literal {
         ($func_name:ident, expected_expr = $expected:expr_2021, input_expr = $input:expr_2021, input_to = $input_to:expr_2021, $(schema_env = $schema_env:expr_2021,)?) => {

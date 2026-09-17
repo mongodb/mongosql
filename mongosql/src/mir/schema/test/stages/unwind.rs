@@ -2,8 +2,8 @@ use crate::{
     catalog::Catalog,
     map,
     mir::{
-        schema::{Atomic, Document, Error, Join, JoinType, ResultSet, SchemaCache},
         Collection, FieldPath, Stage, Unwind,
+        schema::{Atomic, Document, Error, Join, JoinType, ResultSet, SchemaCache},
     },
     schema::Schema,
     set, test_schema,

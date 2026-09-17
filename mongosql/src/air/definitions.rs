@@ -1,5 +1,5 @@
 use crate::{schema::Satisfaction, util::unique_linked_hash_map::UniqueLinkedHashMap};
-use bson::{oid::ObjectId, DateTime, Decimal128};
+use bson::{DateTime, Decimal128, oid::ObjectId};
 
 visitgen::generate_visitors! {
 

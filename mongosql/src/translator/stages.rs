@@ -471,11 +471,7 @@ impl MqlTranslator {
         e: &'a mir::Expression,
     ) -> Result<(&'a Key, &'a MqlMappingRegistryValue, &'a String)> {
         let (key, field) = match e {
-            mir::Expression::FieldAccess(mir::FieldAccess {
-                expr,
-                field,
-                ..
-            }) => match **expr {
+            mir::Expression::FieldAccess(mir::FieldAccess { expr, field, .. }) => match **expr {
                 mir::Expression::Reference(mir::ReferenceExpr { ref key, .. }) => (key, field),
                 _ => return Err(Error::InvalidGroupKey),
             },

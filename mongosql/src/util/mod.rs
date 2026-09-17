@@ -278,7 +278,7 @@ pub(crate) fn convert_sql_pattern(pattern: String, escape: Option<char>) -> Stri
 
 #[cfg(test)]
 mod test_convert_sql_pattern {
-    use super::{convert_sql_pattern, DEFAULT_ESCAPE};
+    use super::{DEFAULT_ESCAPE, convert_sql_pattern};
     macro_rules! test_convert_sql_pattern {
         ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021, escape = $escape:expr_2021) => {
             #[test]

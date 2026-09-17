@@ -2,7 +2,7 @@ use crate::{
     air,
     codegen::{Error, MqlCodeGenerator, Result},
 };
-use bson::{bson, Bson};
+use bson::{Bson, bson};
 
 impl MqlCodeGenerator {
     /// Wraps a string value, s, in $literal if the condition, f, is true for the string.

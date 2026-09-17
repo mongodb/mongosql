@@ -1,4 +1,4 @@
-use super::{catalog, mir_source_foo, AST_SOURCE_FOO};
+use super::{AST_SOURCE_FOO, catalog, mir_source_foo};
 use crate::{ast, mir, mir::schema::SchemaCache};
 
 test_algebrize!(

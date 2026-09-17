@@ -1,11 +1,11 @@
-use super::{catalog, mir_source_bar, mir_source_foo, AST_SOURCE_BAR, AST_SOURCE_FOO};
+use super::{AST_SOURCE_BAR, AST_SOURCE_FOO, catalog, mir_source_bar, mir_source_foo};
 use crate::{
     ast::{self, JoinSource},
     catalog::Catalog,
     map,
-    mir::{self, binding_tuple::Key, schema::SchemaCache, JoinType},
+    mir::{self, JoinType, binding_tuple::Key, schema::SchemaCache},
     multimap,
-    schema::{Atomic, Document, Schema, ANY_DOCUMENT},
+    schema::{ANY_DOCUMENT, Atomic, Document, Schema},
     set, unchecked_unique_linked_hash_map,
     usererror::UserError,
 };

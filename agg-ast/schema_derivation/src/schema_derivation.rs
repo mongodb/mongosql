@@ -798,9 +798,7 @@ impl DeriveSchema for Stage {
         /// from_to_ns is a helper converting the $lookup "from" field into our standard namespace struct
         fn from_to_ns(from: &LookupFrom, state: &ResultSetState) -> Namespace {
             match from {
-                LookupFrom::Collection(c) => {
-                    Namespace::new(state.current_db.clone(), c.clone())
-                }
+                LookupFrom::Collection(c) => Namespace::new(state.current_db.clone(), c.clone()),
                 LookupFrom::Namespace(n) => {
                     Namespace::new(n.database.clone(), n.collection.clone())
                 }
@@ -963,23 +961,27 @@ impl DeriveSchema for Stage {
                     };
                     // if we have a pipeline, union the schema it generates. This will use the schema from the previous
                     // step, which is the collection schema if one is specified, or empty if not.
-                    match p.pipeline.clone() { Some(pipeline) => {
-                        let pipeline_state = &mut ResultSetState {
-                            catalog: state.catalog,
-                            variables: state.variables.clone(),
-                            result_set_schema: from_schema.clone(),
-                            current_db: state.current_db.clone(),
-                            null_behavior: state.null_behavior,
-                            accumulator_stage: state.accumulator_stage,
-                        };
-                        let pipeline_schema =
-                            derive_schema_for_pipeline(pipeline, None, pipeline_state)?;
-                        state.result_set_schema = state.result_set_schema.union(&pipeline_schema);
-                    // if no pipeline is specified, we are unioning the documents of the collection directly, so just union the from_schema,
-                    // which should represent the collection schema
-                    } _ => {
-                        state.result_set_schema = state.result_set_schema.union(from_schema);
-                    }}
+                    match p.pipeline.clone() {
+                        Some(pipeline) => {
+                            let pipeline_state = &mut ResultSetState {
+                                catalog: state.catalog,
+                                variables: state.variables.clone(),
+                                result_set_schema: from_schema.clone(),
+                                current_db: state.current_db.clone(),
+                                null_behavior: state.null_behavior,
+                                accumulator_stage: state.accumulator_stage,
+                            };
+                            let pipeline_schema =
+                                derive_schema_for_pipeline(pipeline, None, pipeline_state)?;
+                            state.result_set_schema =
+                                state.result_set_schema.union(&pipeline_schema);
+                            // if no pipeline is specified, we are unioning the documents of the collection directly, so just union the from_schema,
+                            // which should represent the collection schema
+                        }
+                        _ => {
+                            state.result_set_schema = state.result_set_schema.union(from_schema);
+                        }
+                    }
                     Ok(state.result_set_schema.to_owned())
                 }
             }

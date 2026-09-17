@@ -673,13 +673,13 @@ impl From<UntaggedOperator> for air::Expression {
                 return air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
                     op: air::SqlOperator::NullIf,
                     args,
-                })
+                });
             }
             UntaggedOperatorName::Coalesce => {
                 return air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
                     op: air::SqlOperator::Coalesce,
                     args,
-                })
+                });
             }
             UntaggedOperatorName::NumberDouble => {
                 if let air::Expression::Literal(air::LiteralValue::String(s)) = args[0].clone() {

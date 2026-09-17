@@ -1,17 +1,17 @@
 use std::str::FromStr;
 
 use crate::{
+    SchemaCheckingMode,
     catalog::Catalog,
     map,
     mir::{
-        optimizer::{rewrite_to_match_language::MatchLanguageRewriter, Optimizer},
+        optimizer::{Optimizer, rewrite_to_match_language::MatchLanguageRewriter},
         schema::{SchemaCache, SchemaInferenceState},
         *,
     },
     schema::{Atomic, Document, Schema, SchemaEnvironment},
     set, unchecked_unique_linked_hash_map,
     util::{mir_collection, mir_field_access, mir_field_access_multi_part, mir_field_path},
-    SchemaCheckingMode,
 };
 use agg_ast::definitions::Namespace;
 use lazy_static::lazy_static;

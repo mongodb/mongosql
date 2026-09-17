@@ -2,8 +2,8 @@ use crate::{
     mir::binding_tuple,
     schema::{Satisfaction, Schema},
     usererror::{
-        util::{generate_suggestion, unsat_check},
         UserError, UserErrorDisplay,
+        util::{generate_suggestion, unsat_check},
     },
 };
 
@@ -255,11 +255,26 @@ impl UserError for Error {
             Error::InvalidBinaryDataType => None,
             Error::HigherOrderFunctionWrapper { name, cause, error } => {
                 let (cause_desc, cause_message) = match cause {
-                    HigherOrderFunctionErrorCause::InitialValue => ("initial value", "The initial value must be semantically valid but was not."),
-                    HigherOrderFunctionErrorCause::AccumulatedValueUsage => ("function argument", "Invalid usage of variable `value` because of the result of the accumulator function. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function."),
-                    HigherOrderFunctionErrorCause::InitialValueUsage => ("function argument", "Invalid usage of variable `value` because of the initial value. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function."),
-                    HigherOrderFunctionErrorCause::ThisUsage => ("function argument", "Invalid usage of variable `this`. Recall that usages of the `this` variable must be satisfied by the schema of the elements of the array."),
-                    HigherOrderFunctionErrorCause::FunctionArgument => ("function argument", "Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type."),
+                    HigherOrderFunctionErrorCause::InitialValue => (
+                        "initial value",
+                        "The initial value must be semantically valid but was not.",
+                    ),
+                    HigherOrderFunctionErrorCause::AccumulatedValueUsage => (
+                        "function argument",
+                        "Invalid usage of variable `value` because of the result of the accumulator function. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function.",
+                    ),
+                    HigherOrderFunctionErrorCause::InitialValueUsage => (
+                        "function argument",
+                        "Invalid usage of variable `value` because of the initial value. Recall that usages of the `value` variable must be satisfied by the both the schema of the initial value and the schema of the result of the accumulator function.",
+                    ),
+                    HigherOrderFunctionErrorCause::ThisUsage => (
+                        "function argument",
+                        "Invalid usage of variable `this`. Recall that usages of the `this` variable must be satisfied by the schema of the elements of the array.",
+                    ),
+                    HigherOrderFunctionErrorCause::FunctionArgument => (
+                        "function argument",
+                        "Ensure the function argument is semantically valid. It must have the correct number of arguments and the arguments must have the correct type.",
+                    ),
                 };
                 let sub_error_message = error
                     .user_message()
@@ -295,7 +310,9 @@ impl UserError for Error {
             Error::AggregationArgumentMustBeSelfComparable(aggs, schema) => format!(
                 "cannot have {aggs:?} aggregations over the schema: {schema:?} as it is not comparable to itself"
             ),
-            Error::InvalidComparison { name, left, right, .. } => {
+            Error::InvalidComparison {
+                name, left, right, ..
+            } => {
                 format!("invalid comparison for {name}: {left:?} cannot be compared to {right:?}")
             }
             Error::CannotMergeObjects(s1, s2, sat) => format!(
@@ -326,7 +343,9 @@ impl UserError for Error {
             // user_message() so there will always be user-readable context wrapped around the
             // underlying error's message.
             Error::HigherOrderFunctionWrapper { error, .. } => error.technical_message(),
-            Error::NoSuchVariable(name) => format!("variable with name `{name}` not found in schema inference state"),
+            Error::NoSuchVariable(name) => {
+                format!("variable with name `{name}` not found in schema inference state")
+            }
         }
     }
 }

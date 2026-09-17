@@ -272,9 +272,11 @@ fn panic_safe_exec<F: FnOnce() -> Result<T, String> + UnwindSafe, T>(
 /// The C string MUST have been allocated in rust and obtained using
 /// into_raw().
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn delete_string(to_delete: *mut raw::c_char) { unsafe {
-    let _ = CString::from_raw(to_delete);
-}}
+pub unsafe extern "C" fn delete_string(to_delete: *mut raw::c_char) {
+    unsafe {
+        let _ = CString::from_raw(to_delete);
+    }
+}
 
 /// Creates a String from the provided C string
 fn from_extern_string(s: *const libc::c_char) -> Result<String, FromUtf8Error> {

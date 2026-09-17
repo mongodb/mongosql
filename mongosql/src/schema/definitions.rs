@@ -1,13 +1,13 @@
 use crate::{
     json_schema, map,
     mir::{
-        binding_tuple::{self, BindingTuple, DatasourceName, DuplicateKeyError, Key},
         Type, TypeOrMissing,
+        binding_tuple::{self, BindingTuple, DatasourceName, DuplicateKeyError, Key},
     },
     schema::Schema::{AnyOf, Unsat},
     set,
 };
-use enum_iterator::{all, Sequence};
+use enum_iterator::{Sequence, all};
 use itertools::{Either, Itertools};
 use lazy_static::lazy_static;
 use std::collections::{HashMap, HashSet};
@@ -1544,8 +1544,8 @@ impl Schema {
         schema_combine_fn: impl Fn(&Schema, &Schema) -> Schema,
         doc_combine_fn: impl Fn(Document, Document) -> Document,
     ) -> Schema {
-        use std::cmp::Ordering;
         use Schema::*;
+        use std::cmp::Ordering;
         let (left, right) = (Schema::simplify(self), Schema::simplify(other));
         let ordering = left.cmp(&right);
         let (left, right) = match ordering {

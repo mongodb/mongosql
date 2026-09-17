@@ -1,9 +1,9 @@
 use crate::air::{
-    desugarer::{Pass, Result},
-    visitor::Visitor,
     Expression,
     Expression::*,
     SortSpecification, Stage, Variable,
+    desugarer::{Pass, Result},
+    visitor::Visitor,
 };
 
 /// Desugars any Variable expressions that start with "ROOT" to omit the

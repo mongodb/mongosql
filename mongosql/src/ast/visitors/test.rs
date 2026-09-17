@@ -1,7 +1,7 @@
 use crate::ast::{
-    visitors::*, BinaryExpr, BinaryOp, CollectionSource, ComparisonOp, Datasource, DocumentPair,
-    Expression::*, JoinSource, JoinType, Literal::*, OptionallyAliasedExpr, Query, SelectBody,
-    SelectClause, SelectExpression, SelectQuery, SetQuantifier, SubpathExpr, UnaryExpr, UnaryOp,
+    BinaryExpr, BinaryOp, CollectionSource, ComparisonOp, Datasource, DocumentPair, Expression::*,
+    JoinSource, JoinType, Literal::*, OptionallyAliasedExpr, Query, SelectBody, SelectClause,
+    SelectExpression, SelectQuery, SetQuantifier, SubpathExpr, UnaryExpr, UnaryOp, visitors::*,
 };
 
 macro_rules! test_visitors {

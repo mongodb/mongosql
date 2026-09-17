@@ -156,7 +156,7 @@ mod switch {
 
 mod literal {
     use crate::air::{Expression::*, LiteralValue::*};
-    use bson::{bson, Bson};
+    use bson::{Bson, bson};
 
     test_codegen_expression!(
         null,
@@ -1488,7 +1488,7 @@ mod array {
 
 mod variable {
     use crate::air::Expression::*;
-    use bson::{bson, Bson};
+    use bson::{Bson, bson};
 
     test_codegen_expression!(
         simple,
@@ -1505,7 +1505,7 @@ mod variable {
 
 mod field_ref {
     use crate::air::Expression::FieldRef;
-    use bson::{bson, Bson};
+    use bson::{Bson, bson};
 
     test_codegen_expression!(
         no_parent,

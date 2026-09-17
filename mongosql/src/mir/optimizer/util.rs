@@ -1,4 +1,4 @@
-use crate::mir::{visitor::Visitor, Expression, FieldPath};
+use crate::mir::{Expression, FieldPath, visitor::Visitor};
 use std::collections::HashSet;
 
 /// A visitor that checks if an expression contains a subquery.

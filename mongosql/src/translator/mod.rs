@@ -24,7 +24,9 @@ type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
-    #[error("invalid document key '{0}': document keys may not be empty, contain dots, or start with dollars")]
+    #[error(
+        "invalid document key '{0}': document keys may not be empty, contain dots, or start with dollars"
+    )]
     InvalidDocumentKey(String),
     #[error("binding tuple key {0:?} not found in mapping registry")]
     ReferenceNotFound(Key),

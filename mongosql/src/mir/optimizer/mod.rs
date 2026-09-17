@@ -1,6 +1,6 @@
 use crate::{
-    mir::{schema::SchemaInferenceState, Stage},
     SchemaCheckingMode,
+    mir::{Stage, schema::SchemaInferenceState},
 };
 use tailcall::tailcall;
 

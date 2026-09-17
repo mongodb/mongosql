@@ -4,8 +4,8 @@ use crate::{
     mir::{self, binding_tuple::Key},
     multimap,
     schema::{
-        Atomic, Document, Schema, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, NUMERIC_OR_NULLISH,
-        STRING_OR_NULLISH,
+        Atomic, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, Document, NUMERIC_OR_NULLISH,
+        STRING_OR_NULLISH, Schema,
     },
     set, test_algebrize, test_algebrize_expr_and_schema_check, unchecked_unique_linked_hash_map,
     usererror::UserError,
