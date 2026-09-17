@@ -84,24 +84,16 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     initial_schema_doc: Option<Arc<Schema>>,
     single_partition: SinglePartition,
 ) -> Result<Schema, Error<S::Error>> {
-    // ignored_min_id is the id of a document that the `$jsonSchema` rendering of `schema` cannot
-    // match, held back so the next query can exclude it by id. An `Option` rather than a `Vec`
-    // because at most one such document can ever survive into the next iteration:
+    // ignored_min_id is the id of a document that `schema`'s `$jsonSchema` rendering cannot
+    // match. It is remembered so the next query can exclude it by id. At most one such document
+    // can survive: each iteration queries `partition_key >= partition.min` sorted ascending, and
+    // the batch loop advances `partition.min` to the last document it processes, so the inclusive
+    // `>=` bound re-admits only the document sitting exactly at `min`.
     //
-    // Each iteration queries `partition_key >= partition.min` alongside `$nor: [$jsonSchema]`,
-    // sorted ascending and capped at `PARTITION_DOCS_PER_ITERATION`. The batch loop below
-    // reassigns `partition.min` for *every* document it processes, so once a batch is drained
-    // `min` holds the key of that batch's *last* document. The next iteration's bound is
-    // inclusive, so every other document from that batch falls outside it and is dropped by the
-    // bound alone, whether or not `$jsonSchema` can match it. The single document `$gte` cannot
-    // drop is the one sitting exactly at `min` -- hence one id, and hence always `partition.min`.
+    // Reset to `None` whenever a batch widens the schema, since `min` has then advanced past any
+    // earlier blocker. Scoped to this partition, whose bounds are independent of all others.
     //
-    // Reset to `None` whenever a batch widens the schema: `min` has then advanced past any
-    // earlier blocker and `$gte` excludes it without help. Scoped to this partition, which
-    // derives from its own bounds independently of every other.
-    //
-    // See the `ignored_min_id` assignment below for how a blocker is recognized in the first
-    // place.
+    // See the `ignored_min_id` assignment below for how a blocker is recognized.
     let mut ignored_min_id: Option<Bson> = None;
     let mut partition = single_partition.partition;
     let partition_key = single_partition.partition_key.as_str();
