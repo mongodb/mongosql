@@ -84,7 +84,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     initial_schema_doc: Option<Arc<Schema>>,
     single_partition: SinglePartition,
 ) -> Result<Schema, Error<S::Error>> {
-    // The id of a document that the `$jsonSchema` rendering of `schema` cannot match, held
+    // ignored_min_id is the id of a document that the `$jsonSchema` rendering of `schema` cannot match, held
     // back so the next query can exclude it by id. An `Option` rather than a `Vec` because at
     // most one such document can ever survive into the next iteration:
     //
