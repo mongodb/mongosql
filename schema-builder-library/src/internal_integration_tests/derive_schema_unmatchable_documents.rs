@@ -128,6 +128,20 @@ test_derivation_terminates!(
     ]
 );
 
+// Dotted keys that are not shared by every document drop out of the `required` intersection
+// and match via `properties`, which compares keys literally -- so nothing here is unmatchable
+// and derivation terminates for the ordinary reason. The counts still straddle a batch
+// boundary (21 documents, a trailing batch of one) so that the non-required case is exercised
+// across batches: `properties` performing the same implicit path traversal as `required` would
+// reintroduce the hang, and this pins that it does not.
+test_derivation_terminates!(
+    nonrequired_dotted_documents_multiple_batches,
+    docs = (0..10)
+        .map(|i| doc! {"_id": i, "a.b": i})
+        .chain((10..21).map(|i| doc! {"_id": i, "c.d": i}))
+        .collect()
+);
+
 // Controls: no trailing batch of one, and no unmatchable document at all. A failure here
 // means the fix broke ordinary derivation rather than that the bug is unfixed.
 test_derivation_terminates!(
