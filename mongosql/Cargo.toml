@@ -6,7 +6,7 @@ authors = [
     "Patrick Meredith <pmeredit@protonmail.com>",
     "Nathan Leniz <nathan.leniz@gmail.com>",
 ]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 agg-ast = { path = "../agg-ast/ast" }

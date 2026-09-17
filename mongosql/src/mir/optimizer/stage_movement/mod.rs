@@ -543,7 +543,7 @@ impl StageMovementVisitor<'_> {
             // In a single source stage we can just assume all the keys are defined, or we would have failed schema checking.
             // Specifically the *defines* method is only for what is defined by a specific stage not what is defined in the
             // entire pipeline, so we cannot just use *defines* on the left and right source here.
-            Stage::Join(ref n) => {
+            Stage::Join(n) => {
                 let right_schema = n.right.schema(self.schema_state).unwrap();
                 // If this is a filter, we cannot move it if the Join's JoinType is Left and any use
                 // is in the RHS. Merging a WHERE or HAVING into a LEFT JOIN ON or into the right
@@ -582,7 +582,7 @@ impl StageMovementVisitor<'_> {
                     (stage, false)
                 }
             }
-            Stage::Set(ref n) => {
+            Stage::Set(n) => {
                 // We have to compute the schema outside of the dual_source call
                 // because passing references to the left, right sources to dual_sources
                 // upsets the borrow checker since we also pass *node* by value.
@@ -596,7 +596,7 @@ impl StageMovementVisitor<'_> {
             // RHS (from) must always remain a simple collection source. The dual_source
             // method ensures that the stage, node, is only able to move up the Left
             // source if possible.
-            Stage::MqlIntrinsic(MqlStage::EquiJoin(ref n)) => {
+            Stage::MqlIntrinsic(MqlStage::EquiJoin(n)) => {
                 let left_schema = n.source.schema(self.schema_state).unwrap();
                 let right_schema = n.from.schema(self.schema_state).unwrap();
                 self.dual_source(node, datasource_uses, left_schema, right_schema, true)
@@ -606,7 +606,7 @@ impl StageMovementVisitor<'_> {
             // (subquery) are used, then the stage is moved up that side.
             // Recall that the LHS (source) datasources are considered in-scope
             // inside the RHS (subquery) so this is safe.
-            Stage::MqlIntrinsic(MqlStage::LateralJoin(ref n)) => {
+            Stage::MqlIntrinsic(MqlStage::LateralJoin(n)) => {
                 let source_result_set = n.source.schema(self.schema_state).unwrap();
                 let state = self
                     .schema_state

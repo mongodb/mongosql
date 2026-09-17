@@ -26,7 +26,7 @@ lazy_static! {
 
 /// Returns the semantic version of this library as a C string.
 /// The caller is responsible for freeing the returned value.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn version() -> *mut raw::c_char {
     to_raw_c_string(MONGOSQL_VERSION.as_str()).expect("semver string contained NUL byte")
 }
@@ -34,7 +34,7 @@ pub extern "C" fn version() -> *mut raw::c_char {
 /// Returns a base64-encoded bson representation of
 /// [Translation](/mongosql/struct.Translation.html) for the provided
 /// Sql query, database, catalog schema, and schema checking mode.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn translate(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
@@ -155,7 +155,7 @@ fn translation_failure_payload(error: String, error_visibility: ErrorVisibility)
 /// Returns a base64-encoded bson representation of
 /// the namespaces referenced by the the provided
 /// Sql query, when executed in the provided database.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn get_namespaces(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
@@ -271,10 +271,10 @@ fn panic_safe_exec<F: FnOnce() -> Result<T, String> + UnwindSafe, T>(
 /// Deletes a rust-allocated C string passed as a *mut raw::c_char.
 /// The C string MUST have been allocated in rust and obtained using
 /// into_raw().
-#[no_mangle]
-pub unsafe extern "C" fn delete_string(to_delete: *mut raw::c_char) {
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn delete_string(to_delete: *mut raw::c_char) { unsafe {
     let _ = CString::from_raw(to_delete);
-}
+}}
 
 /// Creates a String from the provided C string
 fn from_extern_string(s: *const libc::c_char) -> Result<String, FromUtf8Error> {

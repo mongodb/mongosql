@@ -14,7 +14,7 @@ use mongosql_datastructures::binding_tuple::Key;
 
 #[macro_export]
 macro_rules! test_algebrize {
-    ($func_name:ident, method = $method:ident, $(expression_context = $expression_context:expr,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)? $(is_add_fields = $is_add_fields:expr, )?) => {
+    ($func_name:ident, method = $method:ident, $(expression_context = $expression_context:expr_2021,)? $(expected = $expected:expr_2021,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr_2021, $(source = $source:expr_2021,)? $(env = $env:expr_2021,)? $(catalog = $catalog:expr_2021,)? $(schema_checking_mode = $schema_checking_mode:expr_2021,)? $(is_add_fields = $is_add_fields:expr_2021, )?) => {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]
@@ -53,7 +53,7 @@ macro_rules! test_algebrize {
 
 #[macro_export]
 macro_rules! test_algebrize_expr_and_schema_check {
-    ($func_name:ident, method = $method:ident, $(expression_context = $expression_context:expr,)? $(expected = $expected:expr,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+    ($func_name:ident, method = $method:ident, $(expression_context = $expression_context:expr_2021,)? $(expected = $expected:expr_2021,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr_2021, $(source = $source:expr_2021,)? $(env = $env:expr_2021,)? $(catalog = $catalog:expr_2021,)? $(schema_checking_mode = $schema_checking_mode:expr_2021,)?) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
@@ -93,7 +93,7 @@ macro_rules! test_algebrize_expr_and_schema_check {
 
 #[macro_export]
 macro_rules! test_user_error_messages {
-    ($func_name:ident, input = $input:expr, expected = $expected:expr) => {
+    ($func_name:ident, input = $input:expr_2021, expected = $expected:expr_2021) => {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]

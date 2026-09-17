@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 macro_rules! test_derivation_for_bits_ops {
     (
         $name:ident,
-        operator = $op:expr,
+        operator = $op:expr_2021,
     ) => {
         test_derive_schema_for_match_stage! {
             $name,
@@ -38,7 +38,7 @@ macro_rules! test_derivation_for_bits_ops {
 macro_rules! test_derivation_for_geo_ops {
     (
         $name:ident,
-        operator = $op:expr,
+        operator = $op:expr_2021,
     ) => {
         test_derive_schema_for_match_stage! {
             $name,

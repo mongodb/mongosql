@@ -17,7 +17,7 @@ use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 // Condition used to desugar a $sqlCount when the argument is not a document. This condition asserts
 // that the arg is null or missing.
 macro_rules! count_arg_is_null_or_missing_cond {
-    ($arg:expr) => {
+    ($arg:expr_2021) => {
         MqlSemanticOperator(MqlSemanticOperator {
             op: MqlOperator::In,
             args: vec![
@@ -37,7 +37,7 @@ macro_rules! count_arg_is_null_or_missing_cond {
 // Condition used to desugar a $sqlCount when the argument is a document. This condition asserts
 // that the arg is an empty document.
 macro_rules! count_doc_arg_is_empty_cond {
-    ($arg:expr) => {
+    ($arg:expr_2021) => {
         MqlSemanticOperator(MqlSemanticOperator {
             op: MqlOperator::Eq,
             args: vec![$arg, Document(UniqueLinkedHashMap::new())],
@@ -48,7 +48,7 @@ macro_rules! count_doc_arg_is_empty_cond {
 // Condition used to desugar a $sqlCount when the argument is a document. This condition asserts
 // that the arg contains only null values.
 macro_rules! count_doc_arg_has_all_null_values_cond {
-    ($arg:expr) => {
+    ($arg:expr_2021) => {
         MqlSemanticOperator(MqlSemanticOperator {
             op: MqlOperator::AllElementsTrue,
             args: vec![MqlSemanticOperator(MqlSemanticOperator {

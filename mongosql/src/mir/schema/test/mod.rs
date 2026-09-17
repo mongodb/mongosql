@@ -69,7 +69,7 @@ lazy_static! {
 
 #[macro_export]
 macro_rules! test_schema {
-    ($func_name:ident, $(expected_error_code = $expected_error_code:literal,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr, $(schema_env = $schema_env:expr,)? $(catalog = $catalog:expr,)? $(variables = $variables:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+    ($func_name:ident, $(expected_error_code = $expected_error_code:literal,)? $(expected = $expected:expr_2021,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr_2021, $(schema_env = $schema_env:expr_2021,)? $(catalog = $catalog:expr_2021,)? $(variables = $variables:expr_2021,)? $(schema_checking_mode = $schema_checking_mode:expr_2021,)?) => {
         #[test]
         fn $func_name() {
             #[allow(unused_imports, clippy::redundant_pattern_matching)]
@@ -108,7 +108,7 @@ macro_rules! test_schema {
 }
 
 macro_rules! test_retain {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             use crate::mir::schema::retain;
@@ -120,7 +120,7 @@ macro_rules! test_retain {
 }
 
 macro_rules! test_max_numeric {
-    ($func_name:ident, expected = $expected:expr, input1 = $input1:expr, input2 = $input2:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input1 = $input1:expr_2021, input2 = $input2:expr_2021) => {
         #[test]
         fn $func_name() {
             use crate::mir::schema::max_numeric;

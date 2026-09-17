@@ -500,12 +500,12 @@ impl ConstantFoldExprVisitor<'_> {
         } else {
             panic!("Substring must have two or three args")
         };
-        if let (
+        match (string, start, len)
+        { (
             Expression::Literal(LiteralValue::String(st)),
             Expression::Literal(LiteralValue::Integer(start)),
             Expression::Literal(LiteralValue::Integer(len)),
-        ) = (string, start, len)
-        {
+        ) => {
             let string_len = st.len() as i32;
             let end = if len < 0 {
                 cmp::max(start, string_len)
@@ -528,9 +528,9 @@ impl ConstantFoldExprVisitor<'_> {
                     .collect::<String>();
                 (Expression::Literal(LiteralValue::String(substr)), true)
             }
-        } else {
+        } _ => {
             (Expression::ScalarFunction(sf), false)
-        }
+        }}
     }
 
     // Constant folds the concat function
@@ -551,15 +551,14 @@ impl ConstantFoldExprVisitor<'_> {
                 Expression::Literal(LiteralValue::String(val)) => {
                     if result.is_empty() {
                         result.push(expr);
-                    } else if let Expression::Literal(LiteralValue::String(prev_val)) =
-                        result.last().unwrap().clone()
-                    {
+                    } else { match result.last().unwrap().clone()
+                    { Expression::Literal(LiteralValue::String(prev_val)) => {
                         changed = true;
                         result.pop();
                         result.push(Expression::Literal(LiteralValue::String(prev_val + val)));
-                    } else {
+                    } _ => {
                         result.push(expr)
-                    }
+                    }}}
                 }
                 _ => result.push(expr),
             }
@@ -1423,9 +1422,9 @@ impl ConstantFoldExprVisitor<'_> {
         // literal of the target type. A static conversion failure folds to the
         // Cast's on_error, matching runtime CAST semantics.
         let conversion_result = match cast_expr.expr.as_ref() {
-            Expression::Literal(ref l) => Self::convert_literal(l, cast_expr.to),
-            Expression::Array(ref a) => Self::convert_literal_array(a, cast_expr.to),
-            Expression::Document(ref d) => Self::convert_literal_document(d, cast_expr.to),
+            Expression::Literal(l) => Self::convert_literal(l, cast_expr.to),
+            Expression::Array(a) => Self::convert_literal_array(a, cast_expr.to),
+            Expression::Document(d) => Self::convert_literal_document(d, cast_expr.to),
             _ => None,
         };
 
@@ -1629,13 +1628,12 @@ impl Visitor for ConstantFoldExprVisitor<'_> {
                 // not have a proof of this. The clone should be relatively cheap.
                 // Initially, I had a panic, and all of our query tests still pass, but I am not
                 // condifident on removing this clone and possibly breaking some customer query.
-                if let (Expression::FieldAccess(fa), changed) =
-                    self.fold_field_access_expr(f.clone())
-                {
+                match self.fold_field_access_expr(f.clone())
+                { (Expression::FieldAccess(fa), changed) => {
                     (Expression::MqlIntrinsicFieldExistence(fa), changed)
-                } else {
+                } _ => {
                     (Expression::MqlIntrinsicFieldExistence(f), false)
-                }
+                }}
             }
         };
 

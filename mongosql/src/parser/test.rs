@@ -1,5 +1,5 @@
 macro_rules! parsable {
-    ($func_name:ident, expected = $expected:expr, $(expected_error_user_msg = $expected_error_user_msg:expr,)? $(expected_error_tech_msg = $expected_error_tech_msg:expr,)? $(expected_error_code = $expected_error_code:literal,)? input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, $(expected_error_user_msg = $expected_error_user_msg:expr_2021,)? $(expected_error_tech_msg = $expected_error_tech_msg:expr_2021,)? $(expected_error_code = $expected_error_code:literal,)? input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             use crate::{parser::parse_query, usererror::UserError};
@@ -25,7 +25,7 @@ macro_rules! parsable {
     };
 }
 macro_rules! validate_ast {
-    ($func_name:ident, method = $method:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, method = $method:ident, expected = $expected:expr_2021, input = $input:expr_2021,) => {
         #[test]
         fn $func_name() {
             assert_eq!(crate::parser::$method($input).unwrap(), $expected)

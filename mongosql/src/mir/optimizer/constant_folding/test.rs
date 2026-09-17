@@ -8,7 +8,7 @@ use crate::{
 };
 
 macro_rules! test_constant_fold {
-    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr, $(schema_env = $schema_env:expr,)?) => {
+    ($func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021, $(schema_env = $schema_env:expr_2021,)?) => {
         #[test]
         fn $func_name() {
             use crate::{
@@ -44,7 +44,7 @@ macro_rules! test_constant_fold {
 }
 
 macro_rules! test_constant_fold_no_op {
-    ($func_name:ident, $input:expr $(, schema_env = $schema_env:expr,)?) => {
+    ($func_name:ident, $input:expr_2021 $(, schema_env = $schema_env:expr_2021,)?) => {
         test_constant_fold! { $func_name, expected = $input, expected_changed = false, input = $input, $(schema_env = $schema_env,)? }
     };
 }
@@ -3111,7 +3111,7 @@ mod cast {
     use crate::schema::{Atomic, Schema, NULLISH};
 
     macro_rules! test_constant_fold_cast_literal {
-        ($func_name:ident, expected_expr = $expected:expr, input_expr = $input:expr, input_to = $input_to:expr, $(schema_env = $schema_env:expr,)?) => {
+        ($func_name:ident, expected_expr = $expected:expr_2021, input_expr = $input:expr_2021, input_to = $input_to:expr_2021, $(schema_env = $schema_env:expr_2021,)?) => {
             test_constant_fold! {
                 $func_name,
                 expected = Stage::Array(ArraySource {

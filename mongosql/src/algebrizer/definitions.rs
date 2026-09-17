@@ -27,7 +27,7 @@ use std::{
 type Result<T> = std::result::Result<T, Error>;
 
 macro_rules! schema_check_return {
-    ($self:ident, $e:expr $(,)?) => {{
+    ($self:ident, $e:expr_2021 $(,)?) => {{
         let ret = $e;
         ret.schema(&$self.schema_inference_state())?;
         return Ok(ret);
@@ -2710,7 +2710,7 @@ impl<'a> Algebrizer<'a> {
                 .schema_env
                 .iter()
                 .filter(
-                    |(
+                    |&(
                         &Key {
                             datasource: _,
                             scope: n,
@@ -3071,7 +3071,7 @@ mod in_operator_nullability {
 
 mod convert_to_bool {
     macro_rules! test_convert_literal_to_bool {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
             #[test]
             fn $func_name() {
                 use super::*;

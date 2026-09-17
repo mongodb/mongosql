@@ -57,7 +57,7 @@ mod union_schemata {
         set,
     };
     macro_rules! test_union_schema {
-        ($func_name:ident, expected = $expected:expr, left = $left:expr, right = $right:expr,) => {
+        ($func_name:ident, expected = $expected:expr_2021, left = $left:expr_2021, right = $right:expr_2021,) => {
             #[test]
             fn $func_name() {
                 assert_eq!($expected, $left.union(&$right));
@@ -251,7 +251,7 @@ mod to_bson {
     };
     use bson::bson;
     macro_rules! test_schema_to_bson {
-        ($func_name:ident, expected = $bson_doc:expr, input = $resultset_schema:expr) => {
+        ($func_name:ident, expected = $bson_doc:expr_2021, input = $resultset_schema:expr_2021) => {
             #[test]
             fn $func_name() {
                 let b = crate::json_schema::Schema::try_from($resultset_schema)
@@ -377,7 +377,7 @@ mod from_json {
         set,
     };
     macro_rules! test_from_json_schema {
-        ($func_name:ident, schema_schema = $schema_schema:expr, json_schema = $json_schema:expr) => {
+        ($func_name:ident, schema_schema = $schema_schema:expr_2021, json_schema = $json_schema:expr_2021) => {
             #[test]
             fn $func_name() {
                 let s = schema::Schema::try_from($json_schema);
@@ -740,7 +740,7 @@ mod satisfies {
         set,
     };
     macro_rules! test_satisfies {
-        ($func_name:ident, expected = $expected:expr, _self = $self:expr, other = $other:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, _self = $self:expr_2021, other = $other:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 let res = $self.satisfies(&$other);
@@ -1188,7 +1188,7 @@ mod has_overlaping_keys_with {
         set,
     };
     macro_rules! test_has_overlapping_keys_with {
-        ($func_name:ident, expected = $expected:expr, schema1 = $schema1:expr, schema2 = $schema2:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, schema1 = $schema1:expr_2021, schema2 = $schema2:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 let out = $schema1.has_overlapping_keys_with($schema2);
@@ -1439,7 +1439,7 @@ mod document_union {
     };
 
     macro_rules! test_document_union {
-        ($func_name:ident, expected = $expected:expr, schema1 = $schema1:expr, schema2 = $schema2:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, schema1 = $schema1:expr_2021, schema2 = $schema2:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 let out = $schema1.document_union($schema2);
@@ -1997,7 +1997,7 @@ mod is_comparable_with {
         set,
     };
     macro_rules! test_is_comparable_with {
-        ($func_name:ident, expected = $expected:expr, _self = $self:expr, other = $other:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, _self = $self:expr_2021, other = $other:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 let mut res = $self.is_comparable_with(&$other);
@@ -2352,7 +2352,7 @@ mod contains_field {
         set,
     };
     macro_rules! test_contains_field {
-        ($func_name:ident, expected = $expected:expr, _self = $self:expr, other = $other:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, _self = $self:expr_2021, other = $other:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 let res = $self.contains_field($other);
@@ -2507,7 +2507,7 @@ mod simplify {
         set,
     };
     macro_rules! test_simplify {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 let res = schema::Schema::simplify(&$input);
@@ -2736,7 +2736,7 @@ mod get_single_field_name_and_schema {
         set,
     };
     macro_rules! test_get_single_field_name_and_schema {
-        ($func_name:ident, expected = $expected:expr, schema = $schema:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, schema = $schema:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 assert_eq!($expected, $schema.get_single_field_name_and_schema());
@@ -2946,7 +2946,7 @@ mod subtract_nullish {
         set,
     };
     macro_rules! test_subtract_nullish {
-        ($func_name:ident, expected = $expected:expr, _self = $self:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, _self = $self:expr_2021) => {
             #[test]
             fn $func_name() {
                 let res = $self.subtract_nullish();
@@ -3024,7 +3024,7 @@ mod enumerate_field_paths {
     }
 
     macro_rules! test_enumerate_field_paths {
-        ($func_name:ident, expected = $expected:expr, schema = $schema:expr, $(max_length = $max_length:expr,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, schema = $schema:expr_2021, $(max_length = $max_length:expr_2021,)?) => {
             #[test]
             fn $func_name() {
                 #[allow(unused_mut, unused_assignments)]
@@ -3292,7 +3292,7 @@ mod keys {
     };
 
     macro_rules! test_keys {
-        ($func_name:ident, expected = $expected:expr, schema = $schema:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, schema = $schema:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 assert_eq!($expected, $schema.keys());
@@ -3392,7 +3392,7 @@ mod display_trait {
     use crate::schema::{Atomic, Schema::*};
 
     macro_rules! test_display_trait {
-        ($func_name:ident, expected = $expected:literal, schema = $schema:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:literal, schema = $schema:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 assert_eq!($expected, format!("{}", $schema));
@@ -3473,8 +3473,8 @@ mod collision_check {
 
     macro_rules! test_collisions_check {
         ($func_name:ident,
-        expected = $expected:expr,
-        instances = {$($key:expr => $value:expr),*}) => {
+        expected = $expected:expr_2021,
+        instances = {$($key:expr_2021 => $value:expr_2021),*}) => {
             #[test]
             fn $func_name() {
                 let mut env_instance = SchemaEnvironment::new();
@@ -3613,7 +3613,7 @@ mod intersection {
     };
 
     macro_rules! test_intersection {
-        ($func_name:ident, expected = $expected:expr, left_schema = $left_schema:expr, right_schema = $right_schema:expr $(,)?) => {
+        ($func_name:ident, expected = $expected:expr_2021, left_schema = $left_schema:expr_2021, right_schema = $right_schema:expr_2021 $(,)?) => {
             #[test]
             fn $func_name() {
                 assert_eq!($expected, $left_schema.intersection($right_schema));
@@ -3813,7 +3813,7 @@ mod cartesian_product {
     use std::collections::BTreeSet;
 
     macro_rules! test_cartesian_product {
-        ($func_name:ident, expected = $expected:expr, schema = $schema:expr, other = $other:expr,) => {
+        ($func_name:ident, expected = $expected:expr_2021, schema = $schema:expr_2021, other = $other:expr_2021,) => {
             #[test]
             fn $func_name() {
                 assert_eq!($expected, $schema.cartesian_product(&$other));
@@ -3987,7 +3987,7 @@ mod get_array_item_schema {
     };
 
     macro_rules! test_get_array_item_schema {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021,) => {
             #[test]
             fn $func_name() {
                 assert_eq!($expected, $input.get_array_item_schema());

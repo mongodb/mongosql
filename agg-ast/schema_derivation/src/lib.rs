@@ -52,7 +52,7 @@ pub enum Error {
 
 #[macro_export]
 macro_rules! maybe_any_of {
-    ($schemas:expr) => {
+    ($schemas:expr_2021) => {
         if $schemas.len() == 1 {
             $schemas.into_iter().next().unwrap()
         } else {
@@ -584,7 +584,7 @@ fn schema_for_type_numeric(type_as_int: i32) -> Schema {
 
 #[macro_export]
 macro_rules! array_element_schema_or_error {
-    ($input_schema:expr,$input:expr) => {{
+    ($input_schema:expr_2021,$input:expr_2021) => {{
         match $input_schema {
             Schema::Array(a) => *a,
             Schema::AnyOf(ao) => {
@@ -631,7 +631,7 @@ pub fn get_namespaces_for_pipeline(
     // we can use that database to create a namespace and add it to the set. This
     // macro makes it easier to read for places where we unpack a collection name.
     macro_rules! add_namespace {
-        ($coll:expr) => {
+        ($coll:expr_2021) => {
             namespaces.insert(agg_ast::definitions::Namespace::new(
                 current_db.clone(),
                 $coll,

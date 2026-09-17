@@ -11,7 +11,7 @@ use std::{fs, io::Read};
 use thiserror::Error;
 
 macro_rules! test_desugarer {
-    (file = $file:expr, desugarer = $desugarer:ident) => {
+    (file = $file:expr_2021, desugarer = $desugarer:ident) => {
         #[test]
         fn test() -> Result<(), Error> {
             let file_path = format!("src/air/desugarer/testdata/{}", $file);
@@ -39,7 +39,7 @@ macro_rules! test_desugarer {
 }
 
 macro_rules! test_desugar_manual {
-    (name = $name:ident, desugarer = $desugarer:ident, input = $input:expr, expected = $expected:expr) => {
+    (name = $name:ident, desugarer = $desugarer:ident, input = $input:expr_2021, expected = $expected:expr_2021) => {
         #[test]
         fn $name() {
             let input = $input;
@@ -298,7 +298,7 @@ mod to_air_pipeline_test {
     use agg_ast::definitions as agg_ast;
 
     macro_rules! test_to_air_pipeline {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
             #[test]
             fn $func_name() {
                 let input = $input;

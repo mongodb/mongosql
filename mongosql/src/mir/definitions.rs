@@ -1021,7 +1021,7 @@ impl TryFrom<&Expression> for FieldPath {
     type Error = ();
 
     fn try_from(value: &Expression) -> Result<Self, Self::Error> {
-        if let Expression::FieldAccess(ref f) = value {
+        if let Expression::FieldAccess(f) = value {
             f.try_into()
         } else {
             Err(())

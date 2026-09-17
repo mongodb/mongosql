@@ -57,7 +57,7 @@ pub(crate) struct CommandOptions {
 }
 
 macro_rules! serialize_expr_to_bson {
-    ($input:expr) => {{
+    ($input:expr_2021) => {{
         let serializer = Serializer::new();
         let serializer = serde_stacker::Serializer::new(serializer);
         let serialized_expr = $input

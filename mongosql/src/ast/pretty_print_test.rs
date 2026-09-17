@@ -6,7 +6,7 @@ use crate::{
 };
 
 macro_rules! query_printer_test {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             let res = parser::parse_query($input).unwrap();
@@ -17,7 +17,7 @@ macro_rules! query_printer_test {
 }
 
 macro_rules! expression_printer_test {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             let res = parser::parse_expression($input).unwrap();

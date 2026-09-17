@@ -698,12 +698,12 @@ impl From<UntaggedOperator> for air::Expression {
         }
 
         macro_rules! sql_op {
-            ($op:expr) => {
+            ($op:expr_2021) => {
                 air::Expression::SqlSemanticOperator(air::SqlSemanticOperator { op: $op, args })
             };
         }
         macro_rules! mql_op {
-            ($op:expr) => {
+            ($op:expr_2021) => {
                 air::Expression::MqlSemanticOperator(air::MqlSemanticOperator { op: $op, args })
             };
         }

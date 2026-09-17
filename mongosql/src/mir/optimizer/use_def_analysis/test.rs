@@ -6,7 +6,7 @@ use crate::{
 };
 
 macro_rules! test_method {
-    ($func_name:ident, method = $method:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, method = $method:ident, expected = $expected:expr_2021, input = $input:expr_2021,) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
@@ -35,7 +35,7 @@ macro_rules! test_method {
 }
 
 macro_rules! test_method_uses {
-    ($func_name:ident, $expected:expr, $input:expr, $method:ident,) => {
+    ($func_name:ident, $expected:expr_2021, $input:expr_2021, $method:ident,) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
@@ -70,19 +70,19 @@ macro_rules! test_method_uses {
 }
 
 macro_rules! test_field_uses {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021,) => {
         test_method_uses! {$func_name, $expected, $input, field_uses,}
     };
 }
 
 macro_rules! test_datasource_uses {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021,) => {
         test_method_uses! {$func_name, $expected, $input, datasource_uses,}
     };
 }
 
 macro_rules! test_substitute {
-    ($func_name:ident, expected = $expected:expr, stage = $input:expr, theta = $theta:expr,) => {
+    ($func_name:ident, expected = $expected:expr_2021, stage = $input:expr_2021, theta = $theta:expr_2021,) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]

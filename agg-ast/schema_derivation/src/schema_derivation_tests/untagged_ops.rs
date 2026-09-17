@@ -8,7 +8,7 @@ use mongosql::{
 use std::collections::BTreeMap;
 
 macro_rules! test_type_conversion_op {
-        ($func_name:ident, expected = $expected:expr, op = $op:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, op = $op:expr_2021) => {
             #[test]
             fn $func_name() {
                 let mut state = ResultSetState {

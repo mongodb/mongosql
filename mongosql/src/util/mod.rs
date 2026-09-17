@@ -22,7 +22,7 @@ lazy_static! {
 
 #[macro_export]
 macro_rules! map {
-	($($key:expr => $val:expr),* $(,)?) => {
+	($($key:expr_2021 => $val:expr_2021),* $(,)?) => {
 		std::iter::Iterator::collect([
 			$({
 				($key, $val)
@@ -33,7 +33,7 @@ macro_rules! map {
 
 #[macro_export]
 macro_rules! set {
-	($($val:expr),* $(,)?) => {
+	($($val:expr_2021),* $(,)?) => {
 		std::iter::Iterator::collect([
 			$({
 				($val)
@@ -46,7 +46,7 @@ macro_rules! set {
 #[cfg(test)]
 #[macro_export]
 macro_rules! unchecked_unique_linked_hash_map {
-	($($key:expr => $val:expr),* $(,)?) => {{
+	($($key:expr_2021 => $val:expr_2021),* $(,)?) => {{
             #[allow(unused_mut)]
             let mut out = mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap::new();
             $(
@@ -280,7 +280,7 @@ pub(crate) fn convert_sql_pattern(pattern: String, escape: Option<char>) -> Stri
 mod test_convert_sql_pattern {
     use super::{convert_sql_pattern, DEFAULT_ESCAPE};
     macro_rules! test_convert_sql_pattern {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr, escape = $escape:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021, escape = $escape:expr_2021) => {
             #[test]
             fn $func_name() {
                 let input = $input;

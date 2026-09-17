@@ -9,7 +9,7 @@ use bson::{bson, Bson};
 /// a field ref "input". This macro is utilized for codegenning match ops
 /// that may have not input.
 macro_rules! possibly_nest_under_field {
-    ($self:ident, $input:expr, $op:expr) => {
+    ($self:ident, $input:expr_2021, $op:expr_2021) => {
         match $input {
             None => Ok($op),
             Some(fr) => {

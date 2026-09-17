@@ -1,5 +1,5 @@
 macro_rules! test_user_error_messages {
-    ($func_name:ident, input = $input:expr, expected = $expected:expr) => {
+    ($func_name:ident, input = $input:expr_2021, expected = $expected:expr_2021) => {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]

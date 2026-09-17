@@ -1,7 +1,7 @@
 use crate::ast::{self, pretty_print::PrettyPrint, rewrites::*};
 
 macro_rules! test_rewrite {
-    ($func_name:ident, pass = $pass:expr, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, pass = $pass:expr_2021, expected = $expected:expr_2021, input = $input:expr_2021,) => {
         #[test]
         fn $func_name() {
             use crate::{ast::rewrites::Pass, parser};
@@ -22,7 +22,7 @@ macro_rules! test_rewrite {
 
 // For any features that do not yet have parser support but do have `ast` support, use this macro.
 macro_rules! test_rewrite_ast {
-    ($func_name:ident, pass = $pass:expr, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, pass = $pass:expr_2021, expected = $expected:expr_2021, input = $input:expr_2021,) => {
         #[test]
         fn $func_name() {
             use crate::ast::rewrites::Pass;

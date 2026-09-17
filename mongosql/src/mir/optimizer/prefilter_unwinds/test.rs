@@ -18,7 +18,7 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
 }
 
 macro_rules! test_prefilter {
-    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
+    ($func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021,) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
@@ -47,7 +47,7 @@ macro_rules! test_prefilter {
 }
 
 macro_rules! test_prefilter_no_op {
-    ($func_name:ident, $input:expr,) => {
+    ($func_name:ident, $input:expr_2021,) => {
         test_prefilter! { $func_name, expected = $input, expected_changed = false, input = $input, }
     };
 }

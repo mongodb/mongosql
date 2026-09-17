@@ -798,10 +798,10 @@ impl DeriveSchema for Stage {
         /// from_to_ns is a helper converting the $lookup "from" field into our standard namespace struct
         fn from_to_ns(from: &LookupFrom, state: &ResultSetState) -> Namespace {
             match from {
-                LookupFrom::Collection(ref c) => {
+                LookupFrom::Collection(c) => {
                     Namespace::new(state.current_db.clone(), c.clone())
                 }
-                LookupFrom::Namespace(ref n) => {
+                LookupFrom::Namespace(n) => {
                     Namespace::new(n.database.clone(), n.collection.clone())
                 }
             }
@@ -963,7 +963,7 @@ impl DeriveSchema for Stage {
                     };
                     // if we have a pipeline, union the schema it generates. This will use the schema from the previous
                     // step, which is the collection schema if one is specified, or empty if not.
-                    if let Some(pipeline) = p.pipeline.clone() {
+                    match p.pipeline.clone() { Some(pipeline) => {
                         let pipeline_state = &mut ResultSetState {
                             catalog: state.catalog,
                             variables: state.variables.clone(),
@@ -977,9 +977,9 @@ impl DeriveSchema for Stage {
                         state.result_set_schema = state.result_set_schema.union(&pipeline_schema);
                     // if no pipeline is specified, we are unioning the documents of the collection directly, so just union the from_schema,
                     // which should represent the collection schema
-                    } else {
+                    } _ => {
                         state.result_set_schema = state.result_set_schema.union(from_schema);
-                    }
+                    }}
                     Ok(state.result_set_schema.to_owned())
                 }
             }
@@ -1182,7 +1182,7 @@ impl DeriveSchema for Stage {
             j @ Stage::Join(_) => Err(Error::InvalidStage(Box::new(j.clone()))),
             Stage::Limit(_) => Ok(state.result_set_schema.to_owned()),
             Stage::Lookup(l) => lookup_derive_schema(l, state),
-            Stage::Match(ref m) => m.derive_schema(state),
+            Stage::Match(m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
             Stage::RankFusion(rf) => rank_fusion_derive_schema(rf, state),
             Stage::Redact(_) => Ok(state.result_set_schema.to_owned()),
@@ -1233,7 +1233,7 @@ impl DeriveSchema for Expression {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
         state.result_set_schema = promote_missing(&state.result_set_schema);
         match self {
-            Expression::Array(ref a) => {
+            Expression::Array(a) => {
                 let array_schema = a
                     .iter()
                     .map(|e| {
@@ -1269,7 +1269,7 @@ impl DeriveSchema for Expression {
                     ..Default::default()
                 }))
             }
-            Expression::Literal(ref l) => derive_schema_for_literal(l),
+            Expression::Literal(l) => derive_schema_for_literal(l),
             Expression::Ref(Ref::FieldRef(f)) => {
                 let path = f.split(".").map(|s| s.to_string()).collect::<Vec<String>>();
                 // If the user has rebound the CURRENT variable, we should use that schema instead of the result set schema to find any
@@ -1395,7 +1395,7 @@ impl DeriveSchema for TaggedOperator {
         /// within $setWindowFunc stages. They are numeric with certain constraints about what types are returned based
         /// on the input.
         macro_rules! derive_window_func {
-            ($input:expr) => {{
+            ($input:expr_2021) => {{
                 let input_schema = $input.input.derive_schema(state)?;
                 let mut types: BTreeSet<Schema> = set!(Schema::Atomic(Atomic::Null));
                 if input_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) != Satisfaction::Not {
@@ -1415,7 +1415,7 @@ impl DeriveSchema for TaggedOperator {
         /// derive_date_addition is a macro helper for deriving the schema for the $dateAdd and $dateSubtract operators.
         /// They return date (possibly null)
         macro_rules! derive_date_addition {
-            ($input:expr) => {{
+            ($input:expr_2021) => {{
                 let args = vec![
                     $input.amount.as_ref(),
                     $input.start_date.as_ref(),
@@ -1434,7 +1434,7 @@ impl DeriveSchema for TaggedOperator {
         /// optional arguments. It returns the value if it exists, otherwise returns true, ie, a
         /// value that does not evaluate to false / null / 0
         macro_rules! optional_arg_or_truish {
-            ($input:expr) => {{
+            ($input:expr_2021) => {{
                 $input
                     .as_ref()
                     .map_or(&Expression::Literal(LiteralValue::Boolean(true)), |x| {

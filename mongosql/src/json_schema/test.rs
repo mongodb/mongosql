@@ -1,7 +1,7 @@
 use crate::json_schema::*;
 
 macro_rules! validate_json_schema {
-    ($func_name:ident, expected_schema = $expected_schema:expr, $(expected_json = $expected_json:expr,)? input = $input:expr, ) => {
+    ($func_name:ident, expected_schema = $expected_schema:expr_2021, $(expected_json = $expected_json:expr_2021,)? input = $input:expr_2021, ) => {
         #[test]
         fn $func_name() {
             let s: Schema = serde_json::from_str($input).unwrap();
@@ -20,7 +20,7 @@ macro_rules! validate_json_schema {
 }
 
 macro_rules! hashmap(
-    { $($key:expr => $value:expr),+ } => {
+    { $($key:expr_2021 => $value:expr_2021),+ } => {
       {
         let mut m = HashMap::new();
         $(

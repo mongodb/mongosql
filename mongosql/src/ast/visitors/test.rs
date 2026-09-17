@@ -5,7 +5,7 @@ use crate::ast::{
 };
 
 macro_rules! test_visitors {
-    ($test_name:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($test_name:ident, expected = $expected:expr_2021, input = $input:expr_2021,) => {
         #[test]
         fn $test_name() {
             let input = $input;
@@ -113,7 +113,7 @@ mod are_literal_tests {
     );
 }
 macro_rules! test_subpath_fields_ast {
-    ($test_name:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($test_name:ident, expected = $expected:expr_2021, input = $input:expr_2021,) => {
         #[test]
         fn $test_name() {
             let actual = get_subpath_fields($input);
@@ -125,7 +125,7 @@ macro_rules! test_subpath_fields_ast {
 }
 
 macro_rules! build_select_query {
-    ($body:expr) => {
+    ($body:expr_2021) => {
         Query::Select(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,

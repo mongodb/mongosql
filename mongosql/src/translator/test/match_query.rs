@@ -1,7 +1,7 @@
 use crate::{air, mir};
 
 macro_rules! test_translate_match_query {
-    ($func_name:ident, expected = $expected: expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected: expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]

@@ -1,5 +1,5 @@
 macro_rules! convert_to_snake_case_test {
-    ($func_name:ident, $expected:expr, $input:expr) => {
+    ($func_name:ident, $expected:expr_2021, $input:expr_2021) => {
         #[test]
         fn $func_name() {
             use crate::util::convert_to_snake_case;

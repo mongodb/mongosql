@@ -839,7 +839,7 @@ mod date_ops {
     use super::*;
 
     macro_rules! test_derive_schema_for_date_expression_match {
-        ($name_date:ident, $name_timezone:ident, $name_timezone_recursive:ident, $name_date_field_eq_null:ident, $name_timezone_field_eq_null:ident, $name_date_field_must_be_null:ident, $op:expr ) => {
+        ($name_date:ident, $name_timezone:ident, $name_timezone_recursive:ident, $name_date_field_eq_null:ident, $name_timezone_field_eq_null:ident, $name_date_field_must_be_null:ident, $op:expr_2021 ) => {
             test_derive_schema_for_match_stage!(
                 $name_date,
                 expected = Ok(Schema::Document(Document {
@@ -1996,7 +1996,7 @@ mod misc_ops {
 
 mod string_ops {
     macro_rules! test_derive_schema_for_binary_string_expression_match {
-        ($name_str:ident, $name_str_eq_null:ident, $op:expr ) => {
+        ($name_str:ident, $name_str_eq_null:ident, $op:expr_2021 ) => {
             test_derive_schema_for_match_stage!(
                 $name_str,
                 expected = Ok(Schema::Document(Document {
@@ -2032,7 +2032,7 @@ mod string_ops {
         };
     }
     macro_rules! test_derive_schema_for_unary_string_expression_match {
-        ($name_str:ident, $name_str_eq_null:ident, $op:expr ) => {
+        ($name_str:ident, $name_str_eq_null:ident, $op:expr_2021 ) => {
             test_derive_schema_for_match_stage!(
                 $name_str,
                 expected = Ok(Schema::Document(Document {

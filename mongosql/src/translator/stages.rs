@@ -472,8 +472,8 @@ impl MqlTranslator {
     ) -> Result<(&'a Key, &'a MqlMappingRegistryValue, &'a String)> {
         let (key, field) = match e {
             mir::Expression::FieldAccess(mir::FieldAccess {
-                ref expr,
-                ref field,
+                expr,
+                field,
                 ..
             }) => match **expr {
                 mir::Expression::Reference(mir::ReferenceExpr { ref key, .. }) => (key, field),
@@ -539,7 +539,7 @@ impl MqlTranslator {
                     match specifications.get_mut(&datasource_name) {
                         // If we have already put something under this Datasource, we just update
                         // the document.
-                        Some(air::ProjectItem::Assignment(air::Expression::Document(ref mut d))) => {
+                        Some(air::ProjectItem::Assignment(air::Expression::Document(d))) => {
                             d.insert(field.clone(), make_key_ref(unique_name.clone()))?
                         }
                         // We have nothing under this Datasource, so we need to create a new

@@ -2,7 +2,7 @@ macro_rules! test_derive_stage_schema {
     // ref_schema and starting_schema are mutually exclusive. ref_schema should be used when only
     // one reference is needed, while starting_schema should be used when the schema needs multiple
     // fields.
-    ($func_name:ident, expected = $expected:expr, input = $input:expr$(, starting_schema = $starting_schema:expr)?$(, ref_schema = $ref_schema:expr)?$(, variables = $variables:expr)?) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021$(, starting_schema = $starting_schema:expr_2021)?$(, ref_schema = $ref_schema:expr_2021)?$(, variables = $variables:expr_2021)?) => {
         #[test]
         fn $func_name() {
             let input: Stage = serde_json::from_str($input).unwrap();
@@ -42,7 +42,7 @@ macro_rules! test_derive_expression_schema {
     // ref_schema and starting_schema are mutually exclusive. ref_schema should be used when only
     // one reference is needed, while starting_schema should be used when the schema needs multiple
     // fields.
-    ($func_name:ident, expected = $expected:expr, input = $input:expr$(, starting_schema = $starting_schema:expr)?$(, ref_schema = $ref_schema:expr)?$(, variables = $variables:expr)?) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021$(, starting_schema = $starting_schema:expr_2021)?$(, ref_schema = $ref_schema:expr_2021)?$(, variables = $variables:expr_2021)?) => {
         #[test]
         fn $func_name() {
             let input: Expression = serde_json::from_str($input).unwrap();
@@ -71,7 +71,7 @@ macro_rules! test_derive_schema_for_match_stage {
     // ref_schema and starting_schema are mutually exclusive. ref_schema should be used when only
     // one reference is needed, while starting_schema should be used when the schema needs multiple
     // fields.
-    ($func_name:ident, expected = $expected:expr, input = $input:expr$(, starting_schema = $starting_schema:expr)?$(, ref_schema = $ref_schema:expr)?$(, variables = $variables:expr)?) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021$(, starting_schema = $starting_schema:expr_2021)?$(, ref_schema = $ref_schema:expr_2021)?$(, variables = $variables:expr_2021)?) => {
         #[test]
         fn $func_name() {
             println!("input: {}", $input);

@@ -1,13 +1,13 @@
 macro_rules! test_codegen_expression {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             use crate::codegen::MqlCodeGenerator;
             let expected = $expected;
             let input = $input;
 
-            let gen = MqlCodeGenerator {};
-            assert_eq!(expected, gen.codegen_expression(input));
+            let r#gen = MqlCodeGenerator {};
+            assert_eq!(expected, r#gen.codegen_expression(input));
         }
     };
 }
@@ -1764,7 +1764,7 @@ mod convert {
     use bson::bson;
 
     macro_rules! test_codegen_working_convert {
-        ($test_name:ident, expected = $expected_ty_str:expr, input = $input:expr) => {
+        ($test_name:ident, expected = $expected_ty_str:expr_2021, input = $input:expr_2021) => {
         test_codegen_expression!(
             $test_name,
             expected = Ok(bson!({

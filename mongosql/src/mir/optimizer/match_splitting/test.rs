@@ -2,7 +2,7 @@ mod match_splitting_test {
     use crate::mir::{schema::SchemaCache, Expression::*, LiteralValue::*, ScalarFunction::*};
 
     macro_rules! test_match_splitting {
-        ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
+        ($func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021,) => {
             #[test]
             fn $func_name() {
                 use crate::mir::{optimizer::match_splitting::MatchSplittingOptimizer, *};

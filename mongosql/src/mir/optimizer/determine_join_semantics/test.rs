@@ -46,7 +46,7 @@ lazy_static! {
 }
 
 macro_rules! test_determine_join_semantics {
-    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             let input = $input;
@@ -81,7 +81,7 @@ macro_rules! test_determine_join_semantics {
 }
 
 macro_rules! test_determine_join_semantics_no_op {
-    ($func_name:ident, $input:expr) => {
+    ($func_name:ident, $input:expr_2021) => {
         test_determine_join_semantics! { $func_name, expected = $input, expected_changed = false, input = $input }
     };
 }

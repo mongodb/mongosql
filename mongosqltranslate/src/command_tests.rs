@@ -7,7 +7,7 @@ use mongosql::{
 use std::collections::HashMap;
 
 macro_rules! test_deserializing_into_command {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             let expected_command = $expected;
@@ -25,7 +25,7 @@ macro_rules! test_deserializing_into_command {
 }
 
 macro_rules! test_command_handler {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             let expected_document = $expected;
@@ -38,7 +38,7 @@ macro_rules! test_command_handler {
 }
 
 macro_rules! test_driver_version_compatibility {
-    ($func_name:ident, version = $version:expr, isODBC = $isODBC:expr, expected = $expected:expr) => {
+    ($func_name:ident, version = $version:expr_2021, isODBC = $isODBC:expr_2021, expected = $expected:expr_2021) => {
         #[test]
         fn $func_name() {
             let expected_document = doc! {
@@ -73,7 +73,7 @@ macro_rules! test_driver_version_compatibility {
 }
 
 macro_rules! hashmap(
-    { $($key:expr => $value:expr),+ } => {
+    { $($key:expr_2021 => $value:expr_2021),+ } => {
             {
                 let mut m = HashMap::new();
                 $(

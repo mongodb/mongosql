@@ -2,11 +2,11 @@ macro_rules! test_codegen_stage {
     (
 		$func_name:ident,
 		expected = Ok({
-			database: $expected_db:expr,
-			collection: $expected_collection:expr,
-			pipeline: $expected_pipeline:expr,
+			database: $expected_db:expr_2021,
+			collection: $expected_collection:expr_2021,
+			pipeline: $expected_pipeline:expr_2021,
 		}),
-		input = $input:expr,
+		input = $input:expr_2021,
 	) => {
         #[test]
         fn $func_name() {
@@ -29,7 +29,7 @@ macro_rules! test_codegen_stage {
         }
     };
 
-    ($func_name:ident, expected = Err($expected_err:expr), input = $input:expr,) => {
+    ($func_name:ident, expected = Err($expected_err:expr_2021), input = $input:expr_2021,) => {
         #[test]
         fn $func_name() {
             use crate::codegen::generate_mql;
@@ -634,7 +634,7 @@ mod lookup {
     };
 
     macro_rules! test_input {
-        ($let_vars:expr) => {
+        ($let_vars:expr_2021) => {
             Stage::Lookup(Lookup {
                 source: air_collection_stage("mydb", "col"),
                 let_vars: $let_vars,

@@ -141,7 +141,7 @@ where
 
 #[macro_export]
 macro_rules! unique_linked_hash_map {
-	($($key:expr => $val:expr),* $(,)?) => {{
+	($($key:expr_2021 => $val:expr_2021),* $(,)?) => {{
             #[allow(unused_mut)]
             let mut out = mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap::new();
             $(

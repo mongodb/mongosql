@@ -2,7 +2,7 @@ use variant_count::VariantCount;
 
 #[macro_export]
 macro_rules! multimap {
-	($($key:expr => $val:expr),* $(,)?) => {
+	($($key:expr_2021 => $val:expr_2021),* $(,)?) => {
 		std::iter::Iterator::collect([
 			$({
 				$crate::ast::DocumentPair {

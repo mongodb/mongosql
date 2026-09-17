@@ -20,7 +20,7 @@ pub(crate) trait NegativeNormalize<T> {
 }
 
 macro_rules! wrap_in_check {
-    ($op:expr, $expr:expr, $val:expr) => {
+    ($op:expr_2021, $expr:expr_2021, $val:expr_2021) => {
         Expression::UntaggedOperator(UntaggedOperator {
             op: $op,
             args: vec![$expr, $val],
@@ -29,7 +29,7 @@ macro_rules! wrap_in_check {
 }
 
 macro_rules! wrap_in_zero_check {
-    ($expr:expr) => {
+    ($expr:expr_2021) => {
         wrap_in_check!(
             UntaggedOperatorName::Eq,
             $expr,
@@ -39,7 +39,7 @@ macro_rules! wrap_in_zero_check {
 }
 
 macro_rules! wrap_in_null_or_missing_check {
-    ($expr:expr) => {
+    ($expr:expr_2021) => {
         wrap_in_check!(
             UntaggedOperatorName::Lte,
             $expr,
@@ -49,7 +49,7 @@ macro_rules! wrap_in_null_or_missing_check {
 }
 
 macro_rules! wrap_in_false_check {
-    ($expr:expr) => {
+    ($expr:expr_2021) => {
         wrap_in_check!(
             UntaggedOperatorName::Eq,
             $expr,
@@ -447,7 +447,7 @@ impl NegativeNormalize<MatchExpression> for MatchExpression {
 impl NegativeNormalize<MatchExpression> for MatchLogical {
     fn get_negative_normal_form(&self) -> MatchExpression {
         macro_rules! negative_normal_form_logical {
-            ($args:expr, $output_sym:path) => {{
+            ($args:expr_2021, $output_sym:path) => {{
                 let args: Vec<_> = $args.iter().map(|x| x.get_negative_normal_form()).collect();
                 if args.len() == 1 {
                     args.into_iter().next().unwrap()
@@ -470,7 +470,7 @@ impl NegativeNormalize<MatchExpression> for MatchLogical {
                     .collect::<Vec<MatchExpression>>();
                 negative_normal_form_logical!(args, MatchLogical::And)
             }
-            MatchLogical::Not(ref not) => match not.expr {
+            MatchLogical::Not(not) => match not.expr {
                 MatchNotExpression::Regex(_) => {
                     MatchExpression::Logical(MatchLogical::Not(not.clone()))
                 }
@@ -494,7 +494,7 @@ impl NegativeNormalize<MatchExpression> for MatchLogical {
 
     fn get_negation(&self) -> MatchExpression {
         macro_rules! negate_logical {
-            ($args:expr, $output_sym:path) => {{
+            ($args:expr_2021, $output_sym:path) => {{
                 let args: Vec<_> = $args.iter().map(|x| x.get_negation()).collect();
                 if args.len() == 1 {
                     args.into_iter().next().unwrap()
@@ -511,7 +511,7 @@ impl NegativeNormalize<MatchExpression> for MatchLogical {
                 negate_logical!(or, MatchLogical::And)
             }
             MatchLogical::Nor(nor) => MatchExpression::Logical(MatchLogical::Or(nor.clone())),
-            MatchLogical::Not(ref not) => match not.expr {
+            MatchLogical::Not(not) => match not.expr {
                 MatchNotExpression::Regex(ref b) => {
                     let (pattern, options) = if let Bson::Document(d) = b {
                         (
@@ -565,7 +565,7 @@ fn negate_exists_bson(bson: &Bson) -> Bson {
 // {x: {$lt: 10}} and {x: {$gt: 5}} are handled in two separate calls to this function.
 fn negate_binary_operator(field: &Ref, op: &MatchBinaryOp, b: &Bson) -> MatchExpression {
     macro_rules! simple_negate {
-        ($field:expr, $neg_op:expr, $b:expr) => {
+        ($field:expr_2021, $neg_op:expr_2021, $b:expr_2021) => {
             MatchExpression::Field(MatchField {
                 field: $field.clone(),
                 ops: map! {$neg_op => $b.clone()},
@@ -573,7 +573,7 @@ fn negate_binary_operator(field: &Ref, op: &MatchBinaryOp, b: &Bson) -> MatchExp
         };
     }
     macro_rules! logical_not_negate {
-        ($field:expr, $op:expr, $b:expr) => {
+        ($field:expr_2021, $op:expr_2021, $b:expr_2021) => {
             MatchExpression::Logical(MatchLogical::Not(MatchNot {
                 field: $field.clone(),
                 expr: MatchNotExpression::Query(map! {$op => b.clone()}),
@@ -582,7 +582,7 @@ fn negate_binary_operator(field: &Ref, op: &MatchBinaryOp, b: &Bson) -> MatchExp
     }
     // function_negate is kept separate from simple_negate to avoid double cloning
     macro_rules! funcion_negate {
-        ($field:expr, $op:expr, $f:expr, $b:expr) => {
+        ($field:expr_2021, $op:expr_2021, $f:expr_2021, $b:expr_2021) => {
             MatchExpression::Field(MatchField {
                 field: $field.clone(),
                 ops: map! {$op => $f($b)},

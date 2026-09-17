@@ -4,7 +4,7 @@ use crate::{
 };
 
 macro_rules! possibly_translate_input {
-    ($self:ident, $input:expr) => {
+    ($self:ident, $input:expr_2021) => {
         match $input {
             None => None,
             Some(input) => $self.translate_field_path(input)?,

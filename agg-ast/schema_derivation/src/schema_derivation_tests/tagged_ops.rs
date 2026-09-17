@@ -1352,7 +1352,7 @@ mod convert {
     use mongosql::schema::Satisfaction;
 
     macro_rules! test_convert_op {
-        ($func_name:ident, expected = $expected:expr, numeric_rep = $numeric_rep:expr, string_rep = $string_rep:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, numeric_rep = $numeric_rep:expr_2021, string_rep = $string_rep:expr_2021) => {
             #[test]
             fn $func_name() {
                 let mut state = ResultSetState {

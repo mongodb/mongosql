@@ -7,7 +7,7 @@ use mongosql::{
 };
 
 macro_rules! test_schema_for_bson {
-    ($name:ident, input=$input:expr, expected=$expected:expr) => {
+    ($name:ident, input=$input:expr_2021, expected=$expected:expr_2021) => {
         #[test]
         fn $name() {
             let schema = schema_for_bson(&$input);

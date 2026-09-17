@@ -7,7 +7,7 @@ use crate::{
 };
 
 macro_rules! n_chars_iter {
-    ($n:expr) => {
+    ($n:expr_2021) => {
         "a".repeat($n).chars().enumerate()
     };
 }

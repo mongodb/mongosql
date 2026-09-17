@@ -389,13 +389,13 @@ impl CachedSchema for Stage {
                         let (schema_env_key, schema_env_schema) = match key {
                             // If the group key has an alias, bind a document containing that alias
                             // and the group key's schema to the Bottom datasource.
-                            OptionallyAliasedExpr::Aliased(AliasedExpr { expr: _, ref alias }) => (
+                            OptionallyAliasedExpr::Aliased(AliasedExpr { expr: _, alias }) => (
                                 binding_tuple::Key::bot(state.scope_level),
                                 schema_binding_doc(alias.clone(), group_key_schema),
                             ),
                             // Otherwise for a field access group key, bind a document containing the
                             // field access string and the group key's schema to the Reference datasource.
-                            OptionallyAliasedExpr::Unaliased(ref expr) => match expr {
+                            OptionallyAliasedExpr::Unaliased(expr) => match expr {
                                 Expression::FieldAccess(f) => match f.expr.as_ref() {
                                     Expression::Reference(r) => (
                                         r.key.clone(),

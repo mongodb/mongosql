@@ -1,5 +1,5 @@
 macro_rules! test_serde_stage {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             use super::TestStage;
@@ -23,7 +23,7 @@ macro_rules! test_serde_stage {
 }
 
 macro_rules! test_serde_expr {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             use crate::serde_test::expression_test::TestExpr;
@@ -46,7 +46,7 @@ macro_rules! test_serde_expr {
 }
 
 macro_rules! test_match_bin_op {
-    ($func_name:ident, string_op = $string_op:expr, expected_op = $expected_op:expr) => {
+    ($func_name:ident, string_op = $string_op:expr_2021, expected_op = $expected_op:expr_2021) => {
         test_serde_stage!(
             $func_name,
             expected = Stage::Match(MatchStage {
@@ -61,7 +61,7 @@ macro_rules! test_match_bin_op {
 }
 
 macro_rules! test_match_logical_vararg {
-    ($func_name:ident, string_op = $string_op:expr, expected_op = $expected_op:expr) => {
+    ($func_name:ident, string_op = $string_op:expr_2021, expected_op = $expected_op:expr_2021) => {
         test_serde_stage!(
             $func_name,
             expected = Stage::Match(MatchStage {
@@ -91,7 +91,7 @@ macro_rules! test_match_logical_vararg {
 }
 
 macro_rules! test_serde_date_operator {
-    ($func_name:ident, string_op = $string_op:expr, expected_op = $expected_op:expr) => {
+    ($func_name:ident, string_op = $string_op:expr_2021, expected_op = $expected_op:expr_2021) => {
         test_serde_expr!(
             $func_name,
             expected = Expression::TaggedOperator($expected_op(DateExpression {

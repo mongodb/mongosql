@@ -2,7 +2,7 @@ use crate::negative_normalize::NegativeNormalize;
 use agg_ast::definitions::MatchExpression;
 
 macro_rules! test_nnf {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             let input: MatchExpression = serde_json::from_str($input).unwrap();

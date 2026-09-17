@@ -1,5 +1,5 @@
 macro_rules! test_codegen_match_query {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             use crate::{air, codegen::MqlCodeGenerator};
@@ -8,8 +8,8 @@ macro_rules! test_codegen_match_query {
             let expected = $expected;
             let input = $input;
 
-            let gen = MqlCodeGenerator {};
-            assert_eq!(expected, gen.codegen_match_query(input));
+            let r#gen = MqlCodeGenerator {};
+            assert_eq!(expected, r#gen.codegen_match_query(input));
         }
     };
 }

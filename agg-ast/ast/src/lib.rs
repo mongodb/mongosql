@@ -14,7 +14,7 @@ pub const DESCEND_NAME: &str = "DESCEND";
 
 #[macro_export]
 macro_rules! map {
-	($($key:expr => $val:expr),* $(,)?) => {
+	($($key:expr_2021 => $val:expr_2021),* $(,)?) => {
 		std::iter::Iterator::collect([
 			$({
 				($key, $val)

@@ -396,7 +396,7 @@ impl MatchConstrainSchema for Expression {
         /// and allow for null if null_behavior is possible. Even if null behavior is Must, we
         /// only constrain that the arg _may_ be null, because a different arg could be null instead.
         macro_rules! handle_date_operator_arg {
-            ($exp:expr, $basic_schema:expr, $state:expr) => {
+            ($exp:expr_2021, $basic_schema:expr_2021, $state:expr_2021) => {
                 if let Expression::Ref(ref reference) = $exp {
                     match $state.null_behavior {
                         Satisfaction::Not => {
@@ -417,7 +417,7 @@ impl MatchConstrainSchema for Expression {
         /// set schema if relevant, and if not, will recurse on the arg in case it contains
         /// nested field refs we can constrain.
         macro_rules! handle_reference_arg {
-            ($input:expr, $sch:expr, $state:expr) => {
+            ($input:expr_2021, $sch:expr_2021, $state:expr_2021) => {
                 if let Expression::Ref(ref reference) = $input {
                     intersect_if_exists(reference, $state, $sch);
                 } else {
@@ -429,7 +429,7 @@ impl MatchConstrainSchema for Expression {
         /// handle_optional_reference_arg functions the same as handle_reference_arg, dealing
         /// with field refs and recursing otherwise, except that it works on optional arguments
         macro_rules! handle_optional_reference_arg {
-            ( $e:expr, $schema:expr, $state:expr ) => {
+            ( $e:expr_2021, $schema:expr_2021, $state:expr_2021 ) => {
                 if let Some(e) = $e {
                     if let Expression::Ref(reference) = e.as_ref() {
                         intersect_if_exists(reference, $state, $schema);
@@ -537,7 +537,7 @@ impl MatchConstrainSchema for Expression {
             .into_iter()
             .flatten()
             {
-                if let Expression::Ref(ref reference) = e.as_ref() {
+                if let Expression::Ref(reference) = e.as_ref() {
                     intersect_if_exists(reference, state, most_part_schema.clone());
                 } else {
                     e.match_derive_schema(state)?;
@@ -2013,7 +2013,7 @@ impl MatchConstrainSchema for Expression {
         /// the input must be an array. We then add any relevant context (namely, the variable) to the result set schema and recurse
         /// on the sub expressions in the input.
         macro_rules! derive_map_filter_input {
-            ($input:expr, $state:expr, $inside:expr) => {
+            ($input:expr_2021, $state:expr_2021, $inside:expr_2021) => {
                 if let Expression::Ref(reference) = $input.input.as_ref() {
                     match $state.null_behavior {
                         Satisfaction::Not => intersect_if_exists(

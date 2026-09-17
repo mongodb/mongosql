@@ -479,7 +479,7 @@ mod prepend_parent_to_field_path_expr_tests {
     use super::*;
 
     macro_rules! test_prepend_parent_to_field_path_expr {
-        ($func_name:ident, expected = $expected:expr, input_parent = $input_parent:expr, input_field_path_expr = $input_field_path_expr:expr,) => {
+        ($func_name:ident, expected = $expected:expr_2021, input_parent = $input_parent:expr_2021, input_field_path_expr = $input_field_path_expr:expr_2021,) => {
             #[test]
             fn $func_name() {
                 let expected = $expected;

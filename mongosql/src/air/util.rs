@@ -213,7 +213,7 @@ mod variable_from_string_tests {
     use super::*;
 
     macro_rules! test_var_from_string {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
             #[test]
             fn $func_name() {
                 #[allow(unused_imports)]
@@ -263,7 +263,7 @@ mod field_ref_from_string_tests {
     use super::*;
 
     macro_rules! test_field_ref_from_string {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
             #[test]
             fn $func_name() {
                 #[allow(unused_imports)]

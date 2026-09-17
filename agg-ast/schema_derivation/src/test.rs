@@ -8,7 +8,7 @@ mod get_schema_for_path {
     use std::collections::BTreeSet;
 
     macro_rules! test_schema_for_path {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr, path = $path:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021, path = $path:expr_2021) => {
             #[test]
             fn $func_name() {
                 let input_cloned = &mut $input.clone();
@@ -19,7 +19,7 @@ mod get_schema_for_path {
     }
 
     macro_rules! test_get_or_create_schema_for_path {
-        ($func_name:ident, expected = $expected:expr, output = $output:expr, input = $input:expr, path = $path: expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, output = $output:expr_2021, input = $input:expr_2021, path = $path: expr_2021) => {
             #[test]
             fn $func_name() {
                 let input_cloned = &mut $input.clone();
@@ -28,7 +28,7 @@ mod get_schema_for_path {
                 assert_eq!($output, *input_cloned);
             }
         };
-        ($func_name:ident, expected = $expected:expr, input = $input:expr, path = $path:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021, path = $path:expr_2021) => {
             #[test]
             fn $func_name() {
                 let input_cloned = &mut $input.clone();
@@ -370,7 +370,7 @@ mod get_namespaces_for_pipeline {
     use std::collections::BTreeSet;
 
     macro_rules! test_get_namespaces_for_pipeline {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
             #[test]
             fn $func_name() {
                 let pipeline: Vec<Stage> = serde_json::from_str($input).unwrap();

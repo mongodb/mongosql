@@ -142,7 +142,7 @@ fn nation_names_match_condition() -> crate::mir::MatchQuery {
 }
 
 macro_rules! test_move_stage {
-    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
+    ($func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021,) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
@@ -189,7 +189,7 @@ macro_rules! test_move_stage {
             assert_eq!(expected, actual);
         }
     };
-    (ignore = $ignore:expr, $func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
+    (ignore = $ignore:expr_2021, $func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021,) => {
         #[ignore = $ignore]
         #[test]
         fn $func_name() {
@@ -200,7 +200,7 @@ macro_rules! test_move_stage {
 }
 
 macro_rules! test_move_stage_no_op {
-    ($func_name:ident, $input:expr) => {
+    ($func_name:ident, $input:expr_2021) => {
         test_move_stage! { $func_name, expected = $input, expected_changed = false, input = $input, }
     };
 }

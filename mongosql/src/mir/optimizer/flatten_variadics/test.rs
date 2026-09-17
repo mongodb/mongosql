@@ -1,7 +1,7 @@
 mod flatten_node {
     use crate::mir::{self, schema::SchemaCache, *};
     macro_rules! test_flatten_variadic_functions {
-        ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
+        ($func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021,) => {
             #[test]
             fn $func_name() {
                 use crate::mir::optimizer::flatten_variadics::FlattenVariadicFunctionsOptimizer;

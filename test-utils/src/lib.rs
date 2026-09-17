@@ -186,7 +186,7 @@ fn check_server_version_for_test(
     }
 
     macro_rules! parse_server_version {
-        ($version_name:expr) => {{
+        ($version_name:expr_2021) => {{
             $version_name
                 .as_ref()
                 .map(|v| {

@@ -1,7 +1,7 @@
 #[allow(clippy::redundant_pattern_matching)]
 mod test_get_namespaces {
     macro_rules! test_get_namespaces {
-        ($func_name:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? db = $current_db:expr, query = $sql:expr,) => {
+        ($func_name:ident, $(expected = $expected:expr_2021,)? $(expected_pat = $expected_pat:pat,)? db = $current_db:expr_2021, query = $sql:expr_2021,) => {
             #[test]
             fn $func_name() {
                 #[allow(unused_imports)]
@@ -92,10 +92,10 @@ mod test_mql_schema_env_to_json_schema {
 
     macro_rules! test_mql_schema_env_to_json_schema {
         ($func_name:ident,
-         schema_env = $schema_env:expr,
-         mapping_registry = $mapping_registry:expr,
-         sql_options = $sql_options:expr,
-         $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)?) => {
+         schema_env = $schema_env:expr_2021,
+         mapping_registry = $mapping_registry:expr_2021,
+         sql_options = $sql_options:expr_2021,
+         $(expected = $expected:expr_2021,)? $(expected_pat = $expected_pat:pat,)?) => {
             #[test]
             fn $func_name() {
                 let result = mql_schema_env_to_json_schema(
@@ -301,8 +301,8 @@ mod test_get_select_order {
 
     macro_rules! test_get_select_order {
         ($func_name:ident,
-         expected = $expected:expr,
-         input = $input:expr
+         expected = $expected:expr_2021,
+         input = $input:expr_2021
         ) => {
             #[test]
             fn $func_name() {
@@ -384,7 +384,7 @@ mod select_list_order {
     }
 
     macro_rules! test_parse_select_list_order {
-        ($func_name:ident, sql = $sql:expr, exclude_namespaces = $exclude_namespaces:expr, expected = $expected:expr) => {
+        ($func_name:ident, sql = $sql:expr_2021, exclude_namespaces = $exclude_namespaces:expr_2021, expected = $expected:expr_2021) => {
             #[test]
             fn $func_name() {
                 #[allow(unused_imports)]

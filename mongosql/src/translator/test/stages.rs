@@ -1,5 +1,5 @@
 macro_rules! test_translate_stage {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]
@@ -13,7 +13,7 @@ macro_rules! test_translate_stage {
 }
 
 macro_rules! test_translate_plan {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(options = $options:expr,)?) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021, $(options = $options:expr_2021,)?) => {
         #[test]
         fn $func_name() {
             use crate::{air, options, translator};

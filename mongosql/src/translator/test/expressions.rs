@@ -1,5 +1,5 @@
 macro_rules! test_translate_expression {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)?) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021, $(mapping_registry = $mapping_registry:expr_2021,)?) => {
         #[test]
         fn $func_name() {
             use crate::{translator, mapping_registry::MqlMappingRegistry, options::SqlOptions};
@@ -24,7 +24,7 @@ macro_rules! test_translate_expression {
 }
 
 macro_rules! test_translate_expression_with_schema_info {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)? $(catalog = $catalog:expr,)? $(schema_env = $schema_env:expr,)?) => {
+    ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021, $(mapping_registry = $mapping_registry:expr_2021,)? $(catalog = $catalog:expr_2021,)? $(schema_env = $schema_env:expr_2021,)?) => {
         #[test]
         fn $func_name() {
             use crate::{translator, map, mapping_registry::MqlMappingRegistry, options::SqlOptions, catalog::Catalog, mir::schema::{SchemaCheckingMode, SchemaInferenceState}, schema::SchemaEnvironment};

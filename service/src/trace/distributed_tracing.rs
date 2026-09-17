@@ -73,7 +73,7 @@ pub fn get_tracer() -> impl Tracer {
     global::tracer(SQL_SERVICE_NAME)
 }
 
-pub fn start_span(name: String, kind: SpanKind, parent_cx: &opentelemetry::Context) -> impl Span {
+pub fn start_span(name: String, kind: SpanKind, parent_cx: &opentelemetry::Context) -> impl Span + use<> {
     let tracer = get_tracer();
     tracer
         .span_builder(format!("{SQL_SERVICE_NAME}.{name}"))

@@ -124,7 +124,7 @@ fn create_join(num_collections: usize, operator: &str) -> String {
 /// map! is a utility macro, copied from the main mongosql-rs/mongosql/src code.
 /// It creates a Map based on key-value pairs.
 macro_rules! map {
-	($($key:expr => $val:expr),* $(,)?) => {
+	($($key:expr_2021 => $val:expr_2021),* $(,)?) => {
 		std::iter::Iterator::collect([
 			$({
 				($key, $val)

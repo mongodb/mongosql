@@ -1020,15 +1020,15 @@ impl<'de> Deserialize<'de> for Cond {
             _ => return Err(serde_err::custom("unexpected value for $cond operator")),
         }
 
-        if let (Some(r#if), Some(then), Some(r#else)) = (r#if, then, r#else) {
+        match (r#if, then, r#else) { (Some(r#if), Some(then), Some(r#else)) => {
             Ok(Cond {
                 r#if: Box::new(r#if),
                 then: Box::new(then),
                 r#else: Box::new(r#else),
             })
-        } else {
+        } _ => {
             Err(serde_err::custom("incorrect arguments to $cond document"))
-        }
+        }}
     }
 }
 
@@ -1425,7 +1425,7 @@ impl<'de> Deserialize<'de> for TopBottomN {
         D: Deserializer<'de>,
     {
         macro_rules! verify_n {
-            ($n:expr) => {
+            ($n:expr_2021) => {
                 match $n {
                     Some(Expression::Literal(LiteralValue::Int32(n))) => Ok(*n as i64),
                     Some(Expression::Literal(LiteralValue::Int64(n))) => Ok(*n),

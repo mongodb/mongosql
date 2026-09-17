@@ -10,7 +10,7 @@ mod merge_neighboring_matches_tests {
     };
 
     macro_rules! test_merge_neighboring_matches {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+        ($func_name:ident, expected = $expected:expr_2021, input = $input:expr_2021,) => {
             #[test]
             fn $func_name() {
                 use crate::mir::{
@@ -26,7 +26,7 @@ mod merge_neighboring_matches_tests {
     }
 
     macro_rules! test_merge_neighboring_matches_no_op {
-        ($func_name:ident, input = $input:expr,) => {
+        ($func_name:ident, input = $input:expr_2021,) => {
             test_merge_neighboring_matches!($func_name, expected = $input, input = $input,);
         };
     }

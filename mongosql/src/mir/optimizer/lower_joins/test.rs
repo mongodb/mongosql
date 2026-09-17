@@ -12,7 +12,7 @@ use crate::{
 };
 
 macro_rules! test_lower_joins {
-    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr_2021, expected_changed = $expected_changed:expr_2021, input = $input:expr_2021) => {
         #[test]
         fn $func_name() {
             let input = $input;
@@ -37,7 +37,7 @@ macro_rules! test_lower_joins {
 }
 
 macro_rules! test_lower_joins_no_op {
-    ($func_name:ident, $input:expr) => {
+    ($func_name:ident, $input:expr_2021) => {
         test_lower_joins! { $func_name, expected = $input, expected_changed = false, input = $input }
     };
 }
