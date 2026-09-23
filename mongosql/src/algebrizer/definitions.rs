@@ -1732,7 +1732,6 @@ impl<'a> Algebrizer<'a> {
         let itc_algebrizer = self.with_implicit_type_conversion_ctx(true);
         let non_itc_algebrizer = self.with_implicit_type_conversion_ctx(false);
 
-        // 1. Check if all the elements of the right expression are StringConstructors.
         let are_any_array_elements_string_constructors = match &right {
             ast::Expression::Tuple(arr) => arr
                 .iter()
@@ -1767,26 +1766,42 @@ impl<'a> Algebrizer<'a> {
             // We algebrize the LHS with in_implicit_context false, and then algebrize each element
             // in the RHS in an ITC context.
             (false, true) => {
-                let rhs_algebrized_per_element = match right {
-                    ast::Expression::Tuple(elements) => {
-                        let mut algebrized_elements = Vec::new();
-                        for element in elements {
-                            let algebrized_element =
-                                itc_algebrizer.algebrize_expression(element)?;
+                // 1. Algebrize the LHS
+                let lhs_algebrized = non_itc_algebrizer.algebrize_expression(left)?;
 
-                            algebrized_elements.push(algebrized_element);
+                // 2. Check if the algebrized LHS is a String or nullable String.
+                // We want to know if the IN clause is actually comparing string values.
+                // So we check if it's String or Nullish in case the right hand side has Strings such as "12345"
+                // that would be converted to numbers if we chose to algebrize with implicit type conversion.
+                let lhs_schema = lhs_algebrized.schema(&self.schema_inference_state())?;
+                if lhs_schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must {
+                    // Algebrize the RHS in a non-ITC context.
+                    Ok((
+                        lhs_algebrized,
+                        non_itc_algebrizer.algebrize_expression(right)?,
+                    ))
+                } else {
+                    let rhs_algebrized_per_element = match right {
+                        ast::Expression::Tuple(elements) => {
+                            let mut algebrized_elements = Vec::new();
+                            for element in elements {
+                                let algebrized_element =
+                                    itc_algebrizer.algebrize_expression(element)?;
+
+                                algebrized_elements.push(algebrized_element);
+                            }
+                            algebrized_elements
                         }
-                        algebrized_elements
-                    }
-                    _ => unreachable!(),
-                };
+                        _ => unreachable!(),
+                    };
 
-                Ok((
-                    non_itc_algebrizer.algebrize_expression(left)?,
-                    mir::Expression::Array(ArrayExpr {
-                        array: rhs_algebrized_per_element,
-                    }),
-                ))
+                    Ok((
+                        lhs_algebrized,
+                        mir::Expression::Array(ArrayExpr {
+                            array: rhs_algebrized_per_element,
+                        }),
+                    ))
+                }
             }
         }
     }

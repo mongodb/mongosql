@@ -1,4 +1,5 @@
 use super::*;
+use crate::mir::Expression;
 
 test_algebrize!(
     add_bin_op,
@@ -1111,4 +1112,91 @@ mod in_operator {
             ])),
         }),
     );
+
+    // Case: LHS is a field with schema integer, and RHS is a Tuple of String Constructors that are all numbers. The RHS should still be strings
+    test_algebrize!(
+        in_operator_no_conversion_when_lhs_is_string_field_and_rhs_is_string_constructors_with_numbers,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                        field: "user_id".into(),
+                        is_nullable: true,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![
+                            mir::Expression::Literal(mir::LiteralValue::String("0035759".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("1033282".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("1482552".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("1548699".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("1346372".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("0924560".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("0599071".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("0514417".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("0609203".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("1098319".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("1564696".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String("1692794".to_string())),
+                        ],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("user_id".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![
+                ast::Expression::StringConstructor("0035759".into()),
+                ast::Expression::StringConstructor("1033282".into()),
+                ast::Expression::StringConstructor("1482552".into()),
+                ast::Expression::StringConstructor("1548699".into()),
+                ast::Expression::StringConstructor("1346372".into()),
+                ast::Expression::StringConstructor("0924560".into()),
+                ast::Expression::StringConstructor("0599071".into()),
+                ast::Expression::StringConstructor("0514417".into()),
+                ast::Expression::StringConstructor("0609203".into()),
+                ast::Expression::StringConstructor("1098319".into()),
+                ast::Expression::StringConstructor("1564696".into()),
+                ast::Expression::StringConstructor("1692794".into()),
+            ])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "user_id".into() => Schema::Atomic(Atomic::String),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
+}
+
+#[test]
+fn test_bson_parsing_for_strings() {
+    let json_str = String::from("0035759");
+    let json_str_2 = String::from("1033282");
+
+    let test_vars = vec![json_str, json_str_2];
+
+    // In this example the String with leading zeroes fails to the parsing
+    // so it automatically falls back to a String literal the way we want (accidentally).
+    // Meanwhile, the number string "1033282" is parsed as a number and converted to an integer literal.
+    // though this is technically correct behavior for implicit type conversion it breaks the logic of it.
+    // So error handling is technically providing us the partially correct answer :/
+
+    for var in test_vars {
+        let my_var = match serde_json::from_str::<bson::Bson>(var.as_str()) {
+            Ok(bson) => Expression::from(bson),
+            Err(_) => mir::Expression::Literal(mir::LiteralValue::String(var)),
+        };
+
+        print!("Parsed BSON: {:?}", my_var);
+    }
 }
