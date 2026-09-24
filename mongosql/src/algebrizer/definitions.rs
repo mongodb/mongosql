@@ -1766,15 +1766,14 @@ impl<'a> Algebrizer<'a> {
             // We algebrize the LHS with in_implicit_context false, and then algebrize each element
             // in the RHS in an ITC context.
             (false, true) => {
-                // 1. Algebrize the LHS
-                let lhs_algebrized = non_itc_algebrizer.algebrize_expression(left)?;
-
-                // 2. Check if the algebrized LHS is a String or nullable String.
+                // 1. Check if the algebrized LHS is a String or nullable String.
                 // We want to know if the IN clause is actually comparing string values.
                 // So we check if it's String or Nullish in case the right hand side has Strings such as "12345"
                 // that would be converted to numbers if we chose to algebrize with implicit type conversion.
-                let lhs_schema = lhs_algebrized.schema(&self.schema_inference_state())?;
-                if lhs_schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must {
+                let (lhs_algebrized, is_nullable_string) =
+                    non_itc_algebrizer.algebrize_non_literal_itc_operand(left)?;
+
+                if is_nullable_string {
                     // Algebrize the RHS in a non-ITC context.
                     Ok((
                         lhs_algebrized,
