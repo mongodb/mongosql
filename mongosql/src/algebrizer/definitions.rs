@@ -1745,22 +1745,40 @@ impl<'a> Algebrizer<'a> {
             is_left_a_string_constructor,
             are_any_array_elements_string_constructors,
         ) {
-            // Both sides are string constructors, or neither is — no conversion needed.
             (true, true) | (false, false) => Ok((
                 non_itc_algebrizer.algebrize_expression(left)?,
                 non_itc_algebrizer.algebrize_expression(right)?,
             )),
-            // LHS is a StringConstructor; RHS Tuple does not have any string constructors among its
-            // elements
+            // LHS is a StringConstructor; RHS Tuple may contain StringConstructors
+            // We collapse (true, true) when LHS is a StringConstructor, and RHS has some elements
+            // and (true, false) when LHS is a StringConstructor, and RHS has no elements that are StringConstructors into this single case
+            // because in either case we still need to know if the RHS has nullable strings. Otherwise
+            // we may convert the LHS to a non-string value when the comparison was meant to be between strings.
             (true, false) => {
-                Ok((
-                    // Because the left is a StringConstructor, we algebrize with ITC to convert it
-                    // to the right value
-                    itc_algebrizer.algebrize_expression(left)?,
-                    // Because none of the elements in the RHS are StringConstructors, we can safely
-                    // algebrize the entire RHS with in_implicit_type_conversion_ctx set to false.
-                    non_itc_algebrizer.algebrize_expression(right)?,
-                ))
+                // 1. Algebrize the RHS in a non_itc_context since none of the elements are StringConstructors
+                let non_itc_algebrized_rhs = non_itc_algebrizer.algebrize_expression(right)?;
+                let are_any_rhs_elements_nullable_strings = match &non_itc_algebrized_rhs {
+                    mir::Expression::Array(arr) => arr.array.iter().any(|e| {
+                        e.schema(&self.schema_inference_state()).map_or(false, |s| {
+                            s.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must
+                        })
+                    }),
+                    _ => false,
+                };
+                // 2. Check if the algebrized RHS elements are nullish strings. If they are, then we don't want implicit type conversion for the LHS
+                if are_any_rhs_elements_nullable_strings {
+                    Ok((
+                        non_itc_algebrizer.algebrize_expression(left)?,
+                        non_itc_algebrized_rhs,
+                    ))
+                } else {
+                    Ok((
+                        // Because the left is a StringConstructor, we algebrize with ITC to convert it
+                        // to the right value
+                        itc_algebrizer.algebrize_expression(left)?,
+                        non_itc_algebrized_rhs,
+                    ))
+                }
             }
             // LHS is not a string constructor, RHS has some elements that StringConstructors
             // We algebrize the LHS with in_implicit_context false, and then algebrize each element

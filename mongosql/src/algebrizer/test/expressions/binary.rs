@@ -1225,27 +1225,345 @@ mod in_operator {
             }),
         },
     );
-}
 
-#[test]
-fn test_bson_parsing_for_strings() {
-    let json_str = String::from("0035759");
-    let json_str_2 = String::from("1033282");
+    // Case: LHS is a StringConstructor, RHS is a Tuple of identifiers who have nullish string schemas
+    test_algebrize!(
+        in_operator_lhs_string_constructor_with_nullish_rhs_schemas,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::String("1135759".to_string())),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                            field: "user_id".into(),
+                            is_nullable: true,
+                        })],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::StringConstructor("1135759".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![ast::Expression::Identifier(
+                "user_id".into()
+            ),])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "user_id".into() => Schema::Atomic(Atomic::String),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
 
-    let test_vars = vec![json_str, json_str_2];
+    // Case: LHS is an extended JSON StringConstructor, RHS is an Integer field. LHS converts.
+    test_algebrize!(
+        in_operator_lhs_string_constructor_converted_when_rhs_is_integer_field,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                            field: "n".into(),
+                            is_nullable: true,
+                        })],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::StringConstructor(
+                "{\"$numberInt\": \"1\"}".to_string()
+            )),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![ast::Expression::Identifier(
+                "n".into()
+            )])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "n".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
 
-    // In this example the String with leading zeroes fails to the parsing
-    // so it automatically falls back to a String literal the way we want (accidentally).
-    // Meanwhile, the number string "1033282" is parsed as a number and converted to an integer literal.
-    // though this is technically correct behavior for implicit type conversion it breaks the logic of it.
-    // So error handling is technically providing us the partially correct answer :/
+    // Case: LHS is a polymorphic field (String or Integer). The LHS only MAY be a string, so the
+    // RHS is converted, consistent with the behavior of `=`.
+    test_algebrize!(
+        in_operator_converts_rhs_when_lhs_is_string_or_integer_field,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                        field: "p".into(),
+                        is_nullable: true,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![mir::Expression::Literal(mir::LiteralValue::Integer(12345))],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("p".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![
+                ast::Expression::StringConstructor("12345".into()),
+            ])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "p".into() => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::String),
+                        Schema::Atomic(Atomic::Integer),
+                    ]),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
 
-    for var in test_vars {
-        let my_var = match serde_json::from_str::<bson::Bson>(var.as_str()) {
-            Ok(bson) => Expression::from(bson),
-            Err(_) => mir::Expression::Literal(mir::LiteralValue::String(var)),
-        };
+    // Case: LHS is a field of unknown schema (Any, via additional_properties). RHS is converted.
+    test_algebrize!(
+        in_operator_converts_rhs_when_lhs_is_any_field,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                        field: "x".into(),
+                        is_nullable: true,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("x".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![
+                ast::Expression::StringConstructor("{\"$numberInt\": \"1\"}".to_string()),
+            ])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {},
+                required: set!{},
+                additional_properties: true,
+                ..Default::default()
+            }),
+        },
+    );
 
-        print!("Parsed BSON: {:?}", my_var);
-    }
+    // Case: LHS is a nullable Integer field. Null/Missing alone must not suppress conversion.
+    test_algebrize!(
+        in_operator_converts_rhs_when_lhs_is_nullable_integer_field,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                        field: "n".into(),
+                        is_nullable: true,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1))],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("n".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![
+                ast::Expression::StringConstructor("{\"$numberInt\": \"1\"}".to_string()),
+            ])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "n".into() => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Null),
+                        Schema::Missing,
+                    ]),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
+
+    // Case: RHS contains plain JSON scalars ('null', 'true', '1.5') that are not extended JSON.
+    // This documents that serde_json parses them into non-String literals.
+    test_algebrize!(
+        in_operator_converts_plain_json_scalar_strings_when_lhs_is_integer_field,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                        field: "n".into(),
+                        is_nullable: true,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![
+                            mir::Expression::Literal(mir::LiteralValue::Null),
+                            mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                            mir::Expression::Literal(mir::LiteralValue::Double(1.5)),
+                        ],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("n".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![
+                ast::Expression::StringConstructor("null".into()),
+                ast::Expression::StringConstructor("true".into()),
+                ast::Expression::StringConstructor("1.5".into()),
+            ])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "n".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
+
+    // Case: NOT IN on the conversion path. LHS Integer field, mixed RHS.
+    test_algebrize!(
+        not_in_operator_converts_rhs_string_constructors_when_lhs_is_integer_field,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::NotIn,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                        field: "n".into(),
+                        is_nullable: true,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![
+                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                        ],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("n".into())),
+            op: ast::BinaryOp::NotIn,
+            right: Box::new(ast::Expression::Tuple(vec![
+                ast::Expression::StringConstructor("{\"$numberInt\": \"1\"}".to_string()),
+                ast::Expression::Literal(ast::Literal::Integer(2)),
+            ])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "n".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
+
+    // Case: LHS is a Date field, RHS is a string that isn't valid JSON. It stays a String.
+    test_algebrize!(
+        in_operator_non_json_string_stays_string_when_lhs_is_date_field,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                        field: "d".into(),
+                        is_nullable: true,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                            "hello".into()
+                        ))],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("d".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![
+                ast::Expression::StringConstructor("hello".into()),
+            ])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "d".into() => Schema::Atomic(Atomic::Date),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
 }
