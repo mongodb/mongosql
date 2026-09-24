@@ -1,5 +1,4 @@
 use super::*;
-use crate::mir::Expression;
 
 test_algebrize!(
     add_bin_op,
