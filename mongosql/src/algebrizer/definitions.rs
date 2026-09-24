@@ -1757,7 +1757,7 @@ impl<'a> Algebrizer<'a> {
                 let non_itc_algebrized_rhs = non_itc_algebrizer.algebrize_expression(right)?;
                 let are_any_rhs_elements_nullable_strings = match &non_itc_algebrized_rhs {
                     mir::Expression::Array(arr) => arr.array.iter().any(|e| {
-                        e.schema(&self.schema_inference_state()).map_or(false, |s| {
+                        e.schema(&self.schema_inference_state()).is_ok_and( |s| {
                             s.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must
                         })
                     }),
