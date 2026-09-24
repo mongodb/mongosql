@@ -1749,11 +1749,9 @@ impl<'a> Algebrizer<'a> {
                 non_itc_algebrizer.algebrize_expression(left)?,
                 non_itc_algebrizer.algebrize_expression(right)?,
             )),
-            // LHS is a StringConstructor; RHS Tuple may contain StringConstructors
-            // We collapse (true, true) when LHS is a StringConstructor, and RHS has some elements
-            // and (true, false) when LHS is a StringConstructor, and RHS has no elements that are StringConstructors into this single case
-            // because in either case we still need to know if the RHS has nullable strings. Otherwise
-            // we may convert the LHS to a non-string value when the comparison was meant to be between strings.
+            // LHS is a StringConstructor and RHS does not contain String Constructors
+            // In this case we algebrize the RHS and check if it has nullish strings.
+            // If it has nullish strings we assume that LHS is expected to be a String. Otherwise, we use implicit type conversion.
             (true, false) => {
                 // 1. Algebrize the RHS in a non_itc_context since none of the elements are StringConstructors
                 let non_itc_algebrized_rhs = non_itc_algebrizer.algebrize_expression(right)?;
