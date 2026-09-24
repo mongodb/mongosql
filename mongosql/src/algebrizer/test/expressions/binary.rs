@@ -1113,9 +1113,58 @@ mod in_operator {
         }),
     );
 
-    // Case: LHS is a field with schema integer, and RHS is a Tuple of String Constructors that are all numbers. The RHS should still be strings
+    // Case: LHS is a field with schema integer, and RHS is a tuple of String Constructors that are mix of number literals, extended JSON integers, and string integers
     test_algebrize!(
-        in_operator_no_conversion_when_lhs_is_string_field_and_rhs_is_string_constructors_with_numbers,
+        in_operator_conversion_when_lhs_is_integer_field_and_rhs_is_mixed_integer_string_constructors,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                        field: "user_id".into(),
+                        is_nullable: true,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![
+                            mir::Expression::Literal(mir::LiteralValue::Integer(1135759)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(1548699)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(420101)),
+                        ],
+                    }),
+                ],
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("user_id".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Tuple(vec![
+                // Note: Integers with leading zeroes get treated as strings. They cannot be converted to integers
+                // Using a "valid" integer string here for illustration purposes.
+                ast::Expression::StringConstructor("1135759".into()),
+                ast::Expression::Literal(ast::Literal::Integer(1548699)),
+                ast::Expression::StringConstructor("{\"$numberInt\": \"420101\"}".to_string()
+        ),
+            ])),
+        }),
+        env = map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "user_id".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
+
+    // Case: LHS is a field with schema String, and RHS is a Tuple of String Constructors that are all numbers. The RHS should still be strings
+    test_algebrize!(
+        in_operator_conversion_when_lhs_is_integer_field_and_rhs_is_string_constructors_with_numbers,
         method = algebrize_expression,
         expression_context = ExpressionContext::default(),
         expected = Ok(mir::Expression::ScalarFunction(
