@@ -26,6 +26,6 @@ pub fn is_literal(node: &Expression) -> bool {
 }
 
 // returns if all the passed Expressions are literal.
-pub fn are_literal(ve: &Vec<Expression>) -> bool {
-    ve.iter().all(|e| is_literal(e))
+pub fn are_literal(ve: &[Expression]) -> bool {
+    ve.iter().all(is_literal)
 }

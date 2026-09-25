@@ -83,13 +83,13 @@ impl VisitorRef for AggregateUsageCheckVisitor {
         // Create a new visitor for each subquery walk, and copy
         // any errors from the subquery walk to the current visitor.
         let mut subquery_visitor = AggregateUsageCheckVisitor::default();
-        let subquery = subquery.walk_ref(&mut subquery_visitor);
+        subquery.walk_ref(&mut subquery_visitor);
         self.error = subquery_visitor.error
     }
 
     fn visit_select_query(&mut self, node: &ast::SelectQuery) {
         // First walk all of the clauses in the select query.
-        let node = node.walk_ref(self);
+        node.walk_ref(self);
 
         // Return if we already have an error from walking the select query.
         if self.error.is_some() {
@@ -112,8 +112,6 @@ impl VisitorRef for AggregateUsageCheckVisitor {
     // This is required for three error cases (see `has_invalid_agg_mix` above, and
     // `visit_aliased_expr` and `visit_expression` below).
     fn visit_group_by_clause(&mut self, node: &GroupByClause) {
-        use ast::*;
-
         self.in_group_by_key_list = true;
         node.keys
             .iter()
