@@ -154,7 +154,7 @@ impl VisitorRef for SingleStageFieldUseVisitor {
                 specs,
                 cache: _,
             }) => {
-                specs.into_iter().for_each(|s| s.walk_ref(self));
+                specs.iter().for_each(|s| s.walk_ref(self));
             }
             _ => unimplemented!(),
         }
@@ -282,9 +282,7 @@ impl VisitorRef for SingleStageDatasourceUseVisitor {
                 specs,
                 cache: _,
             }) => {
-                specs
-                    .into_iter()
-                    .for_each(|s| self.visit_sort_specification(s));
+                specs.iter().for_each(|s| self.visit_sort_specification(s));
             }
             Stage::Group(g) => self.visit_group(g),
             _ => unimplemented!(),
