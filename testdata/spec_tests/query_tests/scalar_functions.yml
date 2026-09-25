@@ -722,3 +722,56 @@ dataset:
           anyOf:
             - bsonType: "int"
             - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "userIds"
+      docs:
+        - { "_id": 0, "user_id": "0035759" }
+        - { "_id": 1, "user_id": "1548699" }
+        - { "_id": 2, "user_id": "9999999" }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "user_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        user_id:
+          bsonType: "string"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "in_integers"
+      docs:
+        - { "_id": 0, "a": 0 }
+        - { "_id": 1, "a": 1 }
+        - { "_id": 2, "a": 2 }
+        - { "_id": 3, "a": 3 }
+        - { "_id": 4, "a": 5 }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "a" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a:
+          bsonType: "int"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "in_dates"
+      docs:
+        - { "_id": 0, "d": { "$date": { "$numberLong": "1565546054692" } } }
+        - { "_id": 1, "d": { "$date": { "$numberLong": "1577836800000" } } }
+        - { "_id": 2, "d": { "$date": { "$numberLong": "1623715200000" } } }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "d" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        d:
+          bsonType: "date"

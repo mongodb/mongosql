@@ -1714,7 +1714,7 @@ impl<'a> Algebrizer<'a> {
     /// Algebrizes the operands of an `IN`/`NOT IN` expression with ITC awareness.
     ///
     /// Mirrors [`Self::algebrize_binary_comparison_operands`] but handles the fact that the RHS
-    /// is an [`ast::Expression::Tuple`] containing multiple elements rather than a single
+    /// is can be a  [`ast::Expression::Tuple`] containing multiple elements rather than a single
     /// expression. If exactly any side contains a [`ast::Expression::StringConstructor`]
     /// node, those strings are algebrized with `in_implicit_type_conversion_ctx = true`
     /// so that extended-JSON strings (e.g. `'{"$date":"2020-01-01"}'`) are converted to the
@@ -1732,9 +1732,8 @@ impl<'a> Algebrizer<'a> {
         let itc_algebrizer = self.with_implicit_type_conversion_ctx(true);
         let non_itc_algebrizer = self.with_implicit_type_conversion_ctx(false);
 
-        // 1. Check if all the elements of the right expression are StringConstructors.
         let are_any_array_elements_string_constructors = match &right {
-            ast::Expression::Tuple(arr) => arr
+            ast::Expression::Tuple(arr) | ast::Expression::Array(arr) => arr
                 .iter()
                 .any(|e| matches!(e, ast::Expression::StringConstructor(_))),
             _ => false,
@@ -1746,47 +1745,78 @@ impl<'a> Algebrizer<'a> {
             is_left_a_string_constructor,
             are_any_array_elements_string_constructors,
         ) {
-            // Both sides are string constructors, or neither is — no conversion needed.
             (true, true) | (false, false) => Ok((
                 non_itc_algebrizer.algebrize_expression(left)?,
                 non_itc_algebrizer.algebrize_expression(right)?,
             )),
-            // LHS is a StringConstructor; RHS Tuple does not have any string constructors among its
-            // elements
+            // LHS is a StringConstructor and RHS does not contain String Constructors
+            // In this case we algebrize the RHS and check if it has nullish strings.
+            // If it has nullish strings we assume that LHS is expected to be a String. Otherwise, we use implicit type conversion.
             (true, false) => {
-                Ok((
-                    // Because the left is a StringConstructor, we algebrize with ITC to convert it
-                    // to the right value
-                    itc_algebrizer.algebrize_expression(left)?,
-                    // Because none of the elements in the RHS are StringConstructors, we can safely
-                    // algebrize the entire RHS with in_implicit_type_conversion_ctx set to false.
-                    non_itc_algebrizer.algebrize_expression(right)?,
-                ))
+                // 1. Algebrize the RHS in a non_itc_context since none of the elements are StringConstructors
+                let non_itc_algebrized_rhs = non_itc_algebrizer.algebrize_expression(right)?;
+                let rhs_schema = non_itc_algebrized_rhs.schema(&self.schema_inference_state())?;
+                let rhs_element_schema = rhs_schema.get_array_item_schema();
+                let are_any_rhs_elements_nullable_strings = match &rhs_element_schema {
+                    Some(s) => s.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must,
+                    None => false,
+                };
+
+                // 2. Check if the algebrized RHS elements are nullish strings. If they are, then we don't want implicit type conversion for the LHS
+                if are_any_rhs_elements_nullable_strings {
+                    Ok((
+                        non_itc_algebrizer.algebrize_expression(left)?,
+                        non_itc_algebrized_rhs,
+                    ))
+                } else {
+                    Ok((
+                        // Because the left is a StringConstructor, we algebrize with ITC to convert it
+                        // to the right value
+                        itc_algebrizer.algebrize_expression(left)?,
+                        non_itc_algebrized_rhs,
+                    ))
+                }
             }
             // LHS is not a string constructor, RHS has some elements that StringConstructors
             // We algebrize the LHS with in_implicit_context false, and then algebrize each element
             // in the RHS in an ITC context.
             (false, true) => {
-                let rhs_algebrized_per_element = match right {
-                    ast::Expression::Tuple(elements) => {
-                        let mut algebrized_elements = Vec::new();
-                        for element in elements {
-                            let algebrized_element =
-                                itc_algebrizer.algebrize_expression(element)?;
+                // 1. Check if the algebrized LHS is a String or nullable String.
+                // We want to know if the IN clause is actually comparing string values.
+                // So we check if it's String or Nullish in case the right hand side has Strings such as "12345"
+                // that would be converted to numbers if we chose to algebrize with implicit type conversion.
+                let (lhs_algebrized, is_nullable_string) =
+                    non_itc_algebrizer.algebrize_non_literal_itc_operand(left)?;
 
-                            algebrized_elements.push(algebrized_element);
+                if is_nullable_string {
+                    // Algebrize the RHS in a non-ITC context.
+                    Ok((
+                        lhs_algebrized,
+                        non_itc_algebrizer.algebrize_expression(right)?,
+                    ))
+                } else {
+                    let rhs_algebrized_per_element = match right {
+                        ast::Expression::Tuple(elements) | ast::Expression::Array(elements) => {
+                            let mut algebrized_elements = Vec::new();
+                            for element in elements {
+                                let algebrized_element =
+                                    itc_algebrizer.algebrize_expression(element)?;
+
+                                algebrized_elements.push(algebrized_element);
+                            }
+                            algebrized_elements
                         }
-                        algebrized_elements
-                    }
-                    _ => unreachable!(),
-                };
+                        // are_any_array_elements_string_constructors guarantees that the RHS is a Tuple or an Array, so this should be unreachable.
+                        _ => unreachable!(),
+                    };
 
-                Ok((
-                    non_itc_algebrizer.algebrize_expression(left)?,
-                    mir::Expression::Array(ArrayExpr {
-                        array: rhs_algebrized_per_element,
-                    }),
-                ))
+                    Ok((
+                        lhs_algebrized,
+                        mir::Expression::Array(ArrayExpr {
+                            array: rhs_algebrized_per_element,
+                        }),
+                    ))
+                }
             }
         }
     }
@@ -2013,7 +2043,7 @@ impl<'a> Algebrizer<'a> {
             Comparison(_) => self.algebrize_binary_comparison_operands(*b.left, *b.right)?,
 
             // algebrize_in_operands handles implicit type conversion context sensitivity based on
-            // the operand types.
+            // the operand types. We check the schema for RHS to determine if we should use implicit type conversion.
             In | NotIn => self.algebrize_in_operands(*b.left, *b.right)?,
         };
 

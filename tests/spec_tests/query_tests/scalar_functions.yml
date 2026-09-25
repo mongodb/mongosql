@@ -674,3 +674,40 @@ tests:
       - {'': {'_id': 0, 'a': 1, 's': 'hello'}}
       - {'': {'_id': 1, 'a': 2, 's': 'world'}}
       - {'': {'_id': 2, 'a': 4, 's': 'foo'}}
+
+  - description: IN does not convert numeric string constructors when LHS is a string field
+    current_db: spec_query_scalar_functions
+    query: "SELECT user_id FROM userIds AS u WHERE user_id IN ('0035759', '1548699', '9999999')"
+    result:
+      - {'': {'user_id': '0035759'}}
+      - {'': {'user_id': '1548699'}}
+      - {'': {'user_id': '9999999'}}
+
+  - description: IN operator with MAP higher-order function on the RHS
+    current_db: spec_query_scalar_functions
+    query: "SELECT a FROM in_integers AS c WHERE a IN MAP([1, 2, 3], this - 1)"
+    result:
+      - {'': {'a': 0}}
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
+
+  - description: IN converts RHS array string constructors when LHS is an integer field
+    current_db: spec_query_scalar_functions
+    query: "SELECT a FROM in_integers AS c WHERE a IN ['{\"$numberInt\": \"1\"}', '2', 3]"
+    result:
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
+      - {'': {'a': 3}}
+
+  - description: IN converts LHS string constructor when RHS is an integer field
+    current_db: spec_query_scalar_functions
+    query: "SELECT a FROM in_integers AS c WHERE '{\"$numberInt\": \"1\"}' IN (a)"
+    result:
+      - {'': {'a': 1}}
+
+  - description: IN converts RHS date string constructors when LHS is a date field
+    current_db: spec_query_scalar_functions
+    query: "SELECT _id, d FROM in_dates AS c WHERE d IN ('{\"$date\":\"2019-08-11T17:54:14.692Z\"}', '{\"$date\":\"2020-01-01T00:00:00Z\"}')"
+    result:
+      - {'': {'_id': 0, 'd': { "$date": { "$numberLong": "1565546054692" } }}}
+      - {'': {'_id': 1, 'd': { "$date": { "$numberLong": "1577836800000" } }}}
