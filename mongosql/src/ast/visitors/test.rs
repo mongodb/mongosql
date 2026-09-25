@@ -4,14 +4,14 @@ use crate::ast::{
     SelectClause, SelectExpression, SelectQuery, SetQuantifier, SubpathExpr, UnaryExpr, UnaryOp,
 };
 
-macro_rules! test_visitors {
+macro_rules! test_are_literal {
     ($test_name:ident, expected = $expected:expr, input = $input:expr,) => {
         #[test]
         fn $test_name() {
             let input = $input;
             let expected = $expected;
 
-            let (_, actual) = are_literal(input);
+            let actual = are_literal(&input);
 
             assert_eq!(expected, actual);
         }
@@ -21,8 +21,8 @@ macro_rules! test_visitors {
 mod are_literal_tests {
     use super::*;
 
-    test_visitors!(
-        nexted_expr_without_identifiers_is_literal,
+    test_are_literal!(
+        nested_expr_without_identifiers_is_literal,
         expected = true,
         input = vec![Array(vec![Document(vec![DocumentPair {
             key: "a".into(),
@@ -33,8 +33,8 @@ mod are_literal_tests {
         }])])],
     );
 
-    test_visitors!(
-        nexted_expr_with_identifiers_is_non_literal,
+    test_are_literal!(
+        nested_expr_with_identifiers_is_non_literal,
         expected = false,
         input = vec![Array(vec![Document(vec![DocumentPair {
             key: "a".into(),
@@ -42,7 +42,7 @@ mod are_literal_tests {
         }])])],
     );
 
-    test_visitors!(
+    test_are_literal!(
         multiple_expressions_without_identifiers_is_literal,
         expected = true,
         input = vec![
@@ -70,8 +70,8 @@ mod are_literal_tests {
         ],
     );
 
-    test_visitors!(
-        multiple_expressions_with_identifiers_is_non_literal,
+    test_are_literal!(
+        multiple_expressions_with_identifier_in_first_is_non_literal,
         expected = false,
         input = vec![
             Binary(BinaryExpr {
@@ -98,20 +98,61 @@ mod are_literal_tests {
         ],
     );
 
-    test_visitors!(empty_vector_is_literal, expected = true, input = vec![],);
+    test_are_literal!(
+        multiple_expressions_with_identifier_in_last_is_non_literal,
+        expected = false,
+        input = vec![
+            Binary(BinaryExpr {
+                left: Box::new(Literal(Integer(4))),
+                op: BinaryOp::Add,
+                right: Box::new(Binary(BinaryExpr {
+                    left: Box::new(Literal(Integer(5))),
+                    op: BinaryOp::Mul,
+                    right: Box::new(Unary(UnaryExpr {
+                        op: UnaryOp::Neg,
+                        expr: Box::new(Literal(Integer(1)))
+                    })),
+                })),
+            }),
+            Binary(BinaryExpr {
+                left: Box::new(Literal(Integer(6))),
+                op: BinaryOp::Add,
+                right: Box::new(Binary(BinaryExpr {
+                    left: Box::new(Literal(Integer(7))),
+                    op: BinaryOp::Mul,
+                    right: Box::new(Unary(UnaryExpr {
+                        op: UnaryOp::Neg,
+                        expr: Box::new(Literal(Integer(9)))
+                    })),
+                })),
+            }),
+            Binary(BinaryExpr {
+                left: Box::new(Literal(Integer(4))),
+                op: BinaryOp::Add,
+                right: Box::new(Binary(BinaryExpr {
+                    left: Box::new(Literal(Integer(5))),
+                    op: BinaryOp::Add,
+                    right: Box::new(Identifier("1".into())),
+                })),
+            }),
+        ],
+    );
 
-    test_visitors!(
+    test_are_literal!(empty_vector_is_literal, expected = true, input = vec![],);
+
+    test_are_literal!(
         string_constructor_is_literal,
         expected = true,
         input = vec![StringConstructor("yes".to_string())],
     );
 
-    test_visitors!(
+    test_are_literal!(
         top_level_identifier_is_non_literal,
         expected = false,
         input = vec![Identifier("a".into())],
     );
 }
+
 macro_rules! test_subpath_fields_ast {
     ($test_name:ident, expected = $expected:expr, input = $input:expr,) => {
         #[test]
