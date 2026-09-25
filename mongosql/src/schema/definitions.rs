@@ -1176,14 +1176,30 @@ impl Schema {
 
     /// Returns if this Schema Must, May, or must Not contain the passed field.
     pub fn contains_field(&self, field: &str) -> Satisfaction {
-        self.satisfies(&Schema::Document(Document {
-            keys: map! {
-                field.to_string() => Schema::Any
-            },
-            required: set![field.to_string()],
-            additional_properties: true,
-            ..Default::default()
-        }))
+        match self {
+            Schema::Document(d) => {
+                if d.required.contains(field) {
+                    Satisfaction::Must
+                } else if d.keys.contains_key(field) || d.additional_properties {
+                    Satisfaction::May
+                } else {
+                    Satisfaction::Not
+                }
+            }
+            Schema::Any => Satisfaction::May,
+            Schema::Array(_) | Schema::Atomic(_) | Schema::Missing | Schema::Unsat => {
+                Satisfaction::Not
+            }
+            // delegate to satisfies for AnyOf
+            Schema::AnyOf(_) => self.satisfies(&Schema::Document(Document {
+                keys: map! {
+                    field.to_string() => Schema::Any
+                },
+                required: set![field.to_string()],
+                additional_properties: true,
+                ..Default::default()
+            })),
+        }
     }
 
     /// Returns the satisfaction result for comparing two operands.
