@@ -1714,7 +1714,7 @@ impl<'a> Algebrizer<'a> {
     /// Algebrizes the operands of an `IN`/`NOT IN` expression with ITC awareness.
     ///
     /// Mirrors [`Self::algebrize_binary_comparison_operands`] but handles the fact that the RHS
-    /// is an [`ast::Expression::Tuple`] containing multiple elements rather than a single
+    /// is can be a  [`ast::Expression::Tuple`] containing multiple elements rather than a single
     /// expression. If exactly any side contains a [`ast::Expression::StringConstructor`]
     /// node, those strings are algebrized with `in_implicit_type_conversion_ctx = true`
     /// so that extended-JSON strings (e.g. `'{"$date":"2020-01-01"}'`) are converted to the
@@ -1736,6 +1736,9 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::Tuple(arr) => arr
                 .iter()
                 .any(|e| matches!(e, ast::Expression::StringConstructor(_))),
+            ast::Expression::Array(arr) => arr
+                .iter()
+                .any(|e| matches!(e, ast::Expression::StringConstructor(_))),
             _ => false,
         };
 
@@ -1755,13 +1758,13 @@ impl<'a> Algebrizer<'a> {
             (true, false) => {
                 // 1. Algebrize the RHS in a non_itc_context since none of the elements are StringConstructors
                 let non_itc_algebrized_rhs = non_itc_algebrizer.algebrize_expression(right)?;
-                let are_any_rhs_elements_nullable_strings = match &non_itc_algebrized_rhs {
-                    mir::Expression::Array(arr) => arr.array.iter().any(|e| {
-                        e.schema(&self.schema_inference_state())
-                            .is_ok_and(|s| s.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must)
-                    }),
-                    _ => false,
+                let rhs_schema = non_itc_algebrized_rhs.schema(&self.schema_inference_state())?;
+                let rhs_element_schema = rhs_schema.get_array_item_schema();
+                let are_any_rhs_elements_nullable_strings = match &rhs_element_schema {
+                    Some(s) => s.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must,
+                    None => false,
                 };
+
                 // 2. Check if the algebrized RHS elements are nullish strings. If they are, then we don't want implicit type conversion for the LHS
                 if are_any_rhs_elements_nullable_strings {
                     Ok((
@@ -1796,7 +1799,7 @@ impl<'a> Algebrizer<'a> {
                     ))
                 } else {
                     let rhs_algebrized_per_element = match right {
-                        ast::Expression::Tuple(elements) => {
+                        ast::Expression::Tuple(elements) | ast::Expression::Array(elements) => {
                             let mut algebrized_elements = Vec::new();
                             for element in elements {
                                 let algebrized_element =
@@ -1806,6 +1809,7 @@ impl<'a> Algebrizer<'a> {
                             }
                             algebrized_elements
                         }
+                        // are_any_array_elements_string_constructors guarantees that the RHS is a Tuple or an Array, so this should be unreachable.
                         _ => unreachable!(),
                     };
 
@@ -2042,7 +2046,7 @@ impl<'a> Algebrizer<'a> {
             Comparison(_) => self.algebrize_binary_comparison_operands(*b.left, *b.right)?,
 
             // algebrize_in_operands handles implicit type conversion context sensitivity based on
-            // the operand types.
+            // the operand types. We check the schema for RHS to determine if we should use implicit type conversion.
             In | NotIn => self.algebrize_in_operands(*b.left, *b.right)?,
         };
 

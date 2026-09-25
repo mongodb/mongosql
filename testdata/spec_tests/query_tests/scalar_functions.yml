@@ -722,3 +722,20 @@ dataset:
           anyOf:
             - bsonType: "int"
             - bsonType: !!str "null"
+
+  - db: "spec_query_scalar_functions"
+    collection:
+      name: "userIds"
+      docs:
+        - { "_id": 0, "user_id": "0035759" }
+        - { "_id": 1, "user_id": "1548699" }
+        - { "_id": 2, "user_id": "9999999" }
+    schema:
+      bsonType: "object"
+      required: [ "_id", "user_id" ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        user_id:
+          bsonType: "string"

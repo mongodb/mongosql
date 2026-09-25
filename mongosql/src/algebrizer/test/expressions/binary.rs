@@ -1163,7 +1163,7 @@ mod in_operator {
 
     // Case: LHS is a field with schema String, and RHS is a Tuple of String Constructors that are all numbers. The RHS should still be strings
     test_algebrize!(
-        in_operator_conversion_when_lhs_is_integer_field_and_rhs_is_string_constructors_with_numbers,
+        in_operator_conversion_when_lhs_is_string_field_and_rhs_is_string_constructors_with_numbers,
         method = algebrize_expression,
         expression_context = ExpressionContext::default(),
         expected = Ok(mir::Expression::ScalarFunction(
@@ -1177,18 +1177,42 @@ mod in_operator {
                     }),
                     mir::Expression::Array(mir::ArrayExpr {
                         array: vec![
-                            mir::Expression::Literal(mir::LiteralValue::String("0035759".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("1033282".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("1482552".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("1548699".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("1346372".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("0924560".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("0599071".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("0514417".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("0609203".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("1098319".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("1564696".to_string())),
-                            mir::Expression::Literal(mir::LiteralValue::String("1692794".to_string())),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "0035759".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "1033282".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "1482552".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "1548699".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "1346372".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "0924560".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "0599071".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "0514417".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "0609203".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "1098319".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "1564696".to_string()
+                            )),
+                            mir::Expression::Literal(mir::LiteralValue::String(
+                                "1692794".to_string()
+                            )),
                         ],
                     }),
                 ],
@@ -1305,5 +1329,225 @@ mod in_operator {
                 ..Default::default()
             }),
         },
+    );
+
+    // SELECT a IN [1, 2, 3] FROM [{'a': 1}] arr
+    // RHS is an array literal (not a Tuple), so the integers are preserved as-is.
+    test_algebrize!(
+        in_operator_with_array_literal_rhs_preserves_integers,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("arr", 1u16).into())),
+                        field: "a".into(),
+                        is_nullable: false,
+                    }),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![
+                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                        ],
+                    }),
+                ],
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("a".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Array(vec![
+                ast::Expression::Literal(ast::Literal::Integer(1)),
+                ast::Expression::Literal(ast::Literal::Integer(2)),
+                ast::Expression::Literal(ast::Literal::Integer(3)),
+            ])),
+        }),
+        env = map! {
+            ("arr", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
+
+    // SELECT a IN MAP([1, 2, 3], this - 1) FROM [{'a': 1}] arr
+    // RHS is algebrized as a Map HigherOrderFunction.
+    test_algebrize!(
+        in_operator_with_map_rhs_is_higher_order_function,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(("arr", 1u16).into())),
+                        field: "a".into(),
+                        is_nullable: false,
+                    }),
+                    mir::Expression::HigherOrderFunction(mir::HigherOrderFunctionApplication::Map(
+                        mir::MapExpr {
+                            array: Box::new(mir::Expression::Array(mir::ArrayExpr {
+                                array: vec![
+                                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                                    mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                                ],
+                            })),
+                            f: Box::new(mir::Expression::ScalarFunction(
+                                mir::ScalarFunctionApplication {
+                                    function: mir::ScalarFunction::Sub,
+                                    args: vec![
+                                        mir::Expression::Variable(mir::Variable {
+                                            name: "this".to_string(),
+                                            is_nullable: false,
+                                        }),
+                                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                                    ],
+                                    is_nullable: false,
+                                }
+                            )),
+                            is_nullable: false,
+                        }
+                    )),
+                ],
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Identifier("a".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::HigherOrderFunction(
+                ast::HigherOrderFunctionExpr::Map(ast::MapExpr {
+                    array: Box::new(ast::Expression::Array(vec![
+                        ast::Expression::Literal(ast::Literal::Integer(1)),
+                        ast::Expression::Literal(ast::Literal::Integer(2)),
+                        ast::Expression::Literal(ast::Literal::Integer(3)),
+                    ])),
+                    f: Box::new(ast::FunctionArgument::Expr(ast::Expression::Binary(
+                        ast::BinaryExpr {
+                            left: Box::new(ast::Expression::Identifier("this".into())),
+                            op: ast::BinaryOp::Sub,
+                            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+                        }
+                    ))),
+                })
+            )),
+        }),
+        env = map! {
+            ("arr", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        },
+    );
+
+    // SELECT '1' IN MAP([1, 2, 3], this::STRING) FROM [{'a': 1}] arr
+    // RHS elements are nullable strings, so the LHS StringConstructor is not converted.
+    test_algebrize!(
+        in_operator_lhs_string_constructor_not_converted_when_rhs_is_map_to_string,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::String("1".into())),
+                    mir::Expression::HigherOrderFunction(mir::HigherOrderFunctionApplication::Map(
+                        mir::MapExpr {
+                            array: Box::new(mir::Expression::Array(mir::ArrayExpr {
+                                array: vec![
+                                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                                    mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                                    mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                                ],
+                            })),
+                            f: Box::new(mir::Expression::Cast(mir::CastExpr {
+                                expr: Box::new(mir::Expression::Variable(mir::Variable {
+                                    name: "this".to_string(),
+                                    is_nullable: false,
+                                })),
+                                to: mir::Type::String,
+                                on_null: Box::new(mir::Expression::Literal(
+                                    mir::LiteralValue::Null
+                                )),
+                                on_error: Box::new(mir::Expression::Literal(
+                                    mir::LiteralValue::Null
+                                )),
+                                is_nullable: true,
+                            })),
+                            is_nullable: false,
+                        }
+                    )),
+                ],
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::StringConstructor("1".into())),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::HigherOrderFunction(
+                ast::HigherOrderFunctionExpr::Map(ast::MapExpr {
+                    array: Box::new(ast::Expression::Array(vec![
+                        ast::Expression::Literal(ast::Literal::Integer(1)),
+                        ast::Expression::Literal(ast::Literal::Integer(2)),
+                        ast::Expression::Literal(ast::Literal::Integer(3)),
+                    ])),
+                    f: Box::new(ast::FunctionArgument::Expr(ast::Expression::Cast(
+                        ast::CastExpr {
+                            expr: Box::new(ast::Expression::Identifier("this".into())),
+                            to: ast::Type::String,
+                            on_null: None,
+                            on_error: None,
+                        }
+                    ))),
+                })
+            )),
+        }),
+    );
+
+    // Case: LHS is a Literal Integer, RHS is an Array containing StringConstructors.
+    // The StringConstructors are ITC-converted to integers.
+    test_algebrize!(
+        in_operator_converts_rhs_array_string_constructors_when_lhs_is_integer,
+        method = algebrize_expression,
+        expression_context = ExpressionContext::default(),
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::In,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Array(mir::ArrayExpr {
+                        array: vec![
+                            mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                        ],
+                    }),
+                ],
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            op: ast::BinaryOp::In,
+            right: Box::new(ast::Expression::Array(vec![
+                ast::Expression::StringConstructor("{\"$numberInt\": \"1\"}".to_string()),
+                ast::Expression::StringConstructor("2".to_string()),
+                ast::Expression::Literal(ast::Literal::Integer(3)),
+            ])),
+        }),
     );
 }
