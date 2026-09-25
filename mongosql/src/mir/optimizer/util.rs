@@ -1,48 +1,43 @@
-use crate::mir::{visitor::Visitor, Expression, FieldPath};
+use crate::mir::{visitor_ref::VisitorRef, Expression, FieldPath};
 use std::collections::HashSet;
 
 /// A visitor that checks if an expression contains a subquery.
 ///
-/// This struct implements the Visitor trait and traverses down the expressions
+/// This struct implements the VisitorRef trait and traverses down the expressions
 /// to determine if it contains any subquery-related expressions.
 #[derive(Default)]
 pub(crate) struct ContainsSubqueryVisitor {
     pub(crate) contains_subquery: bool,
 }
-impl Visitor for ContainsSubqueryVisitor {
-    fn visit_expression(&mut self, expr: Expression) -> Expression {
+impl VisitorRef for ContainsSubqueryVisitor {
+    fn visit_expression(&mut self, expr: &Expression) {
         match expr {
-            Expression::Subquery(e) => {
+            Expression::Subquery(_) => {
                 self.contains_subquery = true;
-                Expression::Subquery(e)
             }
-            Expression::Exists(e) => {
+            Expression::Exists(_) => {
                 self.contains_subquery = true;
-                Expression::Exists(e)
             }
-            Expression::SubqueryComparison(e) => {
+            Expression::SubqueryComparison(_) => {
                 self.contains_subquery = true;
-                Expression::SubqueryComparison(e)
             }
-            Expression::Array(e) => Expression::Array(e.walk(self)),
-            Expression::Cast(e) => Expression::Cast(e.walk(self)),
-            Expression::DateFunction(e) => Expression::DateFunction(e.walk(self)),
-            Expression::Document(e) => Expression::Document(e.walk(self)),
-            Expression::FieldAccess(e) => Expression::FieldAccess(e.walk(self)),
-            Expression::ComputedFieldAccess(e) => Expression::ComputedFieldAccess(e.walk(self)),
-            Expression::Is(e) => Expression::Is(e.walk(self)),
-            Expression::Like(e) => Expression::Like(e.walk(self)),
-            Expression::Literal(e) => Expression::Literal(e),
-            Expression::Reference(e) => Expression::Reference(e.walk(self)),
-            Expression::ScalarFunction(e) => Expression::ScalarFunction(e.walk(self)),
-            Expression::SearchedCase(e) => Expression::SearchedCase(e.walk(self)),
-            Expression::SimpleCase(e) => Expression::SimpleCase(e.walk(self)),
-            Expression::TypeAssertion(e) => Expression::TypeAssertion(e.walk(self)),
-            Expression::HigherOrderFunction(e) => Expression::HigherOrderFunction(e.walk(self)),
-            Expression::Variable(e) => Expression::Variable(e),
-            Expression::MqlIntrinsicFieldExistence(e) => {
-                Expression::MqlIntrinsicFieldExistence(e.walk(self))
-            }
+            Expression::Array(e) => e.walk_ref(self),
+            Expression::Cast(e) => e.walk_ref(self),
+            Expression::DateFunction(e) => e.walk_ref(self),
+            Expression::Document(e) => e.walk_ref(self),
+            Expression::FieldAccess(e) => e.walk_ref(self),
+            Expression::ComputedFieldAccess(e) => e.walk_ref(self),
+            Expression::Is(e) => e.walk_ref(self),
+            Expression::Like(e) => e.walk_ref(self),
+            Expression::Literal(_) => (),
+            Expression::Reference(e) => e.walk_ref(self),
+            Expression::ScalarFunction(e) => e.walk_ref(self),
+            Expression::SearchedCase(e) => e.walk_ref(self),
+            Expression::SimpleCase(e) => e.walk_ref(self),
+            Expression::TypeAssertion(e) => e.walk_ref(self),
+            Expression::HigherOrderFunction(e) => e.walk_ref(self),
+            Expression::Variable(_) => (),
+            Expression::MqlIntrinsicFieldExistence(e) => e.walk_ref(self),
         }
     }
 }
