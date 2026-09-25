@@ -26,9 +26,10 @@ use super::Optimizer;
 use crate::mir::optimizer::util::ContainsSubqueryVisitor;
 use crate::{
     mir::{
-        binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor, Derived, EquiJoin,
-        Expression, Filter, Group, Join, JoinType, LateralJoin, Limit, MatchFilter, MqlStage,
-        Offset, Project, ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
+        binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor,
+        visitor_ref::VisitorRef, Derived, EquiJoin, Expression, Filter, Group, Join, JoinType,
+        LateralJoin, Limit, MatchFilter, MqlStage, Offset, Project, ScalarFunction,
+        ScalarFunctionApplication, Set, Sort, Stage, Unwind,
     },
     schema::ResultSet,
     SchemaCheckingMode,
@@ -450,7 +451,7 @@ impl StageMovementVisitor<'_> {
 
     fn contains_subquery(expr: &Expression) -> bool {
         let mut visitor = ContainsSubqueryVisitor::default();
-        visitor.visit_expression(expr.clone());
+        visitor.visit_expression(expr);
         visitor.contains_subquery
     }
 
@@ -530,8 +531,8 @@ impl StageMovementVisitor<'_> {
         }
 
         // unfortunately, due to the borrow checker, we compute uses we may not need.
-        let (field_uses, node) = node.field_uses();
-        let (datasource_uses, node) = node.datasource_uses();
+        let field_uses = node.field_uses();
+        let datasource_uses = node.datasource_uses();
         let source = match node {
             Stage::Sort(ref n) => &n.source,
             Stage::Filter(ref n) => &n.source,
