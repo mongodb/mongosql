@@ -3,6 +3,7 @@ use crate::ast::{
     pretty_print::PrettyPrint,
     rewrites::{Error, Pass, Result},
     visitor::Visitor,
+    visitor_ref::VisitorRef,
     GroupByClause,
 };
 use linked_hash_map::LinkedHashMap;
@@ -15,7 +16,7 @@ impl Pass for AggregateRewritePass {
         // First, check for improper usage of aggregation functions
         // and return the error if one is found.
         let mut visitor = AggregateUsageCheckVisitor::default();
-        let query = visitor.visit_query(query);
+        visitor.visit_query(&query);
         if visitor.error.is_some() {
             return Err(visitor.error.unwrap());
         }
@@ -72,37 +73,33 @@ impl AggregateUsageCheckVisitor {
     }
 }
 
-impl Visitor for AggregateUsageCheckVisitor {
-    fn visit_query(&mut self, subquery: ast::Query) -> ast::Query {
+impl VisitorRef for AggregateUsageCheckVisitor {
+    fn visit_query(&mut self, subquery: &ast::Query) {
         // Don't recurse into subqueries if there is an existing error.
         if self.error.is_some() {
-            return subquery;
+            return;
         }
 
         // Create a new visitor for each subquery walk, and copy
         // any errors from the subquery walk to the current visitor.
         let mut subquery_visitor = AggregateUsageCheckVisitor::default();
-        let subquery = subquery.walk(&mut subquery_visitor);
-        self.error = subquery_visitor.error;
-
-        subquery
+        subquery.walk_ref(&mut subquery_visitor);
+        self.error = subquery_visitor.error
     }
 
-    fn visit_select_query(&mut self, node: ast::SelectQuery) -> ast::SelectQuery {
+    fn visit_select_query(&mut self, node: &ast::SelectQuery) {
         // First walk all of the clauses in the select query.
-        let node = node.walk(self);
+        node.walk_ref(self);
 
         // Return if we already have an error from walking the select query.
         if self.error.is_some() {
-            return node;
+            return;
         }
 
         // Check for an invalid mix of aggregation functions.
         if self.has_invalid_agg_mix() {
             self.error = Some(Error::AggregationFunctionInGroupByAggListAndElsewhere);
         }
-
-        node
     }
 
     // Sets boolean values in the visitor accordingly before walking the `GROUP BY` clause's lists.
@@ -114,47 +111,39 @@ impl Visitor for AggregateUsageCheckVisitor {
     //
     // This is required for three error cases (see `has_invalid_agg_mix` above, and
     // `visit_aliased_expr` and `visit_expression` below).
-    fn visit_group_by_clause(&mut self, node: ast::GroupByClause) -> ast::GroupByClause {
-        use ast::*;
-
+    fn visit_group_by_clause(&mut self, node: &GroupByClause) {
         self.in_group_by_key_list = true;
-        let keys = node
-            .keys
-            .into_iter()
-            .map(|vec_x| self.visit_optionally_aliased_expr(vec_x))
-            .collect::<Vec<_>>();
+        node.keys
+            .iter()
+            .for_each(|vec_x| self.visit_optionally_aliased_expr(vec_x));
         self.in_group_by_key_list = false;
 
         self.in_group_by_agg_func_list = true;
-        let aggregations = node
-            .aggregations
-            .into_iter()
-            .map(|vec_x| self.visit_aliased_expr(vec_x))
-            .collect::<Vec<_>>();
+        node.aggregations
+            .iter()
+            .for_each(|vec_x| self.visit_aliased_expr(vec_x));
         self.in_group_by_agg_func_list = false;
-
-        GroupByClause { keys, aggregations }
     }
 
-    fn visit_aliased_expr(&mut self, a: ast::AliasedExpr) -> ast::AliasedExpr {
+    fn visit_aliased_expr(&mut self, a: &ast::AliasedExpr) {
         if self.error.is_some() {
-            return a;
+            return;
         }
-        a.walk(self)
+        a.walk_ref(self)
     }
 
-    fn visit_expression(&mut self, e: ast::Expression) -> ast::Expression {
+    fn visit_expression(&mut self, e: &ast::Expression) {
         use ast::*;
         match e {
             Expression::Function(ref f) if f.function.is_aggregation_function() => {
                 if self.error.is_some() {
-                    return e;
+                    return;
                 }
 
                 // It is not valid to specify an aggregation function in a `GROUP BY` key list.
                 if self.in_group_by_key_list {
                     self.error = Some(Error::AggregationFunctionInGroupByKeyList);
-                    return e;
+                    return;
                 }
 
                 // Record whether the function is in a `GROUP BY` aggregation function list or not.
@@ -163,10 +152,8 @@ impl Visitor for AggregateUsageCheckVisitor {
                 } else {
                     self.num_non_group_by_agg_funcs += 1;
                 }
-
-                e
             }
-            _ => e.walk(self),
+            _ => e.walk_ref(self),
         }
     }
 }

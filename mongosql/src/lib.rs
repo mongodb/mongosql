@@ -136,7 +136,7 @@ pub fn get_namespaces(
     sql: &str,
 ) -> Result<BTreeSet<agg_ast::definitions::Namespace>> {
     let ast = parser::parse_query(sql)?;
-    let namespaces = ast::visitors::get_collection_sources(ast)
+    let namespaces = ast::visitors::get_collection_sources(&ast)
         .into_iter()
         .map(|cs| agg_ast::definitions::Namespace {
             database: cs.database.unwrap_or_else(|| current_db.to_string()),
