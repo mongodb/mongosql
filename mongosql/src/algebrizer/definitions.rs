@@ -1733,10 +1733,7 @@ impl<'a> Algebrizer<'a> {
         let non_itc_algebrizer = self.with_implicit_type_conversion_ctx(false);
 
         let are_any_array_elements_string_constructors = match &right {
-            ast::Expression::Tuple(arr) => arr
-                .iter()
-                .any(|e| matches!(e, ast::Expression::StringConstructor(_))),
-            ast::Expression::Array(arr) => arr
+            ast::Expression::Tuple(arr) | ast::Expression::Array(arr) => arr
                 .iter()
                 .any(|e| matches!(e, ast::Expression::StringConstructor(_))),
             _ => false,

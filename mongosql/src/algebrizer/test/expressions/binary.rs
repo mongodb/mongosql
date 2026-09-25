@@ -1189,30 +1189,6 @@ mod in_operator {
                             mir::Expression::Literal(mir::LiteralValue::String(
                                 "1548699".to_string()
                             )),
-                            mir::Expression::Literal(mir::LiteralValue::String(
-                                "1346372".to_string()
-                            )),
-                            mir::Expression::Literal(mir::LiteralValue::String(
-                                "0924560".to_string()
-                            )),
-                            mir::Expression::Literal(mir::LiteralValue::String(
-                                "0599071".to_string()
-                            )),
-                            mir::Expression::Literal(mir::LiteralValue::String(
-                                "0514417".to_string()
-                            )),
-                            mir::Expression::Literal(mir::LiteralValue::String(
-                                "0609203".to_string()
-                            )),
-                            mir::Expression::Literal(mir::LiteralValue::String(
-                                "1098319".to_string()
-                            )),
-                            mir::Expression::Literal(mir::LiteralValue::String(
-                                "1564696".to_string()
-                            )),
-                            mir::Expression::Literal(mir::LiteralValue::String(
-                                "1692794".to_string()
-                            )),
                         ],
                     }),
                 ],
@@ -1227,14 +1203,6 @@ mod in_operator {
                 ast::Expression::StringConstructor("1033282".into()),
                 ast::Expression::StringConstructor("1482552".into()),
                 ast::Expression::StringConstructor("1548699".into()),
-                ast::Expression::StringConstructor("1346372".into()),
-                ast::Expression::StringConstructor("0924560".into()),
-                ast::Expression::StringConstructor("0599071".into()),
-                ast::Expression::StringConstructor("0514417".into()),
-                ast::Expression::StringConstructor("0609203".into()),
-                ast::Expression::StringConstructor("1098319".into()),
-                ast::Expression::StringConstructor("1564696".into()),
-                ast::Expression::StringConstructor("1692794".into()),
             ])),
         }),
         env = map! {
