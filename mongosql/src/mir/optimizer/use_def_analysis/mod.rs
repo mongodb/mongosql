@@ -37,8 +37,9 @@ use mongosql_datastructures::binding_tuple::BindingTuple;
 use crate::{
     mir::{
         binding_tuple::Key, optimizer::util::insert_field_path_and_all_ancestors, visitor::Visitor,
-        ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group, MatchFilter, MatchQuery,
-        MqlStage, Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
+        visitor_ref::VisitorRef, ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group,
+        MatchQuery, MqlStage, Project, ReferenceExpr, Sort, Stage, SubqueryComparison,
+        SubqueryExpr, Unwind,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
@@ -130,122 +131,89 @@ impl Default for SingleStageFieldUseVisitor {
     }
 }
 
-impl Visitor for SingleStageFieldUseVisitor {
-    fn visit_stage(&mut self, node: Stage) -> Stage {
+impl VisitorRef for SingleStageFieldUseVisitor {
+    fn visit_stage(&mut self, node: &Stage) {
         if self.field_uses.is_none() {
-            return node;
+            return;
         }
         // We only compute field_uses for Filter and Sort Stages at this time. We need to make sure
         // we do not recurse down the source field.
         match node {
             Stage::Filter(Filter {
-                source,
+                source: _,
                 condition,
-                cache,
+                cache: _,
             }) => {
-                let condition = self.visit_expression(condition);
-                Stage::Filter(Filter {
-                    source,
-                    condition,
-                    cache,
-                })
+                condition.walk_ref(self);
             }
             Stage::MqlIntrinsic(MqlStage::MatchFilter(m)) => {
-                let condition = self.visit_match_query(m.condition);
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
-                    source: m.source,
-                    condition,
-                    cache: m.cache,
-                })))
+                m.condition.walk_ref(self);
             }
             Stage::Sort(Sort {
-                source,
+                source: _,
                 specs,
-                cache,
+                cache: _,
             }) => {
-                let specs = specs
-                    .into_iter()
-                    .map(|s| self.visit_sort_specification(s))
-                    .collect();
-                Stage::Sort(Sort {
-                    source,
-                    specs,
-                    cache,
-                })
+                specs.into_iter().for_each(|s| s.walk_ref(self));
             }
             _ => unimplemented!(),
         }
     }
 
-    fn visit_field_access(&mut self, node: FieldAccess) -> FieldAccess {
+    fn visit_field_access(&mut self, node: &FieldAccess) {
         if let Some(ref mut field_uses) = self.field_uses {
-            let f: Result<FieldPath, _> = (&node).try_into();
+            let f: Result<FieldPath, _> = node.try_into();
             match f {
                 Ok(fp) => insert_field_path_and_all_ancestors(field_uses, fp),
                 Err(_) => self.field_uses = None,
             }
         }
-        node
     }
 
-    fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {
+    fn visit_field_path(&mut self, node: &FieldPath) {
         if let Some(ref mut field_uses) = self.field_uses {
             insert_field_path_and_all_ancestors(field_uses, node.clone());
         }
-        node
     }
 
-    fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
+    fn visit_subquery_expr(&mut self, node: &SubqueryExpr) {
         // When we visit a SubqueryExpr in a Filter, we need to create a new Visitor that
         // collects ALL field_uses from the SubqueryExpr.
         if let Some(ref mut field_uses) = self.field_uses {
             let mut all_use_visitor = AllFieldUseVisitor::default();
             // We do not want to walk the output_expr since that expression is _defined_ by the
             // SubqueryExpr, not "used" by it.
-            let subquery = node.subquery.walk(&mut all_use_visitor);
+            node.subquery.walk_ref(&mut all_use_visitor);
             match all_use_visitor.field_uses {
                 Some(u) => field_uses.extend(u),
                 None => self.field_uses = None,
             }
-            SubqueryExpr {
-                output_expr: node.output_expr,
-                subquery: Box::new(subquery),
-                is_nullable: node.is_nullable,
-            }
-        } else {
-            node
         }
     }
 
-    fn visit_subquery_comparison(&mut self, node: SubqueryComparison) -> SubqueryComparison {
+    fn visit_subquery_comparison(&mut self, node: &SubqueryComparison) {
         // When we visit a SubqueryComparison in a Filter, we need to create a new Visitor that
         // collects ALL field_uses from the SubqueryComparison.
         if let Some(ref mut field_uses) = self.field_uses {
             let mut all_use_visitor = AllFieldUseVisitor::default();
-            let node = node.walk(&mut all_use_visitor);
+            node.walk_ref(&mut all_use_visitor);
             match all_use_visitor.field_uses {
                 Some(u) => field_uses.extend(u),
                 None => self.field_uses = None,
             }
-            node
-        } else {
-            node
         }
     }
 
-    fn visit_exists_expr(&mut self, node: ExistsExpr) -> ExistsExpr {
+    fn visit_exists_expr(&mut self, node: &ExistsExpr) {
         // When we visit an ExistsExpr in a Filter, we need to create a new Visitor that
         // collects ALL field_uses from the SubqueryComparison.
         if let Some(ref mut field_uses) = self.field_uses {
             let mut all_use_visitor = AllFieldUseVisitor::default();
-            let node = node.walk(&mut all_use_visitor);
+            node.walk_ref(&mut all_use_visitor);
             match all_use_visitor.field_uses {
                 Some(u) => field_uses.extend(u),
                 None => self.field_uses = None,
             }
-            node
-        } else {
-            node
         }
     }
 }
@@ -265,34 +233,27 @@ impl Default for AllFieldUseVisitor {
     }
 }
 
-impl Visitor for AllFieldUseVisitor {
-    fn visit_field_access(&mut self, node: FieldAccess) -> FieldAccess {
+impl VisitorRef for AllFieldUseVisitor {
+    fn visit_field_access(&mut self, node: &FieldAccess) {
         if let Some(ref mut field_uses) = self.field_uses {
-            let f: Result<FieldPath, _> = (&node).try_into();
+            let f: Result<FieldPath, _> = node.try_into();
             match f {
                 Ok(fp) => insert_field_path_and_all_ancestors(field_uses, fp),
                 Err(_) => self.field_uses = None,
             }
         }
-        node
     }
 
-    fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {
+    fn visit_field_path(&mut self, node: &FieldPath) {
         if let Some(ref mut field_uses) = self.field_uses {
             insert_field_path_and_all_ancestors(field_uses, node.clone());
         }
-        node
     }
 
-    fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
+    fn visit_subquery_expr(&mut self, node: &SubqueryExpr) {
         // We do not want to walk the output_expr since that expression is _defined_ by the
         // SubqueryExpr, not "used" by it.
-        let subquery = node.subquery.walk(self);
-        SubqueryExpr {
-            output_expr: node.output_expr,
-            subquery: Box::new(subquery),
-            is_nullable: node.is_nullable,
-        }
+        node.subquery.walk_ref(self);
     }
 }
 
@@ -301,96 +262,74 @@ struct SingleStageDatasourceUseVisitor {
     datasource_uses: HashSet<Key>,
 }
 
-impl Visitor for SingleStageDatasourceUseVisitor {
-    fn visit_stage(&mut self, node: Stage) -> Stage {
+impl VisitorRef for SingleStageDatasourceUseVisitor {
+    fn visit_stage(&mut self, node: &Stage) {
         // We only compute datasource_uses for Filter and Sort Stages at this time. We need to make sure
         // we do not recurse down the source field.
         match node {
             Stage::Filter(Filter {
-                source,
+                source: _,
                 condition,
-                cache,
+                cache: _,
             }) => {
-                let condition = self.visit_expression(condition);
-                Stage::Filter(Filter {
-                    source,
-                    condition,
-                    cache,
-                })
+                condition.walk_ref(self);
             }
             Stage::MqlIntrinsic(MqlStage::MatchFilter(m)) => {
-                let condition = self.visit_match_query(m.condition);
-                Stage::MqlIntrinsic(MqlStage::MatchFilter(Box::new(MatchFilter {
-                    source: m.source,
-                    condition,
-                    cache: m.cache,
-                })))
+                m.condition.walk_ref(self);
             }
             Stage::Sort(Sort {
-                source,
+                source: _,
                 specs,
-                cache,
+                cache: _,
             }) => {
-                let specs = specs
+                specs
                     .into_iter()
-                    .map(|s| self.visit_sort_specification(s))
-                    .collect();
-                Stage::Sort(Sort {
-                    source,
-                    specs,
-                    cache,
-                })
+                    .for_each(|s| self.visit_sort_specification(s));
             }
-            Stage::Group(g) => Stage::Group(self.visit_group(g)),
+            Stage::Group(g) => self.visit_group(g),
             _ => unimplemented!(),
         }
     }
 
-    fn visit_group(&mut self, node: Group) -> Group {
-        node.keys.iter().cloned().for_each(|k| {
+    fn visit_group(&mut self, node: &Group) {
+        node.keys.iter().for_each(|k| {
             self.visit_optionally_aliased_expr(k);
         });
-        node.aggregations.iter().cloned().for_each(|a| {
+        node.aggregations.iter().for_each(|a| {
             self.visit_aliased_aggregation(a);
         });
-        node
     }
 
-    fn visit_reference_expr(&mut self, node: ReferenceExpr) -> ReferenceExpr {
+    fn visit_reference_expr(&mut self, node: &ReferenceExpr) {
         self.datasource_uses.insert(node.key.clone());
-        node
     }
 
-    fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {
+    fn visit_field_path(&mut self, node: &FieldPath) {
         self.datasource_uses.insert(node.key.clone());
-        node
     }
 
-    fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
+    fn visit_subquery_expr(&mut self, node: &SubqueryExpr) {
         // When we visit a SubqueryExpr in a Filter, we need to create a new Visitor that
         // collects ALL datasource_uses from the SubqueryExpr.
         let mut all_use_visitor = AllDatasourceUseVisitor::default();
-        let node = node.walk(&mut all_use_visitor);
+        node.walk_ref(&mut all_use_visitor);
         self.datasource_uses.extend(all_use_visitor.datasource_uses);
-        node
     }
 
-    fn visit_subquery_comparison(&mut self, node: SubqueryComparison) -> SubqueryComparison {
+    fn visit_subquery_comparison(&mut self, node: &SubqueryComparison) {
         // When we visit a SubqueryComparison in a Filter, we need to create a new Visitor that
         // collects ALL datasource_uses from the SubqueryComparison.
         let mut all_use_visitor = AllDatasourceUseVisitor::default();
-        let node = node.walk(&mut all_use_visitor);
+        node.walk_ref(&mut all_use_visitor);
         self.datasource_uses.extend(all_use_visitor.datasource_uses);
-        node
     }
 
-    fn visit_exists_expr(&mut self, node: ExistsExpr) -> ExistsExpr {
+    fn visit_exists_expr(&mut self, node: &ExistsExpr) {
         // When we visit an ExistsExpr in a Filter, we need to create a new Visitor that
         // collects ALL datasource_uses from the SubqueryComparison.
         let mut all_use_visitor = AllDatasourceUseVisitor::default();
-        let node = node.walk(&mut all_use_visitor);
+        node.walk_ref(&mut all_use_visitor);
         self.datasource_uses.extend(all_use_visitor.datasource_uses);
-        node
     }
 }
 
@@ -399,10 +338,9 @@ struct AllDatasourceUseVisitor {
     datasource_uses: HashSet<Key>,
 }
 
-impl Visitor for AllDatasourceUseVisitor {
-    fn visit_reference_expr(&mut self, node: ReferenceExpr) -> ReferenceExpr {
+impl VisitorRef for AllDatasourceUseVisitor {
+    fn visit_reference_expr(&mut self, node: &ReferenceExpr) {
         self.datasource_uses.insert(node.key.clone());
-        node
     }
 }
 
@@ -514,31 +452,32 @@ impl Visitor for SubstituteVisitor {
 }
 
 impl Expression {
-    // We compute field_uses so that we can easily check if any opaque_field_defines are used by a stage.
-    // We do not care about normal defines which can be substituted.
-    pub fn field_uses(self) -> (Option<HashSet<FieldPath>>, Self) {
+    // Computes the fields used by this expression. We compute field_uses so
+    // that we can easily check if any opaque_field_defines are used by a
+    // stage. We do not care about normal defines which can be substituted.
+    pub fn field_uses(&self) -> Option<HashSet<FieldPath>> {
         let mut visitor = SingleStageFieldUseVisitor::default();
-        let ret = visitor.visit_expression(self);
-        (visitor.field_uses, ret)
+        visitor.visit_expression(self);
+        visitor.field_uses
     }
 }
 
 impl MatchQuery {
-    // Mirrors Expression::field_uses, but drives the shared SingleStageFieldUseVisitor from a
-    // match condition. The generated walk descends into every FieldPath (each comparison `input`,
-    // ElemMatch `input`, and Logical args), so visit_field_path collects them all.
-    pub fn field_uses(self) -> (Option<HashSet<FieldPath>>, Self) {
+    // Mirrors Expression::field_uses for a match condition. The generated walk
+    // descends into every FieldPath (each comparison `input`, ElemMatch `input`,
+    // and Logical args), so visit_field_path collects them all.
+    pub fn field_uses(&self) -> Option<HashSet<FieldPath>> {
         let mut visitor = SingleStageFieldUseVisitor::default();
-        let ret = visitor.visit_match_query(self);
-        (visitor.field_uses, ret)
+        visitor.visit_match_query(self);
+        visitor.field_uses
     }
 }
 
 impl Project {
-    pub fn datasource_uses(self) -> (HashSet<Key>, Project) {
+    pub fn datasource_uses(&self) -> HashSet<Key> {
         let mut visitor = SingleStageDatasourceUseVisitor::default();
-        let ret = visitor.visit_project(self);
-        (visitor.datasource_uses, ret)
+        visitor.visit_project(self);
+        visitor.datasource_uses
     }
 
     pub fn substitute(mut self, theta: HashMap<Key, Expression>) -> Result<Self, Box<Self>> {
@@ -569,10 +508,10 @@ impl Project {
 }
 
 impl Group {
-    pub fn datasource_uses(self) -> (HashSet<Key>, Group) {
+    pub fn datasource_uses(&self) -> HashSet<Key> {
         let mut visitor = SingleStageDatasourceUseVisitor::default();
-        let ret = visitor.visit_group(self);
-        (visitor.datasource_uses, ret)
+        visitor.visit_group(self);
+        visitor.datasource_uses
     }
 
     pub fn substitute(mut self, theta: HashMap<Key, Expression>) -> Result<Self, Box<Self>> {
@@ -608,18 +547,18 @@ impl Group {
 impl Stage {
     // We compute field_uses so that we can easily check if any opaque_field_defines are used by a stage.
     // We do not care about normal defines which can be substituted.
-    pub fn field_uses(self) -> (Option<HashSet<FieldPath>>, Stage) {
+    pub fn field_uses(&self) -> Option<HashSet<FieldPath>> {
         let mut visitor = SingleStageFieldUseVisitor::default();
-        let ret = visitor.visit_stage(self);
-        (visitor.field_uses, ret)
+        visitor.visit_stage(self);
+        visitor.field_uses
     }
 
     // We compute field_uses so that we can easily check if any opaque_field_defines are used by a stage.
     // We do not care about normal defines which can be substituted.
-    pub fn datasource_uses(self) -> (HashSet<Key>, Stage) {
+    pub fn datasource_uses(&self) -> HashSet<Key> {
         let mut visitor = SingleStageDatasourceUseVisitor::default();
-        let ret = visitor.visit_stage(self);
-        (visitor.datasource_uses, ret)
+        visitor.visit_stage(self);
+        visitor.datasource_uses
     }
 
     pub fn substitute(self, theta: HashMap<Key, Expression>) -> Result<Self, Box<Self>> {

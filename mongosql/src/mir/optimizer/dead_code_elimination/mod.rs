@@ -57,7 +57,7 @@ impl DeadCodeEliminationVisitor {
             Stage::Project(p) => p,
             _ => unreachable!(), // We already returned if this is the case
         };
-        let (uses, og) = og.datasource_uses();
+        let uses = og.datasource_uses();
         // in order to swap a Group with its source Project, we must ensure that
         // the Project references the Groups aggregations. Otherwise, they will be
         // lost when the project gets translated.

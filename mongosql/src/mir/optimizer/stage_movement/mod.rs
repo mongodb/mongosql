@@ -531,8 +531,8 @@ impl StageMovementVisitor<'_> {
         }
 
         // unfortunately, due to the borrow checker, we compute uses we may not need.
-        let (field_uses, node) = node.field_uses();
-        let (datasource_uses, node) = node.datasource_uses();
+        let field_uses = node.field_uses();
+        let datasource_uses = node.datasource_uses();
         let source = match node {
             Stage::Sort(ref n) => &n.source,
             Stage::Filter(ref n) => &n.source,
