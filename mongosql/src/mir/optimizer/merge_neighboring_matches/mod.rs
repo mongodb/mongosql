@@ -14,8 +14,8 @@ use crate::mir::optimizer::util::ContainsSubqueryVisitor;
 use crate::mir::{MatchFilter, MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, MqlStage};
 use crate::{
     mir::{
-        schema::SchemaInferenceState, visitor::Visitor, Expression, Filter, ScalarFunction,
-        ScalarFunctionApplication, Stage,
+        schema::SchemaInferenceState, visitor::Visitor, visitor_ref::VisitorRef, Expression,
+        Filter, ScalarFunction, ScalarFunctionApplication, Stage,
     },
     SchemaCheckingMode,
 };
@@ -51,7 +51,7 @@ impl MergeNeighboringMatchesVisitor {
 
     fn contains_subquery(expr: &Expression) -> bool {
         let mut visitor = ContainsSubqueryVisitor::default();
-        visitor.visit_expression(expr.clone());
+        visitor.visit_expression(expr);
         visitor.contains_subquery
     }
 }

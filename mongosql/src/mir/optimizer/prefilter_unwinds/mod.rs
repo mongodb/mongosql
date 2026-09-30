@@ -73,7 +73,7 @@ impl Visitor for PrefilterUnwindsVisitor {
                 match *source {
                     // If the Unwind has already been pre-filtered, ignore it.
                     Stage::Unwind(u) if !u.is_prefiltered => {
-                        let (field_uses, condition) = condition.field_uses();
+                        let field_uses = condition.field_uses();
 
                         // Rebuild the MatchFilter over `source`, preserving cache.
                         let rebuild = |source: Box<Stage>, condition: MatchQuery| {
@@ -123,13 +123,13 @@ impl Visitor for PrefilterUnwindsVisitor {
             Stage::Filter(f) => match *f.source {
                 // If the Unwind has already been pre-filtered, ignore it.
                 Stage::Unwind(u) if !u.is_prefiltered => {
-                    let (field_uses, condition) = f.condition.field_uses();
+                    let field_uses = f.condition.field_uses();
                     let field_uses = if let Some(field_uses) = field_uses {
                         field_uses
                     } else {
                         return Stage::Filter(Filter {
                             source: Box::new(Stage::Unwind(u)),
-                            condition,
+                            condition: f.condition,
                             ..f
                         });
                     };
@@ -139,19 +139,19 @@ impl Visitor for PrefilterUnwindsVisitor {
                         if !opaque_field_defines.contains(&field_use) {
                             return Stage::Filter(Filter {
                                 source: Box::new(Stage::Unwind(u)),
-                                condition,
+                                condition: f.condition,
                                 ..f
                             });
                         }
                         if field_use.fields.first() == u.index.as_ref() {
                             return Stage::Filter(Filter {
                                 source: Box::new(Stage::Unwind(u)),
-                                condition,
+                                condition: f.condition,
                                 ..f
                             });
                         }
                         let (new_source, changed) =
-                            generate_prefilter(field_use, u.source, &condition);
+                            generate_prefilter(field_use, u.source, &f.condition);
                         self.changed |= changed;
                         Stage::Filter(Filter {
                             source: Box::new(Stage::Unwind(Unwind {
@@ -161,13 +161,13 @@ impl Visitor for PrefilterUnwindsVisitor {
                                 is_prefiltered: changed,
                                 ..u
                             })),
-                            condition,
+                            condition: f.condition,
                             cache: f.cache,
                         })
                     } else {
                         Stage::Filter(Filter {
                             source: Box::new(Stage::Unwind(u)),
-                            condition,
+                            condition: f.condition,
                             cache: f.cache,
                         })
                     }

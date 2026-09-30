@@ -63,7 +63,7 @@ macro_rules! test_method_uses {
             use std::collections::{HashMap, HashSet};
             let input = $input;
             let expected = $expected;
-            let actual = input.$method().0;
+            let actual = input.$method();
             assert_eq!(expected, actual);
         }
     };
