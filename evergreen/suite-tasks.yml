@@ -400,7 +400,7 @@ tasks:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests
           mongodb_version: latest
-
+    
 
   - name: test-index-usage_latest-standalone
     tags: [latest, standalone]
