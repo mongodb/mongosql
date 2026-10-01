@@ -3731,7 +3731,7 @@ mod subquery {
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom, schema::SchemaCache},
         unchecked_unique_linked_hash_map,
-        util::{mir_field_access, ROOT},
+        util::{ROOT, mir_field_access},
     };
 
     test_translate_expression!(
@@ -4001,7 +4001,7 @@ mod subquery_comparison {
         air,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom, schema::SchemaCache},
-        schema::{Atomic, Document, Schema, ANY_DOCUMENT},
+        schema::{ANY_DOCUMENT, Atomic, Document, Schema},
         set, unchecked_unique_linked_hash_map,
         util::mir_field_access,
     };
@@ -4243,7 +4243,7 @@ mod subquery_exists {
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom, schema::SchemaCache},
         unchecked_unique_linked_hash_map,
-        util::{mir_field_access, ROOT},
+        util::{ROOT, mir_field_access},
     };
 
     test_translate_expression!(

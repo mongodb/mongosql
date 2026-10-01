@@ -1,9 +1,10 @@
 use crate::{
     map,
-    mir::{schema::errors::IncorrectArgCountPrecision, schema::Error as mir_error, *},
+    mir::{schema::Error as mir_error, schema::errors::IncorrectArgCountPrecision, *},
     schema::{
-        Atomic, Document, Satisfaction, Schema, ANY_ARRAY, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH,
-        BOOLEAN_OR_NULLISH, INTEGER_OR_NULLISH, NON_NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
+        ANY_ARRAY, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, Atomic, BOOLEAN_OR_NULLISH, Document,
+        INTEGER_OR_NULLISH, NON_NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH, Satisfaction,
+        Schema,
     },
     set, test_schema,
 };

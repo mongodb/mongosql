@@ -3,8 +3,8 @@ use agg_ast::definitions::Stage;
 use mongosql::{
     map,
     schema::{
-        Atomic, Document, Satisfaction, Schema, DATE_COERCIBLE, DATE_COERCIBLE_OR_NULL, NUMERIC,
-        NUMERIC_OR_NULL, STRING_OR_NULL,
+        Atomic, DATE_COERCIBLE, DATE_COERCIBLE_OR_NULL, Document, NUMERIC, NUMERIC_OR_NULL,
+        STRING_OR_NULL, Satisfaction, Schema,
     },
     set,
 };

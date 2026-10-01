@@ -1,10 +1,9 @@
 use crate::ast::{
-    self,
+    self, GroupByClause,
     pretty_print::PrettyPrint,
     rewrites::{Error, Pass, Result},
     visitor::Visitor,
     visitor_ref::VisitorRef,
-    GroupByClause,
 };
 use linked_hash_map::LinkedHashMap;
 

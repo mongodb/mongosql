@@ -1,10 +1,10 @@
 use std::{
     panic,
     panic::UnwindSafe,
-    sync::{mpsc, Once},
+    sync::{Once, mpsc},
 };
 
-use mongodb::bson::{self, doc, Document};
+use mongodb::bson::{self, Document, doc};
 
 static INIT: Once = Once::new();
 
@@ -130,11 +130,13 @@ mod test {
         let result = panic_safe_exec(|| Command::new(&command).run());
         let result = bson::from_slice::<Document>(&result).expect("failed to deserialize in test");
         assert!(result.get("error").is_some());
-        assert!(result
-            .get("error_is_internal")
-            .expect("error_is_internal is missing")
-            .as_bool()
-            .expect("error_is_internal is not a bool"));
+        assert!(
+            result
+                .get("error_is_internal")
+                .expect("error_is_internal is missing")
+                .as_bool()
+                .expect("error_is_internal is not a bool")
+        );
         assert!(
             result
                 .get("error")

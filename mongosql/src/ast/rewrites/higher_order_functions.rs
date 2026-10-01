@@ -1,11 +1,10 @@
 use crate::ast::{
-    self,
-    rewrites::{try_exact_args, try_extract_either_args, ArgCount, Error, Pass, Result},
-    visitor::Visitor,
-    AccessExpr, ArrayCastExpr, BinaryExpr, BinaryOp, CastExpr, ComparisonOp, Expression,
+    self, AccessExpr, ArrayCastExpr, BinaryExpr, BinaryOp, CastExpr, ComparisonOp, Expression,
     FilterExpr, FunctionArgument, FunctionArguments, FunctionExpr, FunctionName,
     HigherOrderFunctionExpr, IsExpr, Literal, MapExpr, NamedFunction, ReduceExpr, SubpathExpr,
     TrimExpr, TrimSpec, Type, TypeOrMissing, UnaryExpr, UnaryOp,
+    rewrites::{ArgCount, Error, Pass, Result, try_exact_args, try_extract_either_args},
+    visitor::Visitor,
 };
 
 const THIS: &str = "this";

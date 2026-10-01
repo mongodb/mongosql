@@ -35,15 +35,15 @@
 mod test;
 
 use crate::{
+    SchemaCheckingMode,
     mir::{
+        EquiJoin, Expression, FieldAccess, FieldPath, Filter, JoinType, MqlStage, ScalarFunction,
+        ScalarFunctionApplication, Stage,
         optimizer::Optimizer,
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        EquiJoin, Expression, FieldAccess, FieldPath, Filter, JoinType, MqlStage, ScalarFunction,
-        ScalarFunctionApplication, Stage,
     },
     schema::ResultSet,
-    SchemaCheckingMode,
 };
 
 pub(crate) struct JoinSemanticsOptimizer;

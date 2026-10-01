@@ -1,10 +1,11 @@
 use config_loader::load_catalog;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use lazy_static::lazy_static;
 use mongosql::{
+    SchemaCheckingMode, Translation,
     catalog::Catalog,
     options::{ExcludeNamespacesOption, SqlOptions},
-    translate_sql, SchemaCheckingMode, Translation,
+    translate_sql,
 };
 use pprof::criterion::{Output, PProfProfiler};
 

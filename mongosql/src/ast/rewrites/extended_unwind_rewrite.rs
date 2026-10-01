@@ -1,12 +1,11 @@
 use crate::ast::{
-    self,
+    self, SubpathExpr,
     definitions::{
         Datasource, Expression, ExtendedUnwindOption, ExtendedUnwindSource, UnwindOption,
         UnwindPathPart, UnwindPathPartOption, UnwindSource,
     },
     rewrites::{Error, Pass, Result},
     visitor::Visitor,
-    SubpathExpr,
 };
 
 pub struct ExtendedUnwindRewritePass;

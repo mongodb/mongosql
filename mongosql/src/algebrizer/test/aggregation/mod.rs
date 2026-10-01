@@ -2,7 +2,7 @@
 use crate::{
     ast, map, mir, multimap,
     schema::{
-        Atomic, Satisfaction, Schema, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, NUMERIC_OR_NULLISH,
+        ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, Atomic, NUMERIC_OR_NULLISH, Satisfaction, Schema,
     },
     test_algebrize, test_algebrize_expr_and_schema_check, unchecked_unique_linked_hash_map,
     usererror::UserError,

@@ -2,16 +2,15 @@ use crate::{
     DEV_JDBC_VERSION_SUFFIX, DEV_ODBC_VERSION, MINIMUM_COMPATIBLE_JDBC_VERSION,
     MINIMUM_COMPATIBLE_ODBC_VERSION, MONGOSQLTRANSLATE_VERSION, SNAPSHOT_JDBC_VERSION_SUFFIX,
 };
-use mongodb::bson::{doc, Bson, Deserializer, Document, Serializer};
+use CommandType::*;
+use mongodb::bson::{Bson, Deserializer, Document, Serializer, doc};
 use mongosql::{
-    build_catalog_from_catalog_schema, json_schema,
+    SchemaCheckingMode, build_catalog_from_catalog_schema, json_schema,
     options::{ExcludeNamespacesOption, SqlOptions},
-    SchemaCheckingMode,
 };
 use semver::Version;
-use serde::{ser::Serialize, Deserialize};
+use serde::{Deserialize, ser::Serialize};
 use std::collections::BTreeMap;
-use CommandType::*;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 

@@ -3,15 +3,16 @@ use crate::mir;
 #[test]
 fn select_and_order_by_column_not_in_select() {
     use crate::{
+        SchemaCheckingMode,
         algebrizer::{Algebrizer, ClauseType},
         ast,
         catalog::Catalog,
         map,
         mir::{
-            binding_tuple::Key, schema::SchemaCache, Collection, Expression, FieldAccess, Project,
-            Sort, Stage,
+            Collection, Expression, FieldAccess, Project, Sort, Stage, binding_tuple::Key,
+            schema::SchemaCache,
         },
-        schema, set, unchecked_unique_linked_hash_map, SchemaCheckingMode,
+        schema, set, unchecked_unique_linked_hash_map,
     };
     use agg_ast::definitions::Namespace;
     let select = ast::SelectClause {

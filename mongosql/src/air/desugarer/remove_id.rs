@@ -1,8 +1,7 @@
 use crate::air::{
-    self,
+    self, Project, ProjectItem,
     desugarer::{Pass, Result},
     visitor::Visitor,
-    Project, ProjectItem,
 };
 
 /// This removes _id using the last Project stage in the pipeline

@@ -13,14 +13,14 @@
 mod test;
 
 use crate::{
+    SchemaCheckingMode,
     mir::{
+        Expression, Group, OptionallyAliasedExpr, Project, Stage,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Expression, Group, OptionallyAliasedExpr, Project, Stage,
     },
-    SchemaCheckingMode,
 };
 
 pub(crate) struct DeadCodeEliminator;

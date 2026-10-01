@@ -1,7 +1,7 @@
 use super::catalog;
 use crate::{
     ast, map,
-    mir::{self, binding_tuple::Key, schema::SchemaCache, Expression, Project, Stage},
+    mir::{self, Expression, Project, Stage, binding_tuple::Key, schema::SchemaCache},
     multimap,
     schema::ANY_DOCUMENT,
     unchecked_unique_linked_hash_map,

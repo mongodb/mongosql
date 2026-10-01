@@ -74,7 +74,7 @@ mod arbitrary {
     use crate::ast::definitions::*;
     use crate::ast::pretty_print::ident_needs_delimiters;
     use quickcheck::{Arbitrary, Gen};
-    use rand::{rng, RngExt as _};
+    use rand::{RngExt as _, rng};
 
     // For SELECT, GROUP BY, and ORDER BY clauses
     static MIN_CLAUSE_EXPRS: u32 = 1; // minimum number of expressions in an arbitrary clause
@@ -117,11 +117,7 @@ mod arbitrary {
     where
         F: Fn(&mut Gen) -> T,
     {
-        if bool::arbitrary(g) {
-            None
-        } else {
-            Some(f(g))
-        }
+        if bool::arbitrary(g) { None } else { Some(f(g)) }
     }
 
     /// arbitrary_identifier generates an arbitrary identifier, currently

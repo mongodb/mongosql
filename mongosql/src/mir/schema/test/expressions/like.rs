@@ -1,7 +1,7 @@
 use crate::{
     map,
     mir::{schema::Error as mir_error, *},
-    schema::{Atomic, Schema, NUMERIC_OR_NULLISH, STRING_OR_NULLISH},
+    schema::{Atomic, NUMERIC_OR_NULLISH, STRING_OR_NULLISH, Schema},
     set, test_schema,
 };
 

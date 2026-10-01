@@ -512,7 +512,10 @@ mod check_driver_version_tests {
 
         if let Err(error) = actual {
             let message = error.to_string();
-            assert_eq!("Invalid `driver_version`: \"1.2.x\". The `driver_version` must be a valid SemVer version (https://semver.org/).", message);
+            assert_eq!(
+                "Invalid `driver_version`: \"1.2.x\". The `driver_version` must be a valid SemVer version (https://semver.org/).",
+                message
+            );
         }
     }
 

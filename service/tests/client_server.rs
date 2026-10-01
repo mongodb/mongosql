@@ -1,6 +1,6 @@
 #[cfg(feature = "integration")]
 mod grpc {
-    use bson::{doc, Document};
+    use bson::{Document, doc};
     use service::translator::{
         ExcludeNamespacesOption, Namespace, SchemaCheckingMode, SelectOrderItem,
     };
@@ -630,8 +630,7 @@ mod grpc {
         );
         if let Err(error) = response {
             println!("{:?}", error.message());
-            let expected_message =
-                "algebrize error: Error 1005: Invalid use of `Gt` due to incomparable types: \
+            let expected_message = "algebrize error: Error 1005: Invalid use of `Gt` due to incomparable types: \
                 `any type` cannot be compared to `int`. An `any type` schema may indicate that \
                 schema is not set for the relevant collection or field. \
                 Please verify that the schema is set as expected.\n\t\

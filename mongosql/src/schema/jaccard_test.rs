@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     map,
-    schema::{Atomic, Document, JaccardIndex, Schema, MAX_NUM_DOC_UNIONS},
+    schema::{Atomic, Document, JaccardIndex, MAX_NUM_DOC_UNIONS, Schema},
 };
 
 macro_rules! n_chars_iter {
@@ -137,21 +137,23 @@ mod jaccard {
             });
 
         // Assert the full final stable schema
-        assert!(doc.unwrap().eq_with_jaccard_index(&Document {
-            keys: n_chars_iter!(MAX_NUM_DOC_UNIONS as usize)
-                .map(|(i, c)| (format!("{c}{i}"), Schema::Atomic(Atomic::Integer)))
-                .collect(),
-            required: set! {},
-            additional_properties: false,
-            jaccard_index: Some(JaccardIndex {
-                // 0 because each document contains a unique key, so the intersection is always 0
-                avg_ji: 0.0,
-                // the number of unions among MAX_NUM_DOC_UNIONS documents is MAX_NUM_DOC_UNIONS - 1
-                num_unions: MAX_NUM_DOC_UNIONS - 1,
-                stability_limit: 0.8,
-            }),
-            unstable: false,
-        }));
+        assert!(
+            doc.unwrap().eq_with_jaccard_index(&Document {
+                keys: n_chars_iter!(MAX_NUM_DOC_UNIONS as usize)
+                    .map(|(i, c)| (format!("{c}{i}"), Schema::Atomic(Atomic::Integer)))
+                    .collect(),
+                required: set! {},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex {
+                    // 0 because each document contains a unique key, so the intersection is always 0
+                    avg_ji: 0.0,
+                    // the number of unions among MAX_NUM_DOC_UNIONS documents is MAX_NUM_DOC_UNIONS - 1
+                    num_unions: MAX_NUM_DOC_UNIONS - 1,
+                    stability_limit: 0.8,
+                }),
+                unstable: false,
+            })
+        );
     }
 
     #[test]
@@ -161,20 +163,22 @@ mod jaccard {
             .reduce(|acc, doc| acc.union(doc));
 
         // Assert the full final unstable schema
-        assert!(doc.unwrap().eq_with_jaccard_index(&Document {
-            keys: n_chars_iter!(MAX_NUM_DOC_UNIONS as usize + 1)
-                .map(|(i, c)| (format!("{c}{i}"), Schema::Atomic(Atomic::Integer)))
-                .collect(),
-            required: set! {},
-            additional_properties: false,
-            jaccard_index: Some(JaccardIndex {
-                // 0 because each document contains a unique key, so the intersection is always 0
-                avg_ji: 0.0,
-                num_unions: MAX_NUM_DOC_UNIONS,
-                stability_limit: 0.8,
-            }),
-            unstable: true,
-        }));
+        assert!(
+            doc.unwrap().eq_with_jaccard_index(&Document {
+                keys: n_chars_iter!(MAX_NUM_DOC_UNIONS as usize + 1)
+                    .map(|(i, c)| (format!("{c}{i}"), Schema::Atomic(Atomic::Integer)))
+                    .collect(),
+                required: set! {},
+                additional_properties: false,
+                jaccard_index: Some(JaccardIndex {
+                    // 0 because each document contains a unique key, so the intersection is always 0
+                    avg_ji: 0.0,
+                    num_unions: MAX_NUM_DOC_UNIONS,
+                    stability_limit: 0.8,
+                }),
+                unstable: true,
+            })
+        );
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use crate::schema_for_bson;
-use bson::{bson, doc, Bson};
+use bson::{Bson, bson, doc};
 use mongosql::{
     map,
     schema::{Atomic, Document, JaccardIndex, Schema},

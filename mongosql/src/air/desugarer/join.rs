@@ -1,13 +1,13 @@
 use crate::{
     air::{
-        desugarer::{Pass, Result},
-        visitor::Visitor,
         EquiJoin, EquiLookup, ExprLanguage,
         Expression::*,
         Join, JoinType, Lookup, Match, MqlOperator, MqlSemanticOperator, Project, ProjectItem,
         ReplaceWith, Stage,
         Stage::*,
         Unwind,
+        desugarer::{Pass, Result},
+        visitor::Visitor,
     },
     map,
     util::ROOT,

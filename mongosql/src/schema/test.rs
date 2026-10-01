@@ -1184,7 +1184,7 @@ mod satisfies {
 mod has_overlaping_keys_with {
     use crate::{
         map,
-        schema::{Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, EMPTY_DOCUMENT},
+        schema::{ANY_DOCUMENT, Atomic, Document, EMPTY_DOCUMENT, Satisfaction, Schema},
         set,
     };
     macro_rules! test_has_overlapping_keys_with {
@@ -1434,7 +1434,7 @@ mod has_overlaping_keys_with {
 mod document_union {
     use crate::{
         map,
-        schema::{Atomic, Document, JaccardIndex, Schema, ANY_DOCUMENT, EMPTY_DOCUMENT},
+        schema::{ANY_DOCUMENT, Atomic, Document, EMPTY_DOCUMENT, JaccardIndex, Schema},
         set,
     };
 
@@ -1993,7 +1993,7 @@ mod document_union {
 
 mod is_comparable_with {
     use crate::{
-        schema::{Atomic::*, Satisfaction::*, Schema::*, ANY_ARRAY, ANY_DOCUMENT},
+        schema::{ANY_ARRAY, ANY_DOCUMENT, Atomic::*, Satisfaction::*, Schema::*},
         set,
     };
     macro_rules! test_is_comparable_with {
@@ -3003,7 +3003,7 @@ mod subtract_nullish {
 mod enumerate_field_paths {
     use crate::{
         map,
-        schema::{Atomic::*, Document, Error, Schema, Schema::*, ANY_DOCUMENT},
+        schema::{ANY_DOCUMENT, Atomic::*, Document, Error, Schema, Schema::*},
         set,
     };
     use lazy_static::lazy_static;
@@ -3807,7 +3807,7 @@ mod intersection {
 
 mod cartesian_product {
     use crate::{
-        schema::{Atomic, Schema, Schema::*, ANY_ARRAY, ANY_DOCUMENT},
+        schema::{ANY_ARRAY, ANY_DOCUMENT, Atomic, Schema, Schema::*},
         set,
     };
     use std::collections::BTreeSet;

@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use mongodb::{
-    bson::{doc, Bson, Document},
+    bson::{Bson, Document, doc},
     sync::Client,
 };
 use mongosql::{build_catalog_from_catalog_schema, catalog::Catalog, json_schema, map};

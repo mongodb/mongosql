@@ -3,8 +3,9 @@ mod query_gen_utils;
 
 use config_loader::load_query_and_catalog;
 use mongosql::{
+    SchemaCheckingMode,
     options::{ExcludeNamespacesOption, SqlOptions},
-    translate_sql, SchemaCheckingMode,
+    translate_sql,
 };
 use std::env;
 

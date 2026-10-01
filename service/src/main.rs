@@ -1,6 +1,6 @@
 use hyper::Server as HyperServer;
 use prometheus::{Encoder, Registry};
-use service::metrics::{register_metrics, ErrorInterceptor};
+use service::metrics::{ErrorInterceptor, register_metrics};
 use service::translator::translator_service_server::TranslatorServiceServer;
 use service::{PanicHandlingTranslateSqlService, TranslateSqlService};
 use tonic::service::Interceptor;

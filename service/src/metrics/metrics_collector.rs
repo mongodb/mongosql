@@ -1,6 +1,6 @@
 use log::debug;
-use prometheus::{register_int_counter, register_int_counter_vec};
 use prometheus::{HistogramVec, IntCounter, IntCounterVec, Registry};
+use prometheus::{register_int_counter, register_int_counter_vec};
 use std::sync::{Arc, LazyLock};
 use tonic::service::Interceptor;
 use tonic::{Request, Status};

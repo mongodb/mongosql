@@ -1,6 +1,6 @@
 use super::{
-    catalog, mir_source_bar, mir_source_collection_with_project, mir_source_foo, AST_QUERY_BAR,
-    AST_QUERY_FOO, AST_SOURCE_BAR, AST_SOURCE_FOO,
+    AST_QUERY_BAR, AST_QUERY_FOO, AST_SOURCE_BAR, AST_SOURCE_FOO, catalog, mir_source_bar,
+    mir_source_collection_with_project, mir_source_foo,
 };
 use crate::schema::Document;
 use crate::{ast, map, mir, mir::schema::SchemaCache, multimap, schema, set};

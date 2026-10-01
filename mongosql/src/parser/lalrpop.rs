@@ -1,6 +1,6 @@
 use crate::{
     ast,
-    usererror::{util::generate_suggestion, UserError, UserErrorDisplay},
+    usererror::{UserError, UserErrorDisplay, util::generate_suggestion},
 };
 use lalrpop_util::{lalrpop_mod, lexer::Token};
 use lazy_static::lazy_static;

@@ -1,13 +1,12 @@
 use crate::air::{
-    self,
-    desugarer::{Pass, Result},
-    util::sql_op_to_mql_op,
-    visitor::Visitor,
-    Expression,
+    self, Expression,
     Expression::*,
     LetVariable, LiteralValue, MqlOperator, MqlSemanticOperator,
     SqlOperator::*,
     SwitchCase,
+    desugarer::{Pass, Result},
+    util::sql_op_to_mql_op,
+    visitor::Visitor,
 };
 use crate::make_cond_expr;
 

@@ -3,8 +3,8 @@ use crate::{
     mapping_registry::MqlReferenceType,
     mir,
     translator::{
-        utils::scalar_function_to_scalar_function_type, utils::ScalarFunctionType, Error,
-        MqlTranslator, Result,
+        Error, MqlTranslator, Result, utils::ScalarFunctionType,
+        utils::scalar_function_to_scalar_function_type,
     },
     util::ROOT_NAME,
 };

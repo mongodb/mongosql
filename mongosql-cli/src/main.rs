@@ -1,9 +1,9 @@
 use agg_ast::definitions::Namespace;
-use bson::{doc, Document};
+use bson::{Document, doc};
 use clap::Parser;
 use mongodb::sync::{Client, Collection};
 use mongosql::{
-    build_catalog_from_catalog_schema, catalog::Catalog, json_schema::Schema, SchemaCheckingMode,
+    SchemaCheckingMode, build_catalog_from_catalog_schema, catalog::Catalog, json_schema::Schema,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -118,8 +118,8 @@ fn main() -> Result<(), CliError> {
             Some("json") => serde_json::from_str(&contents)?,
             _ => {
                 return Err(CliError(format!(
-                "Unsupported schema file extension: {extension:?}. Supported formats are .yml, .yaml, .json"
-                )))
+                    "Unsupported schema file extension: {extension:?}. Supported formats are .yml, .yaml, .json"
+                )));
             }
         };
         build_catalog_from_catalog_schema(catalog.schemas)?
@@ -279,9 +279,11 @@ fn get_schema_catalog(
     }
 
     if schema_catalog_doc_vec.is_empty() {
-        println!("[WARNING] No schema information was found for the requested collections `{collection_names:?}` in database `{current_db}`. Either the collections don't exist \
+        println!(
+            "[WARNING] No schema information was found for the requested collections `{collection_names:?}` in database `{current_db}`. Either the collections don't exist \
                     in `{current_db}` or they don't have a schema. For now, they will be assigned empty schemas. Hint: You either need to generate schemas for your collections \
-                    or correct your query.");
+                    or correct your query."
+        );
 
         let mut collections_schema_doc = doc! {};
 
@@ -308,8 +310,10 @@ fn get_schema_catalog(
             .filter(|collection| !collections_schema_doc.contains_key(collection.as_str()))
             .collect();
 
-        println!("[WARNING] No schema was found for the following collections: {missing_collections:?}. These collections will be assigned empty schemas. \
-                    Hint: Generate schemas for your collections.");
+        println!(
+            "[WARNING] No schema was found for the following collections: {missing_collections:?}. These collections will be assigned empty schemas. \
+                    Hint: Generate schemas for your collections."
+        );
 
         for collection in missing_collections {
             collections_schema_doc.insert(collection, doc! {});

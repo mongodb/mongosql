@@ -192,11 +192,12 @@ mod stage_test {
 
     mod project {
         use crate::{
+            ROOT_NAME,
             definitions::{
                 Expression, LiteralValue, ProjectItem, ProjectStage, Ref, Stage, UntaggedOperator,
                 UntaggedOperatorName,
             },
-            map, ROOT_NAME,
+            map,
         };
 
         test_serde_stage!(
@@ -270,10 +271,10 @@ mod stage_test {
 
     mod replace_with {
         use crate::{
+            ROOT_NAME,
             definitions::{
                 Expression, Ref, ReplaceStage, Stage, UntaggedOperator, UntaggedOperatorName,
             },
-            ROOT_NAME,
         };
 
         test_serde_stage!(
@@ -1244,8 +1245,8 @@ mod stage_test {
 
     mod redact {
         use crate::{
-            definitions::{Expression, Ref, Stage},
             PRUNE_NAME,
+            definitions::{Expression, Ref, Stage},
         };
 
         test_serde_stage!(

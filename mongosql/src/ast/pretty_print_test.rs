@@ -89,10 +89,10 @@ mod select {
     );
 
     query_printer_test!(
-    all_clauses,
-    expected = "SELECT * FROM foo AS bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) AS agg2 HAVING agg1 < agg2 ORDER BY agg1 ASC LIMIT 100 OFFSET 10",
-    input = "SELECT * FROM foo bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) as agg2 HAVING agg1 < agg2 ORDER BY agg1 LIMIT 100 OFFSET 10"
-);
+        all_clauses,
+        expected = "SELECT * FROM foo AS bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) AS agg2 HAVING agg1 < agg2 ORDER BY agg1 ASC LIMIT 100 OFFSET 10",
+        input = "SELECT * FROM foo bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) as agg2 HAVING agg1 < agg2 ORDER BY agg1 LIMIT 100 OFFSET 10"
+    );
     query_printer_test!(
         doc_with_single_quote_in_key,
         expected = "SELECT {'''': 'single quote'}",
@@ -226,20 +226,21 @@ mod join {
         input = "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar On tRuE"
     );
     query_printer_test!(
-    three_way,
-    expected = "SELECT foo.* FROM (SELECT * FROM bar) AS foo LEFT JOIN [{'a': 32}] AS zar CROSS JOIN foo AS foo",
-    input = "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar JOIN foo AS foo"
-);
+        three_way,
+        expected = "SELECT foo.* FROM (SELECT * FROM bar) AS foo LEFT JOIN [{'a': 32}] AS zar CROSS JOIN foo AS foo",
+        input =
+            "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar JOIN foo AS foo"
+    );
     query_printer_test!(
-    three_way_with_condition,
-    expected = "SELECT foo.* FROM (SELECT * FROM bar) AS foo LEFT JOIN [{'a': 32}] AS zar CROSS JOIN foo AS foo ON 42 = 43",
-    input = "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar JOIN foo AS foo ON 42 = 43"
-);
+        three_way_with_condition,
+        expected = "SELECT foo.* FROM (SELECT * FROM bar) AS foo LEFT JOIN [{'a': 32}] AS zar CROSS JOIN foo AS foo ON 42 = 43",
+        input = "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar JOIN foo AS foo ON 42 = 43"
+    );
     query_printer_test!(
-    three_way_with_two_conditions,
-    expected = "SELECT foo.* FROM (SELECT * FROM bar) AS foo LEFT JOIN [{'a': 32}] AS zar ON true CROSS JOIN foo AS foo ON 42 = 43",
-    input = "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar oN TRUE JOIN foo AS foo ON 42 = 43"
-);
+        three_way_with_two_conditions,
+        expected = "SELECT foo.* FROM (SELECT * FROM bar) AS foo LEFT JOIN [{'a': 32}] AS zar ON true CROSS JOIN foo AS foo ON 42 = 43",
+        input = "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar oN TRUE JOIN foo AS foo ON 42 = 43"
+    );
 }
 
 mod flatten {
@@ -265,12 +266,10 @@ mod flatten {
         input = "SELECT * FRoM FLATTEN(foo, bar with separator => '%')"
     );
     query_printer_test!(
-    collection_with_multiple_options_preserves_order_and_duplicates,
-    expected =
-        "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '%', DEPTH => 1, SEPARATOR => ':', DEPTH => 2)",
-    input =
-        "SeLeCT * from FLATTEN(foo with separator => '%', depth => 1, separator => ':', depth => 2)"
-);
+        collection_with_multiple_options_preserves_order_and_duplicates,
+        expected = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '%', DEPTH => 1, SEPARATOR => ':', DEPTH => 2)",
+        input = "SeLeCT * from FLATTEN(foo with separator => '%', depth => 1, separator => ':', depth => 2)"
+    );
     query_printer_test!(
         separator_contains_string_delimiter,
         expected = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '''')",
@@ -345,10 +344,10 @@ mod unwind {
     );
 
     query_printer_test!(
-    with_multiple_options_preserves_order_and_duplicates,
-    expected = "SELECT * FROM UNWIND(foo WITH PATHS => (arr), OUTER => false, OUTER => true, INDEX => i, PATHS => (a))",
-    input = "SELECT * FROM UNWIND(foo with path => arr, outer => false, outer => true, index => i, path => a)"
-);
+        with_multiple_options_preserves_order_and_duplicates,
+        expected = "SELECT * FROM UNWIND(foo WITH PATHS => (arr), OUTER => false, OUTER => true, INDEX => i, PATHS => (a))",
+        input = "SELECT * FROM UNWIND(foo with path => arr, outer => false, outer => true, index => i, path => a)"
+    );
 }
 
 mod having {
@@ -439,10 +438,11 @@ mod group_by {
         input = "SELECT * FROM foo GROUP BY a c, b b AGGREGATE COUNT(*) agg1"
     );
     query_printer_test!(
-    two_aggregates,
-    expected = "SELECT agg1, agg2 FROM foo GROUP BY a AS c, b AS b AGGREGATE COUNT(*) AS agg1, SUM(foo) AS agg2",
-    input = "SELECT agg1, agg2 FROM foo GROUP BY a c, b b AGGREGATE COUNT(*) agg1, SUM(foo) agg2"
-);
+        two_aggregates,
+        expected = "SELECT agg1, agg2 FROM foo GROUP BY a AS c, b AS b AGGREGATE COUNT(*) AS agg1, SUM(foo) AS agg2",
+        input =
+            "SELECT agg1, agg2 FROM foo GROUP BY a c, b b AGGREGATE COUNT(*) agg1, SUM(foo) agg2"
+    );
 }
 
 mod order_by {

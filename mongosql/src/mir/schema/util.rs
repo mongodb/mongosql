@@ -1,6 +1,6 @@
 use crate::{
     mir::*,
-    schema::{Document, Satisfaction, Schema, NULLISH},
+    schema::{Document, NULLISH, Satisfaction, Schema},
 };
 
 impl FieldAccess {

@@ -1,5 +1,5 @@
 use crate::trace::distributed_tracing::{
-    add_event, init_tracer_provider, start_span, COLLECTOR_ENDPOINT, SQL_SERVICE_NAME,
+    COLLECTOR_ENDPOINT, SQL_SERVICE_NAME, add_event, init_tracer_provider, start_span,
 };
 use opentelemetry::global;
 use opentelemetry::trace::Span;

@@ -8,7 +8,7 @@ use crate::{
     },
     map,
 };
-use bson::{self, doc, Bson, Document};
+use bson::{self, Bson, Document, doc};
 use linked_hash_map::LinkedHashMap;
 use serde::{
     de::{self, Deserialize, Deserializer, Error as serde_err, MapAccess, Visitor},
@@ -847,7 +847,7 @@ impl<'de> Deserialize<'de> for SetWindowFieldsOutput {
                     _ => {
                         return Err(serde_err::custom(
                             "setWindowFields output could not be parsed",
-                        ))
+                        ));
                     }
                 };
 
@@ -1061,7 +1061,7 @@ impl<'de> de::Deserialize<'de> for LiteralValue {
             Bson::Array(_) | Bson::Document(_) => {
                 return Err(de::Error::custom(format_args!(
                     "expected a literal value, found a document or array"
-                )))
+                )));
             }
             Bson::Boolean(b) => LiteralValue::Boolean(b),
             Bson::Null => LiteralValue::Null,
@@ -1279,7 +1279,7 @@ impl<'de> Deserialize<'de> for Convert {
                         _ => {
                             return Err(serde_err::custom(
                                 "expected format for convert to be string or none",
-                            ))
+                            ));
                         }
                     };
                     let to = if let Expression::UntaggedOperator(UntaggedOperator {

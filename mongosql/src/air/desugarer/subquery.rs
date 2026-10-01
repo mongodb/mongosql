@@ -1,6 +1,4 @@
 use crate::air::{
-    desugarer::{Pass, Result},
-    visitor::Visitor,
     Expression,
     Expression::*,
     Let, LetVariable, Limit, LiteralValue, Lookup, MqlOperator, MqlSemanticOperator, Project,
@@ -8,6 +6,8 @@ use crate::air::{
     Stage::*,
     Subquery, SubqueryComparison, SubqueryComparisonOp, SubqueryComparisonOpType, SubqueryExists,
     SubqueryModifier,
+    desugarer::{Pass, Result},
+    visitor::Visitor,
 };
 use linked_hash_map::LinkedHashMap;
 

@@ -1,8 +1,7 @@
 use crate::{
-    array_element_schema_or_error, get_schema_for_path, get_schema_for_path_mut,
-    insert_required_key_into_document, promote_missing, remove_field, schema_difference,
-    schema_for_bson, schema_for_type_numeric, schema_for_type_str, Error, MatchConstrainSchema,
-    Result,
+    Error, MatchConstrainSchema, Result, array_element_schema_or_error, get_schema_for_path,
+    get_schema_for_path_mut, insert_required_key_into_document, promote_missing, remove_field,
+    schema_difference, schema_for_bson, schema_for_type_numeric, schema_for_type_str,
 };
 use agg_ast::definitions::{
     AtlasSearchStage, Bucket, BucketAuto, ConciseSubqueryLookup, Densify, Documents,
@@ -15,8 +14,8 @@ use linked_hash_map::LinkedHashMap;
 use mongosql::{
     map,
     schema::{
-        Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, DATE_OR_NULLISH, EMPTY_DOCUMENT,
-        INTEGRAL, NULLISH, NULLISH_OR_UNDEFINED, NUMERIC, NUMERIC_OR_NULLISH,
+        ANY_DOCUMENT, Atomic, DATE_OR_NULLISH, Document, EMPTY_DOCUMENT, INTEGRAL, NULLISH,
+        NULLISH_OR_UNDEFINED, NUMERIC, NUMERIC_OR_NULLISH, Satisfaction, Schema,
     },
     set,
 };
@@ -1930,7 +1929,7 @@ impl DeriveSchema for TaggedOperator {
                         return Err(Error::InvalidExpressionForField(
                             format!("{exp:?}"),
                             "inputs",
-                        ))
+                        ));
                     }
                 };
                 let mut array_schema = Schema::Unsat;

@@ -1,15 +1,15 @@
 use crate::{
     map,
     mir::{
-        binding_tuple::DatasourceName::Bottom,
-        schema::{
-            errors::IncorrectArgCountPrecision, Atomic, Document, Error as mir_error, SchemaCache,
-        },
         ArraySource, Collection, Expression, FieldAccess, LiteralValue, Project, ScalarFunction,
         ScalarFunctionApplication, Stage, SubqueryComparison, SubqueryComparisonOp, SubqueryExpr,
         SubqueryModifier, Variable,
+        binding_tuple::DatasourceName::Bottom,
+        schema::{
+            Atomic, Document, Error as mir_error, SchemaCache, errors::IncorrectArgCountPrecision,
+        },
     },
-    schema::{Schema, ANY_DOCUMENT},
+    schema::{ANY_DOCUMENT, Schema},
     set, test_schema, unchecked_unique_linked_hash_map,
 };
 use agg_ast::definitions::Namespace;

@@ -1,15 +1,15 @@
 use chrono::{TimeZone, Utc};
 use mongosql::{
-    build_catalog_from_catalog_schema, json_schema,
+    SchemaCheckingMode, build_catalog_from_catalog_schema, json_schema,
     options::{ExcludeNamespacesOption, SqlOptions},
-    translate_sql, SchemaCheckingMode,
+    translate_sql,
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
-    fs::{create_dir_all, File},
+    fs::{File, create_dir_all},
     io::{self, Write},
     path::PathBuf,
     string::ToString,

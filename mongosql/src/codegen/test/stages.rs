@@ -10,7 +10,7 @@ macro_rules! test_codegen_stage {
 	) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::{generate_mql, MqlTranslation};
+            use crate::codegen::{MqlTranslation, generate_mql};
 
             let input = $input;
             let expected_db = $expected_db;
@@ -779,7 +779,7 @@ mod join {
     use crate::{
         air::*,
         unchecked_unique_linked_hash_map,
-        util::{air_documents_stage, air_project_collection, ROOT},
+        util::{ROOT, air_documents_stage, air_project_collection},
     };
 
     test_codegen_stage!(

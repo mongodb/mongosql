@@ -1,13 +1,13 @@
 use super::Error;
 use mongodb::{
-    bson::{self, doc, Bson, Document},
+    bson::{self, Bson, Document, doc},
     sync::Client,
 };
 use mongosql::Translation;
 use serde::{Deserialize, Serialize};
 use sql_engines_common_test_infra::{
-    parse_yaml_test_file, sanitize_description, Error as cti_err, TestGenerator, YamlTestCase,
-    YamlTestFile,
+    Error as cti_err, TestGenerator, YamlTestCase, YamlTestFile, parse_yaml_test_file,
+    sanitize_description,
 };
 use std::{fs::File, io::Write, path::PathBuf};
 
