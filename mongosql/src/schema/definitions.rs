@@ -2135,6 +2135,46 @@ impl Document {
         m1
     }
 
+    /// union_keys_with_jaccard_intersection_size constructs a key map where
+    /// all the keys from both maps are kept, and also returns the "Jaccard
+    /// intersection size". That is, the number of keys present in both maps
+    /// unless one is a subset of the other, in which case it is the size of
+    /// the union.
+    ///
+    /// Those keys that overlap have their Schemata merged.
+    fn union_keys_with_jaccard_intersection_size(
+        mut m1: BTreeMap<String, Schema>,
+        m2: BTreeMap<String, Schema>,
+    ) -> (BTreeMap<String, Schema>, usize) {
+        let m1_len = m1.len();
+        let m2_len = m2.len();
+        let mut overlap = 0;
+        for (key2, schema2) in m2.into_iter() {
+            if let Some(old_schema) = m1.get_mut(&key2) {
+                overlap += 1;
+                *old_schema = old_schema.union(&schema2);
+            } else {
+                m1.insert(key2, schema2);
+            }
+        }
+
+        // Abstractly, a Jaccard index of 1 means that the two document schemas are equivalent. They
+        // may not be exactly the same in terms of type information, but they are equivalent in
+        // terms of keys defined. This is because our usage of Jaccard index measures variation in
+        // defined keys, as opposed to defined keys _and/or_ defined types for those keys.
+        //
+        // If the left keys are a subset of the right keys, or vice versa, then we will consider
+        // them equivalent documents. We do this by setting the intersection_size to union.len()
+        // (i.e., Jaccard index of 1).
+        let union_len = m1_len + m2_len - overlap;
+        let intersection_size = if overlap == m1_len || overlap == m2_len {
+            union_len
+        } else {
+            overlap
+        };
+        (m1, intersection_size)
+    }
+
     /// intersect_keys constructs a key map that is the intersection of the
     /// two passed maps.
     #[allow(dead_code)]
@@ -2261,18 +2301,8 @@ impl Document {
         // If both are stable, attempt to union using Jaccard Index information, or union "normally"
         // if no JaccardIndex info is present.
         if let Some(jaccard_index) = Document::get_jaccard_index(&self, &other) {
-            let union = Document::union_keys(self.keys.clone(), other.keys.clone());
-            let left_keys = self.keys.keys().collect::<HashSet<_>>();
-            let right_keys = other.keys.keys().collect::<HashSet<_>>();
-
-            // If the left keys are a subset of the right keys, or vice versa, then we will consider
-            // them equivalent documents
-            let intersection_size =
-                if left_keys.is_subset(&right_keys) || left_keys.is_superset(&right_keys) {
-                    union.len()
-                } else {
-                    left_keys.intersection(&right_keys).count()
-                };
+            let (union, intersection_size) =
+                Document::union_keys_with_jaccard_intersection_size(self.keys, other.keys);
 
             let jaccard_index =
                 Document::update_jaccard_index(jaccard_index, union.len(), intersection_size);

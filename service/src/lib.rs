@@ -6,6 +6,7 @@ pub use service::{PanicHandlingTranslateSqlService, TranslateSqlService};
 pub mod trace;
 pub mod version;
 
+#[allow(clippy::double_must_use)]
 pub mod translator {
     tonic::include_proto!("translator.v1");
 }

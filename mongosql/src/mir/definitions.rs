@@ -480,6 +480,7 @@ pub struct LikeExpr {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct ScalarFunctionApplication {
     pub function: ScalarFunction,
     pub args: Vec<Expression>,
@@ -489,6 +490,7 @@ pub struct ScalarFunctionApplication {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct FieldAccess {
     pub expr: Box<Expression>,
     pub field: String,
@@ -497,6 +499,7 @@ pub struct FieldAccess {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct ComputedFieldAccess {
     pub expr: Box<Expression>,
     pub field: Box<Expression>,
@@ -797,6 +800,7 @@ pub enum DateFunction {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct DateFunctionApplication {
     pub function: DateFunction,
     pub date_part: DatePart,
@@ -818,6 +822,7 @@ impl DateFunction {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct SearchedCaseExpr {
     pub when_branch: Vec<WhenBranch>,
     pub else_branch: Box<Expression>,
@@ -826,6 +831,7 @@ pub struct SearchedCaseExpr {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct SimpleCaseExpr {
     pub expr: Box<Expression>,
     pub when_branch: Vec<WhenBranch>,
@@ -835,6 +841,7 @@ pub struct SimpleCaseExpr {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct WhenBranch {
     pub when: Box<Expression>,
     pub then: Box<Expression>,
@@ -843,6 +850,7 @@ pub struct WhenBranch {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct CastExpr {
     pub expr: Box<Expression>,
     pub to: Type,
@@ -891,6 +899,7 @@ pub enum Type {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct SubqueryExpr {
     pub output_expr: Box<Expression>,
     pub subquery: Box<Stage>,
@@ -899,6 +908,7 @@ pub struct SubqueryExpr {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct SubqueryComparison {
     pub operator: SubqueryComparisonOp,
     pub modifier: SubqueryModifier,
@@ -932,6 +942,7 @@ pub enum HigherOrderFunctionApplication {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct MapExpr {
     pub array: Box<Expression>,
     pub f: Box<Expression>,
@@ -940,6 +951,7 @@ pub struct MapExpr {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct FilterExpr {
     pub array: Box<Expression>,
     pub f: Box<Expression>,
@@ -948,6 +960,7 @@ pub struct FilterExpr {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct ReduceExpr {
     pub array: Box<Expression>,
     pub init_value: Box<Expression>,
@@ -957,6 +970,7 @@ pub struct ReduceExpr {
 }
 
 #[derive(PartialEq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct Variable {
     pub name: String,
     #[new(value = "true")]
@@ -981,6 +995,7 @@ pub struct MatchFalse {
 }
 
 #[derive(Eq, Debug, Clone, new)]
+#[allow(clippy::redundant_field_names)]
 pub struct FieldPath {
     pub key: Key,
     pub fields: Vec<String>,
