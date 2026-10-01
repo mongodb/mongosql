@@ -8,13 +8,13 @@
 mod test;
 
 use crate::{
+    SchemaCheckingMode,
     mir::{
+        Filter, Join, LateralJoin, MqlStage, Stage,
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Filter, Join, LateralJoin, MqlStage, Stage,
     },
-    SchemaCheckingMode,
 };
 
 pub(crate) struct LowerJoinsOptimizer;

@@ -1,12 +1,11 @@
 use crate::ast::{
-    self,
+    self, SubpathExpr,
     definitions::{
         Datasource, Expression, ExtendedUnwindOption, ExtendedUnwindSource, UnwindOption,
         UnwindPathPart, UnwindPathPartOption, UnwindSource,
     },
     rewrites::{Error, Pass, Result},
     visitor::Visitor,
-    SubpathExpr,
 };
 
 pub struct ExtendedUnwindRewritePass;
@@ -138,12 +137,13 @@ fn get_options(
         }
     }
 
-    if !found_index && global_index.is_some() {
-        if let Some(global_index) = global_index {
-            ret.push(UnwindOption::Index(format!(
-                "{index_prefix}_{global_index}",
-            )));
-        }
+    if !found_index
+        && global_index.is_some()
+        && let Some(global_index) = global_index
+    {
+        ret.push(UnwindOption::Index(format!(
+            "{index_prefix}_{global_index}",
+        )));
     }
     if !found_outer && global_outer {
         // there is no need to push Outer(false)

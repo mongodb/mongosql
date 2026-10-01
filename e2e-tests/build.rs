@@ -1,4 +1,4 @@
-use sql_engines_common_test_infra::{generate_tests, Error, TestGenerator, TestGeneratorFactory};
+use sql_engines_common_test_infra::{Error, TestGenerator, TestGeneratorFactory, generate_tests};
 use test_utils::{IndexUsageTestGenerator, QueryTestGenerator, SchemaDerivationTestGenerator};
 
 const GENERATED_DIRECTORY: &str = "src/generated";

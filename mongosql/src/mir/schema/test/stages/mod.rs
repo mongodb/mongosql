@@ -10,7 +10,7 @@ mod limit {
     use crate::{
         map,
         mir::{schema::SchemaCache, *},
-        schema::{ResultSet, ANY_DOCUMENT},
+        schema::{ANY_DOCUMENT, ResultSet},
         test_schema, unchecked_unique_linked_hash_map,
     };
     use agg_ast::definitions::Namespace;
@@ -117,7 +117,7 @@ mod project {
     use crate::{
         map,
         mir::{schema::SchemaCache, *},
-        schema::{Atomic, Document, ResultSet, Schema, ANY_DOCUMENT},
+        schema::{ANY_DOCUMENT, Atomic, Document, ResultSet, Schema},
         set, test_schema, unchecked_unique_linked_hash_map,
         util::mir_collection,
     };
@@ -239,7 +239,7 @@ mod offset {
     use crate::{
         map,
         mir::{schema::SchemaCache, *},
-        schema::{ResultSet, ANY_DOCUMENT},
+        schema::{ANY_DOCUMENT, ResultSet},
         test_schema, unchecked_unique_linked_hash_map,
     };
     use agg_ast::definitions::Namespace;

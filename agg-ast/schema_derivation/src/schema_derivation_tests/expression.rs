@@ -1,6 +1,6 @@
 use crate::{
-    schema_derivation::{DeriveSchema, ResultSetState},
     Error,
+    schema_derivation::{DeriveSchema, ResultSetState},
 };
 use agg_ast::definitions::Expression;
 use mongosql::{

@@ -4,7 +4,7 @@ use crate::{
         schema::{Error as mir_error, SchemaCache},
         *,
     },
-    schema::{Atomic, ResultSet, Schema, ANY_DOCUMENT},
+    schema::{ANY_DOCUMENT, Atomic, ResultSet, Schema},
     set, test_schema, unchecked_unique_linked_hash_map,
 };
 use agg_ast::definitions::Namespace;

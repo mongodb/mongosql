@@ -1,8 +1,8 @@
 use opentelemetry::global;
 use opentelemetry::propagation::Extractor;
-use opentelemetry::{trace::Tracer, KeyValue};
+use opentelemetry::{KeyValue, trace::Tracer};
 use opentelemetry_otlp::{ExporterBuildError, WithExportConfig};
-use opentelemetry_sdk::{trace as sdktrace, Resource};
+use opentelemetry_sdk::{Resource, trace as sdktrace};
 use tonic::metadata::MetadataMap;
 
 use std::env;

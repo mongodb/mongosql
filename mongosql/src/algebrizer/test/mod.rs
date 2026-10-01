@@ -4,7 +4,7 @@ use crate::{
     ast::{self, CollectionSource, Datasource},
     catalog::Catalog,
     map,
-    mir::{schema::SchemaCache, Collection, Expression, Project, Stage},
+    mir::{Collection, Expression, Project, Stage, schema::SchemaCache},
     schema::ANY_DOCUMENT,
 };
 use agg_ast::definitions::Namespace;

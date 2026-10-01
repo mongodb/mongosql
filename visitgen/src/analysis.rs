@@ -1,6 +1,6 @@
 use syn::{
-    punctuated::Punctuated, token::Comma, visit::Visit, File, GenericArgument, ItemEnum,
-    ItemStruct, PathArguments, Type,
+    File, GenericArgument, ItemEnum, ItemStruct, PathArguments, Type, punctuated::Punctuated,
+    token::Comma, visit::Visit,
 };
 
 /// EnumOrStruct represents either

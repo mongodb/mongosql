@@ -19,14 +19,14 @@
 mod test;
 
 use crate::{
+    SchemaCheckingMode,
     mir::{
+        Derived, ExistsExpr, Expression, FieldAccess, Filter, LateralJoin, LiteralValue,
+        ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Derived, ExistsExpr, Expression, FieldAccess, Filter, LateralJoin, LiteralValue,
-        ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
     },
-    SchemaCheckingMode,
 };
 use std::collections::BTreeMap;
 

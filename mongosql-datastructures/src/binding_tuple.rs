@@ -1,4 +1,4 @@
-use std::collections::{btree_map, BTreeMap};
+use std::collections::{BTreeMap, btree_map};
 
 #[derive(Debug)]
 pub struct DuplicateKeyError {
@@ -115,10 +115,10 @@ where
 
     pub fn merge(&mut self, other: BindingTuple<T>) -> Result<(), DuplicateKeyError> {
         for (k, v) in other.0.into_iter() {
-            if let Some(v2) = self.0.remove(&k) {
-                if v != v2 {
-                    return Err(DuplicateKeyError { key: k });
-                }
+            if let Some(v2) = self.0.remove(&k)
+                && v != v2
+            {
+                return Err(DuplicateKeyError { key: k });
             }
             self.0.insert(k, v);
         }

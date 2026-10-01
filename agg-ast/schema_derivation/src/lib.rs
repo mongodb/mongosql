@@ -601,7 +601,7 @@ macro_rules! array_element_schema_or_error {
                         return Err(Error::InvalidExpressionForField(
                             format!("{:?}", $input),
                             "input",
-                        ))
+                        ));
                     }
                 }
             }
@@ -609,7 +609,7 @@ macro_rules! array_element_schema_or_error {
                 return Err(Error::InvalidExpressionForField(
                     format!("{:?}", $input),
                     "input",
-                ))
+                ));
             }
         }
     }};

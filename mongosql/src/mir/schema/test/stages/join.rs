@@ -2,15 +2,15 @@ use crate::{
     map,
     mir::{
         schema::{
-            test::{
-                test_document_a, test_document_b, test_document_c, TEST_DOCUMENT_SCHEMA_A,
-                TEST_DOCUMENT_SCHEMA_B, TEST_DOCUMENT_SCHEMA_C, TEST_DOCUMENT_SCHEMA_S,
-            },
             Error as mir_error, SchemaCache,
+            test::{
+                TEST_DOCUMENT_SCHEMA_A, TEST_DOCUMENT_SCHEMA_B, TEST_DOCUMENT_SCHEMA_C,
+                TEST_DOCUMENT_SCHEMA_S, test_document_a, test_document_b, test_document_c,
+            },
         },
         *,
     },
-    schema::{Atomic, Document, ResultSet, Schema, BOOLEAN_OR_NULLISH},
+    schema::{Atomic, BOOLEAN_OR_NULLISH, Document, ResultSet, Schema},
     set, test_schema, unchecked_unique_linked_hash_map,
     util::{mir_field_path, mir_project_collection},
 };

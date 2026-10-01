@@ -70,7 +70,7 @@ impl VisitorRef for MatchingAliasFinder {
     }
 
     fn visit_select_expression(&mut self, select_expr: &ast::SelectExpression) {
-        if let ast::SelectExpression::Expression(ast::OptionallyAliasedExpr::Aliased(ref ae)) =
+        if let ast::SelectExpression::Expression(ast::OptionallyAliasedExpr::Aliased(ae)) =
             select_expr
         {
             self.aliased_select_exprs

@@ -1,8 +1,8 @@
 use log::info;
 use service::logger::init_logger;
 use service::translator::{
-    translator_service_client::TranslatorServiceClient, ExcludeNamespacesOption,
-    GetNamespacesRequest, SchemaCheckingMode, TranslateSqlRequest,
+    ExcludeNamespacesOption, GetNamespacesRequest, SchemaCheckingMode, TranslateSqlRequest,
+    translator_service_client::TranslatorServiceClient,
 };
 use std::env;
 use std::path::PathBuf;

@@ -1,10 +1,10 @@
 use crate::{
+    SchemaCheckingMode,
     algebrizer::{Algebrizer, ClauseType},
-    ast::{rewrites::rewrite_query, Query},
+    ast::{Query, rewrites::rewrite_query},
     catalog::Catalog,
     map, parser,
     schema::{Atomic, Document, Schema},
-    SchemaCheckingMode,
 };
 use itertools::Itertools;
 use lazy_static::lazy_static;

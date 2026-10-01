@@ -1,13 +1,13 @@
 use crate::{
     json_schema, map,
     mir::{
-        binding_tuple::{self, BindingTuple, DatasourceName, DuplicateKeyError, Key},
         Type, TypeOrMissing,
+        binding_tuple::{self, BindingTuple, DatasourceName, DuplicateKeyError, Key},
     },
     schema::Schema::{AnyOf, Unsat},
     set,
 };
-use enum_iterator::{all, Sequence};
+use enum_iterator::{Sequence, all};
 use itertools::{Either, Itertools};
 use lazy_static::lazy_static;
 use std::collections::{HashMap, HashSet};
@@ -172,10 +172,10 @@ impl SchemaEnvironment {
         let mut name_duplicates = Vec::new();
         let mut keys_with_duplicates = BTreeSet::new();
         for (key, schema) in self.iter() {
-            if let Schema::Document(d) = schema {
-                if d.additional_properties {
-                    return Err(Error::CannotEnumerateAllFieldPaths(schema.clone()));
-                }
+            if let Schema::Document(d) = schema
+                && d.additional_properties
+            {
+                return Err(Error::CannotEnumerateAllFieldPaths(schema.clone()));
             }
             for column in schema.keys() {
                 if let Some(key_with_duplicate) =
@@ -1560,8 +1560,8 @@ impl Schema {
         schema_combine_fn: impl Fn(&Schema, &Schema) -> Schema,
         doc_combine_fn: impl Fn(Document, Document) -> Document,
     ) -> Schema {
-        use std::cmp::Ordering;
         use Schema::*;
+        use std::cmp::Ordering;
         let (left, right) = (Schema::simplify(self), Schema::simplify(other));
         let ordering = left.cmp(&right);
         let (left, right) = match ordering {

@@ -470,7 +470,7 @@ impl NegativeNormalize<MatchExpression> for MatchLogical {
                     .collect::<Vec<MatchExpression>>();
                 negative_normal_form_logical!(args, MatchLogical::And)
             }
-            MatchLogical::Not(ref not) => match not.expr {
+            MatchLogical::Not(not) => match not.expr {
                 MatchNotExpression::Regex(_) => {
                     MatchExpression::Logical(MatchLogical::Not(not.clone()))
                 }
@@ -511,7 +511,7 @@ impl NegativeNormalize<MatchExpression> for MatchLogical {
                 negate_logical!(or, MatchLogical::And)
             }
             MatchLogical::Nor(nor) => MatchExpression::Logical(MatchLogical::Or(nor.clone())),
-            MatchLogical::Not(ref not) => match not.expr {
+            MatchLogical::Not(not) => match not.expr {
                 MatchNotExpression::Regex(ref b) => {
                     let (pattern, options) = if let Bson::Document(d) = b {
                         (

@@ -1,8 +1,8 @@
 use command::Command;
 use jni::{
+    JNIEnv,
     objects::{JByteArray, JClass},
     sys::jbyteArray,
-    JNIEnv,
 };
 use panic_safe::panic_safe_exec;
 use semver::VersionReq;
@@ -53,7 +53,7 @@ pub struct OdbcCommand {
 /// - `_class`: The Java class, which is not used.
 /// - `command`: The command to execute as a JByteArray.
 #[allow(non_snake_case)]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn Java_com_mongodb_jdbc_mongosql_MongoSQLTranslate_runCommand(
     env: JNIEnv,
     _class: JClass,

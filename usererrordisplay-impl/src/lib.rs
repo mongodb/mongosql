@@ -1,7 +1,7 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput};
+use syn::{Data, DeriveInput, parse_macro_input};
 
 #[proc_macro_derive(UserErrorDisplay)]
 pub fn formatted_error_derive(input: TokenStream) -> TokenStream {

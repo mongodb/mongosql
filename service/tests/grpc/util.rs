@@ -2,15 +2,14 @@ use bson;
 use serde_json;
 use service::catalog;
 use service::translator::{
-    translator_service_client::TranslatorServiceClient, ExcludeNamespacesOption,
-    GetNamespacesRequest, GetNamespacesResponse, SchemaCheckingMode, TranslateSqlRequest,
-    TranslateSqlResponse,
+    ExcludeNamespacesOption, GetNamespacesRequest, GetNamespacesResponse, SchemaCheckingMode,
+    TranslateSqlRequest, TranslateSqlResponse, translator_service_client::TranslatorServiceClient,
 };
 use std::env;
 use std::error::Error;
 use std::path::PathBuf;
-use tonic::transport::Channel;
 use tonic::Status;
+use tonic::transport::Channel;
 
 fn get_catalog_path(file_name: &str) -> Result<String, Box<dyn Error>> {
     let catalog_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

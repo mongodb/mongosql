@@ -1,8 +1,8 @@
-use crate::metrics::{register_metrics, ErrorInterceptor, SERVER_HANDLED_HISTOGRAM};
+use crate::metrics::{ErrorInterceptor, SERVER_HANDLED_HISTOGRAM, register_metrics};
 use prometheus::Encoder;
 use prometheus::{Registry, TextEncoder};
-use tonic::service::Interceptor;
 use tonic::Code;
+use tonic::service::Interceptor;
 use tonic::{Request, Status};
 
 #[test]
@@ -72,8 +72,10 @@ fn test_error_interceptor() {
 
     // Check the error counts
     println!("{metrics_output:?}");
-    assert!(metrics_output
-        .contains("grpc_errors_total{code=\"Some requested entity was not found\"} 2"));
+    assert!(
+        metrics_output
+            .contains("grpc_errors_total{code=\"Some requested entity was not found\"} 2")
+    );
     assert!(metrics_output.contains("grpc_errors_total{code=\"Internal error\"} 1"));
 }
 

@@ -12,9 +12,9 @@ use crate::{
         schema::{SchemaInferenceState, THIS_VARIABLE, VALUE_VARIABLE},
         visitor::Visitor,
     },
-    schema::{Atomic, Satisfaction, Schema, NULLISH},
+    schema::{Atomic, NULLISH, Satisfaction, Schema},
 };
-use bson::{oid::ObjectId, Decimal128};
+use bson::{Decimal128, oid::ObjectId};
 use chrono::Utc;
 use lazy_static::lazy_static;
 use std::collections::BTreeMap;
@@ -1043,7 +1043,7 @@ impl ConstantFoldExprVisitor<'_> {
 
             // Decimal128s are trivially converted to themselves.
             LiteralValue::Decimal128(v) => {
-                return Some(Ok(Expression::Literal(LiteralValue::Decimal128(*v))))
+                return Some(Ok(Expression::Literal(LiteralValue::Decimal128(*v))));
             }
 
             // Strings may be converted to decimal128 if they represent numeric values in range of
@@ -1446,9 +1446,9 @@ impl ConstantFoldExprVisitor<'_> {
         // literal of the target type. A static conversion failure folds to the
         // Cast's on_error, matching runtime CAST semantics.
         let conversion_result = match cast_expr.expr.as_ref() {
-            Expression::Literal(ref l) => Self::convert_literal(l, cast_expr.to),
-            Expression::Array(ref a) => Self::convert_literal_array(a, cast_expr.to),
-            Expression::Document(ref d) => Self::convert_literal_document(d, cast_expr.to),
+            Expression::Literal(l) => Self::convert_literal(l, cast_expr.to),
+            Expression::Array(a) => Self::convert_literal_array(a, cast_expr.to),
+            Expression::Document(d) => Self::convert_literal_document(d, cast_expr.to),
             _ => None,
         };
 
@@ -1568,10 +1568,10 @@ impl ConstantFoldExprVisitor<'_> {
 
     // Folds the filter stage
     fn fold_filter_stage(&mut self, filter_stage: Filter) -> (Stage, bool) {
-        if let Expression::Literal(LiteralValue::Boolean(val)) = filter_stage.condition {
-            if val {
-                return (*filter_stage.source, true);
-            }
+        if let Expression::Literal(LiteralValue::Boolean(val)) = filter_stage.condition
+            && val
+        {
+            return (*filter_stage.source, true);
         }
         (Stage::Filter(filter_stage), false)
     }

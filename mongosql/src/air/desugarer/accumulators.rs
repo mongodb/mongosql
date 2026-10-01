@@ -1,11 +1,11 @@
 use crate::{
     air::{
-        desugarer::{Pass, Result},
-        visitor::Visitor,
         AccumulatorExpr, AggregationFunction, Expression,
         Expression::*,
         Group, LiteralValue, Map, MqlOperator, MqlSemanticOperator, Project, ProjectItem, Stage,
         Stage::*,
+        desugarer::{Pass, Result},
+        visitor::Visitor,
     },
     make_cond_expr, map,
     schema::Satisfaction,

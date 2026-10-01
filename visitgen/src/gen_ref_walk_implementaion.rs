@@ -1,12 +1,12 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    punctuated::Punctuated, token::Comma, Fields, GenericArgument, ItemEnum, ItemStruct, Type,
+    Fields, GenericArgument, ItemEnum, ItemStruct, Type, punctuated::Punctuated, token::Comma,
 };
 
 use crate::{
-    analysis::{get_generic_name, get_generic_type, get_relevant_type_info, EnumOrStruct},
-    util::{convert_to_snake_case, COMPOUND_TYPES},
+    analysis::{EnumOrStruct, get_generic_name, get_generic_type, get_relevant_type_info},
+    util::{COMPOUND_TYPES, convert_to_snake_case},
 };
 
 use std::collections::HashSet;

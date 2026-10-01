@@ -36,10 +36,10 @@ use mongosql_datastructures::binding_tuple::BindingTuple;
 
 use crate::{
     mir::{
+        ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group, MatchQuery, MqlStage,
+        Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
         binding_tuple::Key, optimizer::util::insert_field_path_and_all_ancestors, visitor::Visitor,
-        visitor_ref::VisitorRef, ExistsExpr, Expression, FieldAccess, FieldPath, Filter, Group,
-        MatchQuery, MqlStage, Project, ReferenceExpr, Sort, Stage, SubqueryComparison,
-        SubqueryExpr, Unwind,
+        visitor_ref::VisitorRef,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };

@@ -3,7 +3,7 @@ use crate::{
     air::MatchLanguageIn,
     codegen::{MqlCodeGenerator, Result},
 };
-use bson::{bson, Bson};
+use bson::{Bson, bson};
 
 /// When a match operator is nested in a $elemMatch, it does not contain
 /// a field ref "input". This macro is utilized for codegenning match ops

@@ -2,12 +2,12 @@ use crate::{
     map,
     mir::{
         schema::{
-            errors::HigherOrderFunctionErrorCause, errors::IncorrectArgCountPrecision,
             Error as mir_error, THIS_VARIABLE, VALUE_VARIABLE,
+            errors::HigherOrderFunctionErrorCause, errors::IncorrectArgCountPrecision,
         },
         *,
     },
-    schema::{Atomic, Schema, ANY_ARRAY_OR_NULLISH, BOOLEAN_OR_NULLISH, NUMERIC_OR_NULLISH},
+    schema::{ANY_ARRAY_OR_NULLISH, Atomic, BOOLEAN_OR_NULLISH, NUMERIC_OR_NULLISH, Schema},
     set, test_schema,
 };
 

@@ -23,18 +23,17 @@ macro_rules! test_prefilter {
         fn $func_name() {
             #[allow(unused)]
             use crate::mir::{
-                self,
-                binding_tuple::{BindingTuple, Key},
-                optimizer::prefilter_unwinds::PrefilterUnwindsOptimizer,
-                schema::SchemaCache,
-                visitor::Visitor,
-                ElemMatch,
+                self, ElemMatch,
                 Expression::{self, *},
                 Filter, Group, Join, JoinType, Limit,
                 LiteralValue::*,
                 MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
                 MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, MqlStage, ScalarFunction,
                 ScalarFunctionApplication, Stage, Unwind,
+                binding_tuple::{BindingTuple, Key},
+                optimizer::prefilter_unwinds::PrefilterUnwindsOptimizer,
+                schema::SchemaCache,
+                visitor::Visitor,
             };
             #[allow(unused)]
             let input = $input;

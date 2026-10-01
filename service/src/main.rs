@@ -1,6 +1,6 @@
 use hyper::Server as HyperServer;
 use prometheus::{Encoder, Registry};
-use service::metrics::{register_metrics, ErrorInterceptor};
+use service::metrics::{ErrorInterceptor, register_metrics};
 use service::translator::translator_service_server::TranslatorServiceServer;
 use service::{PanicHandlingTranslateSqlService, TranslateSqlService};
 use tonic::service::Interceptor;
@@ -70,10 +70,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let tracer_provider = init_tracer_provider().expect("Failed to initialize tracer provider");
     global::set_tracer_provider(tracer_provider.clone());
 
+    let ctx = opentelemetry::Context::current();
     let mut server_start_span = start_span(
         "main".to_string(),
         opentelemetry::trace::SpanKind::Internal,
-        &opentelemetry::Context::current(),
+        &ctx,
     );
     server_start_span.add_event("Starting SQL Translation Service".to_string(), vec![]);
 

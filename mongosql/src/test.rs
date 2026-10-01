@@ -78,6 +78,7 @@ mod test_get_namespaces {
 
 mod test_mql_schema_env_to_json_schema {
     use crate::{
+        Schema, SchemaCheckingMode,
         json_schema::{self, BsonType, BsonTypeName},
         map,
         mapping_registry::*,
@@ -87,7 +88,6 @@ mod test_mql_schema_env_to_json_schema {
         schema::*,
         set,
         translator::Error::{DocumentSchemaTypeNotFound, ReferenceNotFound},
-        Schema, SchemaCheckingMode,
     };
 
     macro_rules! test_mql_schema_env_to_json_schema {
@@ -389,7 +389,7 @@ mod select_list_order {
             fn $func_name() {
                 #[allow(unused_imports)]
                 use crate::{
-                    translate_sql, ExcludeNamespacesOption, SchemaCheckingMode, SqlOptions,
+                    ExcludeNamespacesOption, SchemaCheckingMode, SqlOptions, translate_sql,
                 };
                 let translation = translate_sql(
                     "test",

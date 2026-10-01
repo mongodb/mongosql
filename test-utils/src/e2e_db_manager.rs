@@ -1,8 +1,8 @@
 use mongodb::{
-    bson::{doc, Document},
+    Client,
+    bson::{Document, doc},
     error::{CommandError, ErrorKind},
     options::WriteConcern,
-    Client,
 };
 use std::cell::LazyCell;
 

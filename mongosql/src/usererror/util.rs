@@ -86,7 +86,7 @@ mod suggestion {
     #[test]
     fn edit_distance_0_is_err() {
         assert_eq!(
-        "Unexpected edit distance of 0 found with input: bar and expected: [\"bizzle\", \"bazzle\", \"biz\", \"baz\", \"bar\"]",
+            "Unexpected edit distance of 0 found with input: bar and expected: [\"bizzle\", \"bazzle\", \"biz\", \"baz\", \"bar\"]",
             generate_suggestion(
                 "bar",
                 &[

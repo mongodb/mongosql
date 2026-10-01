@@ -1,11 +1,12 @@
 use agg_ast::definitions::Namespace;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use mongosql::{
+    SchemaCheckingMode, Translation,
     catalog::Catalog,
     map,
     options::{ExcludeNamespacesOption, SqlOptions},
     schema::ANY_DOCUMENT,
-    translate_sql, SchemaCheckingMode, Translation,
+    translate_sql,
 };
 use pprof::criterion::{Output, PProfProfiler};
 
