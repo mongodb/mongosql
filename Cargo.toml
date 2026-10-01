@@ -50,6 +50,8 @@ base64 = "0.22.1"
 bson = "2"
 tailcall = "1"
 trait-variant = "0.1.2"
+pprof = { version = "0.13", features = ["flamegraph", "criterion"] }
+criterion = { version = "0.5" } # Try to keep this in sync with pprof
 
 [profile.release]
 lto = "fat"
