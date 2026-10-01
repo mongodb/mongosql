@@ -515,18 +515,18 @@ impl StageMovementVisitor<'_> {
         }
 
         // Check if the current node is a Filter stage with a subquery in its condition
-        if let Stage::Filter(f) = &node {
-            if Self::contains_subquery(&f.condition) {
-                match self.has_collection_or_array_source(&f.source) {
-                    Some(true) | None => {
-                        // Source is at start of pipeline or None, don't move it. This
-                        // is because a subquery expression appearing at the start of
-                        // a pipeline results in a $lookup as the first stage, preventing any
-                        // chance for index utilization.
-                        return (node, false);
-                    }
-                    _ => (),
+        if let Stage::Filter(f) = &node
+            && Self::contains_subquery(&f.condition)
+        {
+            match self.has_collection_or_array_source(&f.source) {
+                Some(true) | None => {
+                    // Source is at start of pipeline or None, don't move it. This
+                    // is because a subquery expression appearing at the start of
+                    // a pipeline results in a $lookup as the first stage, preventing any
+                    // chance for index utilization.
+                    return (node, false);
                 }
+                _ => (),
             }
         }
 

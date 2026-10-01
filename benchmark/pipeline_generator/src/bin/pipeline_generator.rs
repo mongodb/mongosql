@@ -46,35 +46,33 @@ fn modify_pipeline_value(value: &mut Value) {
         Value::Object(obj) => {
             // Workaround added to use $toString where Genny is converting a string to int
             // When SQL-1642 is unblocked, remove this and confirm Q22 passes validation
-            if let Some(Value::String(s)) = obj.get("$literal") {
-                if s.parse::<i64>().is_ok() {
-                    let mut replace_with = serde_json::Map::new();
-                    replace_with.insert("$toString".to_string(), obj.remove("$literal").unwrap());
-                    *obj = replace_with;
-                    return;
-                }
+            if let Some(Value::String(s)) = obj.get("$literal")
+                && s.parse::<i64>().is_ok()
+            {
+                let mut replace_with = serde_json::Map::new();
+                replace_with.insert("$toString".to_string(), obj.remove("$literal").unwrap());
+                *obj = replace_with;
+                return;
             }
 
-            if let Some(Value::Object(literal_obj)) = obj.get_mut("$literal") {
-                if let Some(Value::Object(date_obj)) = literal_obj.get_mut("$date") {
-                    if let Some(Value::String(timestamp_str)) = date_obj.get("$numberLong") {
-                        if let Ok(timestamp) = timestamp_str.parse::<i64>() {
-                            let date = Utc
-                                .timestamp_millis_opt(timestamp)
-                                .unwrap()
-                                .format("%Y-%m-%dT%H:%M:%S")
-                                .to_string();
-                            // if the pipeline is running in genny, we need a special date format.
-                            // Otherwise, use ISODate and generate a valid aggregation pipeline.
-                            *value = if cfg!(feature = "genny") {
-                                Value::String(format!("{{ ^Date: \"{date}\" }}"))
-                            } else {
-                                Value::String(format!("ISODate(\"{date}\")"))
-                            };
-                            return;
-                        }
-                    }
-                }
+            if let Some(Value::Object(literal_obj)) = obj.get_mut("$literal")
+                && let Some(Value::Object(date_obj)) = literal_obj.get_mut("$date")
+                && let Some(Value::String(timestamp_str)) = date_obj.get("$numberLong")
+                && let Ok(timestamp) = timestamp_str.parse::<i64>()
+            {
+                let date = Utc
+                    .timestamp_millis_opt(timestamp)
+                    .unwrap()
+                    .format("%Y-%m-%dT%H:%M:%S")
+                    .to_string();
+                // if the pipeline is running in genny, we need a special date format.
+                // Otherwise, use ISODate and generate a valid aggregation pipeline.
+                *value = if cfg!(feature = "genny") {
+                    Value::String(format!("{{ ^Date: \"{date}\" }}"))
+                } else {
+                    Value::String(format!("ISODate(\"{date}\")"))
+                };
+                return;
             }
             for (_k, v) in obj.iter_mut() {
                 modify_pipeline_value(v);

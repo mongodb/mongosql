@@ -278,19 +278,18 @@ impl MqlCodeGenerator {
         // and find the root parent and append the argument to `includeArrayIndex` to that.
         // If the path does not have a parent, then we're already at the root level of the document
         // and can just use the argument as is.
-        if include_array_index.is_some() {
-            if let Some(field_ref) = match air_unwind.path {
+        if include_array_index.is_some()
+            && let Some(field_ref) = match air_unwind.path {
                 air::Expression::FieldRef(ref f) => Some(f),
                 _ => None,
-            } {
-                if field_ref.parent.is_some() {
-                    include_array_index = Some(format!(
-                        "{}.{}",
-                        field_ref.root_parent(),
-                        include_array_index.unwrap()
-                    ));
-                }
             }
+            && field_ref.parent.is_some()
+        {
+            include_array_index = Some(format!(
+                "{}.{}",
+                field_ref.root_parent(),
+                include_array_index.unwrap()
+            ));
         }
         let path = self.codegen_expression(air_unwind.path)?;
         let preserve_null_and_empty_arrays = air_unwind.outer;
@@ -349,10 +348,10 @@ impl MqlCodeGenerator {
             air::JoinType::Left => "left",
         };
         let mut join_doc = doc! {};
-        if let Some(right_db) = right_translation.database.clone() {
-            if left_translation.database != right_translation.database {
-                join_doc.insert("database", right_db);
-            }
+        if let Some(right_db) = right_translation.database.clone()
+            && left_translation.database != right_translation.database
+        {
+            join_doc.insert("database", right_db);
         }
 
         if right_translation.collection.is_some() {

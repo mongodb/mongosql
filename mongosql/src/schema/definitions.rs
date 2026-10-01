@@ -172,10 +172,10 @@ impl SchemaEnvironment {
         let mut name_duplicates = Vec::new();
         let mut keys_with_duplicates = BTreeSet::new();
         for (key, schema) in self.iter() {
-            if let Schema::Document(d) = schema {
-                if d.additional_properties {
-                    return Err(Error::CannotEnumerateAllFieldPaths(schema.clone()));
-                }
+            if let Schema::Document(d) = schema
+                && d.additional_properties
+            {
+                return Err(Error::CannotEnumerateAllFieldPaths(schema.clone()));
             }
             for column in schema.keys() {
                 if let Some(key_with_duplicate) =

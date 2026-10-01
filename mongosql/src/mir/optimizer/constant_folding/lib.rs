@@ -1568,10 +1568,10 @@ impl ConstantFoldExprVisitor<'_> {
 
     // Folds the filter stage
     fn fold_filter_stage(&mut self, filter_stage: Filter) -> (Stage, bool) {
-        if let Expression::Literal(LiteralValue::Boolean(val)) = filter_stage.condition {
-            if val {
-                return (*filter_stage.source, true);
-            }
+        if let Expression::Literal(LiteralValue::Boolean(val)) = filter_stage.condition
+            && val
+        {
+            return (*filter_stage.source, true);
         }
         (Stage::Filter(filter_stage), false)
     }

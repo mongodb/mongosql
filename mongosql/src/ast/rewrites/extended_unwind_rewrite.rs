@@ -137,12 +137,13 @@ fn get_options(
         }
     }
 
-    if !found_index && global_index.is_some() {
-        if let Some(global_index) = global_index {
-            ret.push(UnwindOption::Index(format!(
-                "{index_prefix}_{global_index}",
-            )));
-        }
+    if !found_index
+        && global_index.is_some()
+        && let Some(global_index) = global_index
+    {
+        ret.push(UnwindOption::Index(format!(
+            "{index_prefix}_{global_index}",
+        )));
     }
     if !found_outer && global_outer {
         // there is no need to push Outer(false)

@@ -205,17 +205,16 @@ impl<'de> de::Visitor<'de> for MatchNotVisitor {
                     )));
                 }
                 // check if we have an $elemMatch
-                if let bson::Bson::Document(ref d) = value {
-                    if let Some((k, v)) = get_single_entry(d) {
-                        if k == "$elemMatch" {
-                            let match_array_expr: MatchArrayExpression =
-                                bson::from_bson(v).map_err(de::Error::custom)?;
-                            return Ok(MatchNot {
-                                field,
-                                expr: MatchNotExpression::Element(match_array_expr),
-                            });
-                        }
-                    }
+                if let bson::Bson::Document(ref d) = value
+                    && let Some((k, v)) = get_single_entry(d)
+                    && k == "$elemMatch"
+                {
+                    let match_array_expr: MatchArrayExpression =
+                        bson::from_bson(v).map_err(de::Error::custom)?;
+                    return Ok(MatchNot {
+                        field,
+                        expr: MatchNotExpression::Element(match_array_expr),
+                    });
                 }
                 let expr: MatchNotExpression = bson::from_bson(value).map_err(de::Error::custom)?;
                 Ok(MatchNot { field, expr })

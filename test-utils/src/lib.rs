@@ -208,20 +208,18 @@ fn check_server_version_for_test(
     let server_version = parse_server_version!(server_version);
 
     // if the min server version is specified, check that the server version is >= min
-    if let Some(min_version) = min_server_version.as_ref() {
-        if let Some(server_version) = server_version.as_ref() {
-            if server_version < min_version {
-                return false;
-            }
-        }
+    if let Some(min_version) = min_server_version.as_ref()
+        && let Some(server_version) = server_version.as_ref()
+        && server_version < min_version
+    {
+        return false;
     }
     // if the max server version is specified, check that the server version is <= max
-    if let Some(max_version) = max_server_version.as_ref() {
-        if let Some(server_version) = server_version.as_ref() {
-            if server_version > max_version {
-                return false;
-            }
-        }
+    if let Some(max_version) = max_server_version.as_ref()
+        && let Some(server_version) = server_version.as_ref()
+        && server_version > max_version
+    {
+        return false;
     }
     true
 }

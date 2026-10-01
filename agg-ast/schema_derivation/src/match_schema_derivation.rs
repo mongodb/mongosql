@@ -1621,22 +1621,22 @@ impl MatchConstrainSchema for Expression {
                     }
                 });
             }
-            if let Some(ref a) = z.defaults {
-                if let Expression::Array(v) = a.as_ref() {
-                    v.iter().for_each(|input| {
-                        if let Expression::Ref(reference) = input {
-                            intersect_if_exists(
-                                reference,
-                                state,
-                                Schema::AnyOf(set!(
-                                    Schema::Array(Box::new(Schema::Any)),
-                                    Schema::Atomic(Atomic::Null),
-                                    Schema::Missing
-                                )),
-                            )
-                        }
-                    });
-                }
+            if let Some(ref a) = z.defaults
+                && let Expression::Array(v) = a.as_ref()
+            {
+                v.iter().for_each(|input| {
+                    if let Expression::Ref(reference) = input {
+                        intersect_if_exists(
+                            reference,
+                            state,
+                            Schema::AnyOf(set!(
+                                Schema::Array(Box::new(Schema::Any)),
+                                Schema::Atomic(Atomic::Null),
+                                Schema::Missing
+                            )),
+                        )
+                    }
+                });
             }
             Ok(())
         }
