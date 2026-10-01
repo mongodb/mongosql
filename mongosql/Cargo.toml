@@ -29,7 +29,7 @@ visitgen = { path = "../visitgen" }
 mongosql-datastructures = { path = "../mongosql-datastructures" }
 edit-distance = "2.1.0"
 usererrordisplay-impl = { path = "../usererrordisplay-impl" }
-derive-new = "0.5.9"
+derive-new = "0.7.0"
 base64 = { workspace = true }
 
 [target.'cfg(unix)'.dev-dependencies]
