@@ -10,10 +10,10 @@ use crate::{
         *,
     },
     schema::{
-        Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
-        ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, BOOLEAN_OR_NULLISH,
-        DATE_OR_NULLISH, EMPTY_DOCUMENT, INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH,
-        NUMERIC, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
+        ANY_ARRAY, ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, ANY_DOCUMENT_OR_NULLISH, Atomic,
+        BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, Document, EMPTY_DOCUMENT, INTEGER_LONG_OR_NULLISH,
+        INTEGER_OR_NULLISH, NULLISH, NUMERIC, NUMERIC_OR_NULLISH, ResultSet, STRING_OR_NULLISH,
+        Satisfaction, Schema, SchemaEnvironment,
     },
     set,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -389,19 +389,19 @@ impl CachedSchema for Stage {
                         let (schema_env_key, schema_env_schema) = match key {
                             // If the group key has an alias, bind a document containing that alias
                             // and the group key's schema to the Bottom datasource.
-                            OptionallyAliasedExpr::Aliased(AliasedExpr { expr: _, ref alias }) => (
+                            OptionallyAliasedExpr::Aliased(AliasedExpr { expr: _, alias }) => (
                                 binding_tuple::Key::bot(state.scope_level),
                                 schema_binding_doc(alias.clone(), group_key_schema),
                             ),
                             // Otherwise for a field access group key, bind a document containing the
                             // field access string and the group key's schema to the Reference datasource.
-                            OptionallyAliasedExpr::Unaliased(ref expr) => match expr {
+                            OptionallyAliasedExpr::Unaliased(expr) => match expr {
                                 Expression::FieldAccess(f) => match f.expr.as_ref() {
                                     Expression::Reference(r) => (
                                         r.key.clone(),
                                         schema_binding_doc(f.field.clone(), group_key_schema),
                                     ),
-                                     _ => panic!("group key at position {index} is an unaliased field access with no datasource reference"),
+                                    _ => panic!("group key at position {index} is an unaliased field access with no datasource reference"),
                                 },
                                 _ => panic!("group key at position {index} is an unaliased non-field access expression"),
                             },
@@ -1623,8 +1623,10 @@ trait SqlFunction {
         arg_schema: &[(&Expression, Schema)],
     ) -> Result<Schema, Error> {
         // 1. Assert that the arg schema has exactly 2 arguments
-        let [(in_operator_lhs, in_operator_lhs_schema), (in_operator_rhs, in_operator_rhs_schema)] =
-            arg_schema
+        let [
+            (in_operator_lhs, in_operator_lhs_schema),
+            (in_operator_rhs, in_operator_rhs_schema),
+        ] = arg_schema
         else {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),

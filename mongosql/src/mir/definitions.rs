@@ -1,8 +1,8 @@
 use crate::{
     mir::{
+        Error,
         binding_tuple::{BindingTuple, Key},
         schema::SchemaCache,
-        Error,
     },
     schema::{ResultSet, Satisfaction, Schema},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -1036,7 +1036,7 @@ impl TryFrom<&Expression> for FieldPath {
     type Error = ();
 
     fn try_from(value: &Expression) -> Result<Self, Self::Error> {
-        if let Expression::FieldAccess(ref f) = value {
+        if let Expression::FieldAccess(f) = value {
             f.try_into()
         } else {
             Err(())

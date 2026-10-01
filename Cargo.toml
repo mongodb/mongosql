@@ -21,6 +21,9 @@ members = [
     "mongosqltranslate",
 ]
 
+[workspace.package]
+edition = "2024"
+
 [workspace.dependencies]
 mongodb = "3.8"
 thiserror = "2"

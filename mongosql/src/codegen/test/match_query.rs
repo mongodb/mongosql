@@ -8,8 +8,8 @@ macro_rules! test_codegen_match_query {
             let expected = $expected;
             let input = $input;
 
-            let gen = MqlCodeGenerator {};
-            assert_eq!(expected, gen.codegen_match_query(input));
+            let r#gen = MqlCodeGenerator {};
+            assert_eq!(expected, r#gen.codegen_match_query(input));
         }
     };
 }

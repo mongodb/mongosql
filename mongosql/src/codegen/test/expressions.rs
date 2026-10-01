@@ -6,8 +6,8 @@ macro_rules! test_codegen_expression {
             let expected = $expected;
             let input = $input;
 
-            let gen = MqlCodeGenerator {};
-            assert_eq!(expected, gen.codegen_expression(input));
+            let r#gen = MqlCodeGenerator {};
+            assert_eq!(expected, r#gen.codegen_expression(input));
         }
     };
 }
@@ -156,7 +156,7 @@ mod switch {
 
 mod literal {
     use crate::air::{Expression::*, LiteralValue::*};
-    use bson::{bson, Bson};
+    use bson::{Bson, bson};
 
     test_codegen_expression!(
         null,
@@ -1488,7 +1488,7 @@ mod array {
 
 mod variable {
     use crate::air::Expression::*;
-    use bson::{bson, Bson};
+    use bson::{Bson, bson};
 
     test_codegen_expression!(
         simple,
@@ -1505,7 +1505,7 @@ mod variable {
 
 mod field_ref {
     use crate::air::Expression::FieldRef;
-    use bson::{bson, Bson};
+    use bson::{Bson, bson};
 
     test_codegen_expression!(
         no_parent,

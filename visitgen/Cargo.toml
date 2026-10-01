@@ -2,7 +2,7 @@
 name = "visitgen"
 version = "0.1.0"
 authors = ["Patrick Meredith <pmeredit@protonmail.com>", "Ryan Chipman <ryan@ryanchipman.com>"]
-edition = "2021"
+edition.workspace = true
 
 [lib]
 proc-macro = true

@@ -2,7 +2,7 @@
 name = "visitgen-test"
 version = "0.1.0"
 authors = ["Patrick Meredith <pmeredit@protonmail.com>"]
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 linked-hash-map = { workspace = true }
