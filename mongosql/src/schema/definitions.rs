@@ -2134,15 +2134,22 @@ impl Document {
         let m2_len = m2.len();
         let mut overlap = 0;
         for (key2, schema2) in m2.into_iter() {
-            if let Some(old_schema) = m1.remove(&key2) {
+            if let Some(old_schema) = m1.get_mut(&key2) {
                 overlap += 1;
-                m1.insert(key2, old_schema.union(&schema2));
+                *old_schema = old_schema.union(&schema2);
             } else {
                 m1.insert(key2, schema2);
             }
         }
-        // If either key set is a subset/superset of the other, treat intersection_size as
-        // union.len() (i.e. Jaccard index of 1).
+
+        // Abstractly, a Jaccard index of 1 means that the two document schemas are equivalent. They
+        // may not be exactly the same in terms of type information, but they are equivalent in
+        // terms of keys defined. This is because our usage of Jaccard index measures variation in
+        // defined keys, as opposed to defined keys _and/or_ defined types for those keys.
+        //
+        // If the left keys are a subset of the right keys, or vice versa, then we will consider
+        // them equivalent documents. We do this by setting the intersection_size to union.len()
+        // (i.e., Jaccard index of 1).
         let union_len = m1_len + m2_len - overlap;
         let intersection_size = if overlap == m1_len || overlap == m2_len {
             union_len
