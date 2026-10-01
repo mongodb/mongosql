@@ -68,7 +68,12 @@ async fn test_start_span_and_events() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_init_tracer_provider_without_endpoint_var() {
     let _guard = TRACE_TEST_MUTEX.lock().await;
-    env::remove_var(COLLECTOR_ENDPOINT);
+
+    // SAFETY: this environment variable does not affect the rust compilation process
+    // and is only used for testing purposes
+    unsafe {
+        env::remove_var(COLLECTOR_ENDPOINT);
+    }
     let provider = init_tracer_provider().expect("Failed to initialize tracer provider");
 
     assert!(format!("{provider:?}").contains("SimpleSpanProcessor"));
@@ -80,7 +85,12 @@ async fn test_init_tracer_provider_without_endpoint_var() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_init_tracer_provider_with_endpoint_var() {
     let _guard = TRACE_TEST_MUTEX.lock().await;
-    env::set_var(COLLECTOR_ENDPOINT, "http://non-existent-endpoint:4317");
+
+    // SAFETY: this environment variable does not affect the rust compilation process
+    // and is only used for testing purposes
+    unsafe {
+        env::set_var(COLLECTOR_ENDPOINT, "http://non-existent-endpoint:4317");
+    }
     let provider = init_tracer_provider().expect("Failed to initialize tracer provider");
 
     assert!(format!("{provider:?}").contains("BatchSpanProcessor"));

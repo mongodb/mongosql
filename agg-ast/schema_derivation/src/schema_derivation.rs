@@ -89,15 +89,14 @@ pub fn derive_schema_for_pipeline(
     // when this function is first called, we'd like to seed the result set schema with the collection
     // we are starting with, if specified. Any subsquent calls will not have a current_collection, so this
     // can only happen during the entrypoint to schema derivation
-    if state.result_set_schema == Schema::Any {
-        if let Some(collection) = current_collection {
-            if let Some(schema) = state.catalog.get(&Namespace::new(
-                state.current_db.clone(),
-                collection.clone(),
-            )) {
-                state.result_set_schema = schema.clone()
-            }
-        }
+    if state.result_set_schema == Schema::Any
+        && let Some(collection) = current_collection
+        && let Some(schema) = state.catalog.get(&Namespace::new(
+            state.current_db.clone(),
+            collection.clone(),
+        ))
+    {
+        state.result_set_schema = schema.clone()
     }
     pipeline.iter().try_for_each(|stage| {
         state.result_set_schema = stage.derive_schema(state)?;
@@ -797,10 +796,8 @@ impl DeriveSchema for Stage {
         /// from_to_ns is a helper converting the $lookup "from" field into our standard namespace struct
         fn from_to_ns(from: &LookupFrom, state: &ResultSetState) -> Namespace {
             match from {
-                LookupFrom::Collection(ref c) => {
-                    Namespace::new(state.current_db.clone(), c.clone())
-                }
-                LookupFrom::Namespace(ref n) => {
+                LookupFrom::Collection(c) => Namespace::new(state.current_db.clone(), c.clone()),
+                LookupFrom::Namespace(n) => {
                     Namespace::new(n.database.clone(), n.collection.clone())
                 }
             }
@@ -1017,19 +1014,18 @@ impl DeriveSchema for Stage {
                         let vec_path = path[0..index + 1].to_vec();
                         if let Some(s) =
                             get_schema_for_path_mut(&mut state.result_set_schema, vec_path)
+                            && let Schema::AnyOf(ao) = s
                         {
-                            if let Schema::AnyOf(ao) = s {
-                                *s = ao
-                                    .iter()
-                                    .find_map(|x| {
-                                        if matches!(x, Schema::Document(_)) {
-                                            Some(x.clone())
-                                        } else {
-                                            None
-                                        }
-                                    })
-                                    .unwrap_or(Schema::Missing);
-                            }
+                            *s = ao
+                                .iter()
+                                .find_map(|x| {
+                                    if matches!(x, Schema::Document(_)) {
+                                        Some(x.clone())
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .unwrap_or(Schema::Missing);
                         }
                     }
                 // if preserve null and empty arrays is false, any type along the path is fine and will be preserved.
@@ -1181,7 +1177,7 @@ impl DeriveSchema for Stage {
             j @ Stage::Join(_) => Err(Error::InvalidStage(Box::new(j.clone()))),
             Stage::Limit(_) => Ok(state.result_set_schema.to_owned()),
             Stage::Lookup(l) => lookup_derive_schema(l, state),
-            Stage::Match(ref m) => m.derive_schema(state),
+            Stage::Match(m) => m.derive_schema(state),
             Stage::Project(p) => project_derive_schema(p, state),
             Stage::RankFusion(rf) => rank_fusion_derive_schema(rf, state),
             Stage::Redact(_) => Ok(state.result_set_schema.to_owned()),
@@ -1232,7 +1228,7 @@ impl DeriveSchema for Expression {
     fn derive_schema(&self, state: &mut ResultSetState) -> Result<Schema> {
         state.result_set_schema = promote_missing(&state.result_set_schema);
         match self {
-            Expression::Array(ref a) => {
+            Expression::Array(a) => {
                 let array_schema = a
                     .iter()
                     .map(|e| {
@@ -1268,7 +1264,7 @@ impl DeriveSchema for Expression {
                     ..Default::default()
                 }))
             }
-            Expression::Literal(ref l) => derive_schema_for_literal(l),
+            Expression::Literal(l) => derive_schema_for_literal(l),
             Expression::Ref(Ref::FieldRef(f)) => {
                 let path = f.split(".").map(|s| s.to_string()).collect::<Vec<String>>();
                 // If the user has rebound the CURRENT variable, we should use that schema instead of the result set schema to find any

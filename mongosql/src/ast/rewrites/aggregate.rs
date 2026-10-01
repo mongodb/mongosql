@@ -134,7 +134,7 @@ impl VisitorRef for AggregateUsageCheckVisitor {
     fn visit_expression(&mut self, e: &ast::Expression) {
         use ast::*;
         match e {
-            Expression::Function(ref f) if f.function.is_aggregation_function() => {
+            Expression::Function(f) if f.function.is_aggregation_function() => {
                 if self.error.is_some() {
                     return;
                 }

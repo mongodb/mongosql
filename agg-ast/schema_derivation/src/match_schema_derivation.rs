@@ -397,7 +397,7 @@ impl MatchConstrainSchema for Expression {
         /// only constrain that the arg _may_ be null, because a different arg could be null instead.
         macro_rules! handle_date_operator_arg {
             ($exp:expr, $basic_schema:expr, $state:expr) => {
-                if let Expression::Ref(ref reference) = $exp {
+                if let Expression::Ref(reference) = $exp {
                     match $state.null_behavior {
                         Satisfaction::Not => {
                             intersect_if_exists(reference, $state, $basic_schema);
@@ -537,7 +537,7 @@ impl MatchConstrainSchema for Expression {
             .into_iter()
             .flatten()
             {
-                if let Expression::Ref(ref reference) = e.as_ref() {
+                if let Expression::Ref(reference) = e.as_ref() {
                     intersect_if_exists(reference, state, most_part_schema.clone());
                 } else {
                     e.match_derive_schema(state)?;
