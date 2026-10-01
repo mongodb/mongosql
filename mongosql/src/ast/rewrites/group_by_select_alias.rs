@@ -2,6 +2,7 @@ use crate::ast::{
     self,
     rewrites::{Pass, Result},
     visitor::Visitor,
+    visitor_ref::VisitorRef,
 };
 use std::collections::HashMap;
 
@@ -25,7 +26,7 @@ impl Visitor for GroupBySelectAliasVisitor {
         // Gather information about select expression aliases and identifier
         // group keys.
         let mut alias_matcher = MatchingAliasFinder::default();
-        let query = alias_matcher.visit_query(query);
+        alias_matcher.visit_query(&query);
 
         // Rewrite group keys and select expressions as needed given the
         // information gathered above.
@@ -58,33 +59,29 @@ impl MatchingAliasFinder {
     }
 }
 
-impl Visitor for MatchingAliasFinder {
-    fn visit_query(&mut self, subquery: ast::Query) -> ast::Query {
+impl VisitorRef for MatchingAliasFinder {
+    fn visit_query(&mut self, subquery: &ast::Query) {
         if self.skip_subqueries {
             // Don't walk into subqueries
-            return subquery;
+            return;
         }
         self.skip_subqueries = true;
-        subquery.walk(self)
+        subquery.walk_ref(self)
     }
 
-    fn visit_select_expression(
-        &mut self,
-        select_expr: ast::SelectExpression,
-    ) -> ast::SelectExpression {
+    fn visit_select_expression(&mut self, select_expr: &ast::SelectExpression) {
         if let ast::SelectExpression::Expression(ast::OptionallyAliasedExpr::Aliased(ref ae)) =
             select_expr
         {
             self.aliased_select_exprs
                 .insert(ae.alias.clone(), ae.clone());
         };
-        select_expr
     }
 
-    fn visit_group_by_clause(&mut self, group_by: ast::GroupByClause) -> ast::GroupByClause {
+    fn visit_group_by_clause(&mut self, group_by: &ast::GroupByClause) {
         // Do not perform this rewrite if there are any aggregations.
         if !group_by.aggregations.is_empty() {
-            return group_by;
+            return;
         }
 
         for expr in group_by.keys.iter() {
@@ -93,7 +90,6 @@ impl Visitor for MatchingAliasFinder {
                 self.group_key_identifiers.push(ident.name.clone());
             }
         }
-        group_by
     }
 }
 

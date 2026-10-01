@@ -779,7 +779,7 @@ impl<'a> Algebrizer<'a> {
 
     fn algebrize_array_datasource(&self, a: ast::ArraySource) -> Result<mir::Stage> {
         let (ve, alias) = (a.array, a.alias.clone());
-        let (ve, array_is_literal) = ast::visitors::are_literal(ve);
+        let array_is_literal = ast::visitors::are_literal(ve.as_slice());
         if !array_is_literal {
             return Err(Error::ArrayDatasourceMustBeLiteral);
         }
