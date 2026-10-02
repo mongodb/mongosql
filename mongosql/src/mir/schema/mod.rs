@@ -413,7 +413,7 @@ impl CachedSchema for Stage {
                             ),
                             // Otherwise for a field access group key, bind a document containing the
                             // field access string and the group key's schema to the Reference datasource.
-                            OptionallyAliasedExpr::Unaliased(ref expr) => match expr {
+                            OptionallyAliasedExpr::Unaliased(expr) => match expr {
                                 Expression::FieldAccess(f) => {
                                     schema_binding_doc_for_field_access(f, group_key_schema)
                                 },
