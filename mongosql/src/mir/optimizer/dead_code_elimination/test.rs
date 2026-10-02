@@ -632,6 +632,115 @@ mod group {
         })
     );
 
+    // Equivalent query:
+    // SELECT *
+    // FROM FLATTEN(FLATTEN(nested AS flattened WITH DEPTH => 1) WITH DEPTH => 1)
+    // GROUP BY flattened.a_x_y, flattened.a_x_z
+    //
+    // This test shows the second step: moving the Group stage above the second Project stage (the
+    // inner FLATTEN). It assumes the first step succeeds as normal since the more interesting
+    // aspect to test is this second move.
+    test_dead_code_elimination!(
+        swap_flatten_like_project_source_with_doc_literal_for_group_with_multiple_unaliased_multipart_group_keys,
+        expected = Stage::Project(Project {
+            is_add_fields: false,
+            source: Box::new(Stage::Project(Project {
+                is_add_fields: false,
+                source: Box::new(Stage::Group(Group {
+                    source: mir_collection("db", "nested"),
+                    keys: vec![
+                        OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Document(DocumentExpr {
+                                    document: unchecked_unique_linked_hash_map! {
+                                        "a_b".to_string() => *mir_field_access_multi_part("nested", vec!["a", "b"], true),
+                                        "a_c".to_string() => *mir_field_access_multi_part("nested", vec!["a", "c"], true),
+                                        "a_x".to_string() => *mir_field_access_multi_part("nested", vec!["a", "x"], true),
+                                    },
+                                })),
+                                field: "a_x".to_string(),
+                                is_nullable: true,
+                            })),
+                            field: "y".to_string(),
+                            is_nullable: true,
+                        })),
+                        OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Document(DocumentExpr {
+                                    document: unchecked_unique_linked_hash_map! {
+                                        "a_b".to_string() => *mir_field_access_multi_part("nested", vec!["a", "b"], true),
+                                        "a_c".to_string() => *mir_field_access_multi_part("nested", vec!["a", "c"], true),
+                                        "a_x".to_string() => *mir_field_access_multi_part("nested", vec!["a", "x"], true),
+                                    },
+                                })),
+                                field: "a_x".to_string(),
+                                is_nullable: true,
+                            })),
+                            field: "z".to_string(),
+                            is_nullable: true,
+                        })),
+                    ],
+                    aggregations: vec![],
+                    scope: 0u16,
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("flattened", 0u16).into() => Expression::Document(DocumentExpr {
+                        document: unchecked_unique_linked_hash_map! {
+                            "a_x".to_string() => *mir_field_access_multi_part("nested", vec!["a", "x"], true),
+                        },
+                    })
+                },
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("flattened", 0u16).into() => Expression::Document(DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "a_x_y".to_string() => *mir_field_access_multi_part("flattened", vec!["a_x", "y"], true),
+                        "a_x_z".to_string() => *mir_field_access_multi_part("flattened", vec!["a_x", "z"], true),
+                    },
+                })
+            },
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Project(Project {
+            is_add_fields: false,
+            source: Box::new(Stage::Group(Group {
+                source: Box::new(Stage::Project(Project {
+                    is_add_fields: false,
+                    source: mir_collection("db", "nested"),
+                    expression: map! {
+                        ("flattened", 0u16).into() => Expression::Document(DocumentExpr {
+                            document: unchecked_unique_linked_hash_map! {
+                                "a_b".to_string() => *mir_field_access_multi_part("nested", vec!["a", "b"], true),
+                                "a_c".to_string() => *mir_field_access_multi_part("nested", vec!["a", "c"], true),
+                                "a_x".to_string() => *mir_field_access_multi_part("nested", vec!["a", "x"], true),
+                            },
+                        })
+                    },
+                    cache: SchemaCache::new(),
+                })),
+                keys: vec![
+                    unaliased_field_access_multi_part("flattened", vec!["a_x", "y"]),
+                    unaliased_field_access_multi_part("flattened", vec!["a_x", "z"]),
+                ],
+                aggregations: vec![],
+                scope: 0u16,
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("flattened", 0u16).into() => Expression::Document(DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "a_x_y".to_string() => *mir_field_access_multi_part("flattened", vec!["a_x", "y"], true),
+                        "a_x_z".to_string() => *mir_field_access_multi_part("flattened", vec!["a_x", "z"], true),
+                    },
+                })
+            },
+            cache: SchemaCache::new(),
+        })
+    );
+
     // An unaliased group key is emitted under key's datasource name, therefore when the Project is
     // swapped it retains all unaliased group key datasources. In this case, the Project stage
     // originally output a literal Document expression. After the swap, all unaliased group key
