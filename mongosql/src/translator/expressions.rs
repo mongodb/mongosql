@@ -201,10 +201,9 @@ impl MqlTranslator {
     ) -> Result<air::Expression> {
         let mut doc_expr = UniqueLinkedHashMap::new();
 
-        // Separate the "normal" fields from the "set" fields. Normal fields
-        // are fields that do not start with a '$' or contain a '.'.
-        // Set fields are fields that start with a '$' or contain a '.'.
-        // Empty fields are invalid.
+        // Separate the "normal" fields from the "set" fields. Normal fields are fields that do not
+        // start with a '$' or contain a '.'. Set fields are fields that start with a '$' or contain
+        // a '.'. Empty fields are invalid.
         let (normal_fields, set_fields): (Vec<_>, Vec<_>) = mir_document.into_iter().try_fold(
             (Vec::new(), Vec::new()),
             |(mut normal_fields, mut set_fields), (k, v)| {
@@ -220,32 +219,55 @@ impl MqlTranslator {
             },
         )?;
 
-        // normal fields are processed first since they do not require any special
-        // handling.
+        // Normal fields are processed first since they do not require any special handling.
         for (k, v) in normal_fields {
             let translated_v = self.translate_expression(v)?;
-            doc_expr.insert(k.to_string(), translated_v)?;
+            doc_expr.insert(k, translated_v)?;
         }
 
-        // If there are no set fields, we can return the document expression
+        // If there are no set fields, we can return the document expression directly.
         if set_fields.is_empty() {
             return Ok(air::Expression::Document(doc_expr));
         }
 
-        // set fields are required to be set inside a SetField expression.
-        // The document expression calculated above is the initial input to the
-        // SetField expression(s). The SetField expression is
-        // chained with other SetField expressions for each set field.
-        let mut set_field_expr = air::Expression::Document(doc_expr);
+        // If there is only one set field, we can return a single SetField expression.
+        if set_fields.len() == 1 {
+            let (k, v) = set_fields.into_iter().next().unwrap();
+            let translated_v = self.translate_expression(v)?;
+            return Ok(air::Expression::SetField(air::SetField {
+                field: k,
+                input: Box::new(air::Expression::Document(doc_expr)),
+                value: Box::new(translated_v),
+            }));
+        }
+
+        // Each set field is translated as a SetField applied to an empty document {}, producing a
+        // single-key document for that field. All of these, along with the normal-fields document
+        // (if any), are combined via MergeObjects. This avoids deeply nested $setField chains when
+        // there are many such fields.
+        //
+        // Only include the normal-fields document if it is non-empty.
+        let mut merge_args = if doc_expr.is_empty() {
+            vec![]
+        } else {
+            vec![air::Expression::Document(doc_expr)]
+        };
+
         for (k, v) in set_fields {
             let translated_v = self.translate_expression(v)?;
-            set_field_expr = air::Expression::SetField(air::SetField {
+            merge_args.push(air::Expression::SetField(air::SetField {
                 field: k,
-                input: Box::new(set_field_expr),
+                input: Box::new(air::Expression::Document(UniqueLinkedHashMap::new())),
                 value: Box::new(translated_v),
-            })
+            }));
         }
-        Ok(set_field_expr)
+
+        Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::MergeObjects,
+                args: merge_args,
+            },
+        ))
     }
 
     fn translate_exists(&self, exists: mir::ExistsExpr) -> Result<air::Expression> {

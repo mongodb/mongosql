@@ -294,6 +294,7 @@ mod document {
         )),
         input = mir::Expression::Document(unchecked_unique_linked_hash_map! {}.into()),
     );
+
     test_translate_expression!(
         non_empty,
         expected = Ok(air::Expression::Document(
@@ -303,6 +304,7 @@ mod document {
             unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),}
         .into()),
     );
+
     test_translate_expression!(
         nested,
         expected = Ok(air::Expression::Document(
@@ -323,6 +325,7 @@ mod document {
             .into()
         ),
     );
+
     test_translate_expression!(
         dollar_prefixed_key_becomes_set_field,
         expected = Ok(air::Expression::SetField(air::SetField {
@@ -333,6 +336,7 @@ mod document {
         input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {"$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}.into()),
     );
+
     test_translate_expression!(
         key_containing_dot_becomes_set_field,
         expected = Ok(air::Expression::SetField(air::SetField {
@@ -344,22 +348,64 @@ mod document {
             unchecked_unique_linked_hash_map! {"foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}.into(),
         ),
     );
+
     test_translate_expression!(
-        set_field_nesting_is_limited_to_fields_needing_set_field,
+        single_set_field_combined_with_normal_fields,
         expected = Ok(air::Expression::SetField(air::SetField {
-            field: "$foo".to_string(),
-            input: Box::new(air::Expression::SetField(air::SetField {
-                field: "foo.bar".to_string(),
-                input: Box::new(air::Expression::Document(
-                    unchecked_unique_linked_hash_map! {
+            field: "foo.bar".to_string(),
+            input: Box::new(air::Expression::Document(
+                unchecked_unique_linked_hash_map! {
+                    "x".to_string() => air::Expression::FieldRef("f.x".to_string().into()),
+                    "y".to_string() => air::Expression::Literal(air::LiteralValue::Integer(3)),
+                }
+            )),
+            value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+        })),
+        input = mir::Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "x".to_string() => *mir_field_access("f", "x", true),
+                "foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                "y".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+            }
+            .into(),
+        ),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr
+        },
+    );
+
+    test_translate_expression!(
+        multiple_set_fields_are_combined_using_merge_objects,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::MergeObjects,
+                args: vec![
+                    air::Expression::Document(unchecked_unique_linked_hash_map! {
                         "x".to_string() => air::Expression::FieldRef("f.x".to_string().into()),
                         "y".to_string() => air::Expression::Literal(air::LiteralValue::Integer(3)),
-                    }
-                )),
-                value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
-            })),
-            value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(2))),
-        })),
+                    }),
+                    air::Expression::SetField(air::SetField {
+                        field: "foo.bar".to_string(),
+                        input: Box::new(air::Expression::Document(
+                            unchecked_unique_linked_hash_map! {}
+                        )),
+                        value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+                    }),
+                    air::Expression::SetField(air::SetField {
+                        field: "$foo".to_string(),
+                        input: Box::new(air::Expression::Document(
+                            unchecked_unique_linked_hash_map! {}
+                        )),
+                        value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(2))),
+                    }),
+                ],
+            }
+        )),
         input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {
                 "foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
@@ -378,6 +424,39 @@ mod document {
             mr
         },
     );
+
+    test_translate_expression!(
+        multiple_set_fields_with_no_normal_fields_are_combined_using_merge_objects,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::MergeObjects,
+                args: vec![
+                    air::Expression::SetField(air::SetField {
+                        field: "foo.bar".to_string(),
+                        input: Box::new(air::Expression::Document(
+                            unchecked_unique_linked_hash_map! {}
+                        )),
+                        value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+                    }),
+                    air::Expression::SetField(air::SetField {
+                        field: "$foo".to_string(),
+                        input: Box::new(air::Expression::Document(
+                            unchecked_unique_linked_hash_map! {}
+                        )),
+                        value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(2))),
+                    }),
+                ],
+            }
+        )),
+        input = mir::Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                "$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+            }
+            .into(),
+        ),
+    );
+
     test_translate_expression!(
         empty_key_disallowed,
         expected = Err(Error::InvalidDocumentKey("".to_string())),

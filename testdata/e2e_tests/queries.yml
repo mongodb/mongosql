@@ -359,3 +359,136 @@ dataset:
                   - bsonType: "int"
                   - bsonType: !!str "null"
             - bsonType: !!str "null"
+
+  - db: "e2e_queries_db4"
+    collection:
+      name: "nested"
+      docs:
+        - { _id: 0, a0: { x: 0 }, a1: { x: 1 }, a2: { x: 2 }, a3: { x: 3 }, a4: { x: 4 }, a5: { x: 5 }, a6: { x: 6 }, a7: { x: 7 }, a8: { x: 8 }, a9: { x: 9 }, a10: { x: 10 }, a11: { x: 11 }, a12: { x: 12 }, a13: { x: 13 }, a14: { x: 14 }, a15: { x: 15 }, a16: { x: 16 }, a17: { x: 17 }, a18: { x: 18 }, a19: { x: 19 }, a20: { x: 20 }, a21: { x: 21 }, a22: { x: 22 }, a23: { x: 23 }, a24: { x: 24 }, a25: { x: 25 }, a26: { x: 26 }, a27: { x: 27 }, a28: { x: 28 }, a29: { x: 29 }, a30: { x: 30 }, a31: { x: 31 }, a32: { x: 32 }, a33: { x: 33 }, a34: { x: 34 }, a35: { x: 35 }, a36: { x: 36 }, a37: { x: 37 }, a38: { x: 38 }, a39: { x: 39 }, a40: { x: 40 }, a41: { x: 41 }, a42: { x: 42 }, a43: { x: 43 }, a44: { x: 44 }, a45: { x: 45 }, a46: { x: 46 }, a47: { x: 47 }, a48: { x: 48 }, a49: { x: 49 }, a50: { x: 50 }, a51: { x: 51 }, a52: { x: 52 }, a53: { x: 53 }, a54: { x: 54 }, a55: { x: 55 }, a56: { x: 56 }, a57: { x: 57 }, a58: { x: 58 }, a59: { x: 59 }, a60: { x: 60 }, a61: { x: 61 }, a62: { x: 62 }, a63: { x: 63 }, a64: { x: 64 }, a65: { x: 65 }, a66: { x: 66 }, a67: { x: 67 }, a68: { x: 68 }, a69: { x: 69 }, a70: { x: 70 }, a71: { x: 71 }, a72: { x: 72 }, a73: { x: 73 }, a74: { x: 74 }, a75: { x: 75 }, a76: { x: 76 }, a77: { x: 77 }, a78: { x: 78 }, a79: { x: 79 }, a80: { x: 80 }, a81: { x: 81 }, a82: { x: 82 }, a83: { x: 83 }, a84: { x: 84 }, a85: { x: 85 }, a86: { x: 86 }, a87: { x: 87 }, a88: { x: 88 }, a89: { x: 89 }, a90: { x: 90 }, a91: { x: 91 }, a92: { x: 92 }, a93: { x: 93 }, a94: { x: 94 }, a95: { x: 95 }, a96: { x: 96 }, a97: { x: 97 }, a98: { x: 98 }, a99: { x: 99 } }
+    schema:
+      bsonType: "object"
+      required: [
+        '_id', 'a0',  'a1',  'a10', 'a11', 'a12', 'a13', 'a14',
+        'a15', 'a16', 'a17', 'a18', 'a19', 'a2',  'a20', 'a21',
+        'a22', 'a23', 'a24', 'a25', 'a26', 'a27', 'a28', 'a29',
+        'a3',  'a30', 'a31', 'a32', 'a33', 'a34', 'a35', 'a36',
+        'a37', 'a38', 'a39', 'a4',  'a40', 'a41', 'a42', 'a43',
+        'a44', 'a45', 'a46', 'a47', 'a48', 'a49', 'a5',  'a50',
+        'a51', 'a52', 'a53', 'a54', 'a55', 'a56', 'a57', 'a58',
+        'a59', 'a6',  'a60', 'a61', 'a62', 'a63', 'a64', 'a65',
+        'a66', 'a67', 'a68', 'a69', 'a7',  'a70', 'a71', 'a72',
+        'a73', 'a74', 'a75', 'a76', 'a77', 'a78', 'a79', 'a8',
+        'a80', 'a81', 'a82', 'a83', 'a84', 'a85', 'a86', 'a87',
+        'a88', 'a89', 'a9',  'a90', 'a91', 'a92', 'a93', 'a94',
+        'a95', 'a96', 'a97', 'a98', 'a99'
+      ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: "int"
+        a0: &nested_prop
+          bsonType: "object"
+          required: [ "x" ]
+          additionalProperties: false
+          properties:
+            x:
+              bsonType: "int"
+        a1: *nested_prop
+        a2: *nested_prop
+        a3: *nested_prop
+        a4: *nested_prop
+        a5: *nested_prop
+        a6: *nested_prop
+        a7: *nested_prop
+        a8: *nested_prop
+        a9: *nested_prop
+        a10: *nested_prop
+        a11: *nested_prop
+        a12: *nested_prop
+        a13: *nested_prop
+        a14: *nested_prop
+        a15: *nested_prop
+        a16: *nested_prop
+        a17: *nested_prop
+        a18: *nested_prop
+        a19: *nested_prop
+        a20: *nested_prop
+        a21: *nested_prop
+        a22: *nested_prop
+        a23: *nested_prop
+        a24: *nested_prop
+        a25: *nested_prop
+        a26: *nested_prop
+        a27: *nested_prop
+        a28: *nested_prop
+        a29: *nested_prop
+        a30: *nested_prop
+        a31: *nested_prop
+        a32: *nested_prop
+        a33: *nested_prop
+        a34: *nested_prop
+        a35: *nested_prop
+        a36: *nested_prop
+        a37: *nested_prop
+        a38: *nested_prop
+        a39: *nested_prop
+        a40: *nested_prop
+        a41: *nested_prop
+        a42: *nested_prop
+        a43: *nested_prop
+        a44: *nested_prop
+        a45: *nested_prop
+        a46: *nested_prop
+        a47: *nested_prop
+        a48: *nested_prop
+        a49: *nested_prop
+        a50: *nested_prop
+        a51: *nested_prop
+        a52: *nested_prop
+        a53: *nested_prop
+        a54: *nested_prop
+        a55: *nested_prop
+        a56: *nested_prop
+        a57: *nested_prop
+        a58: *nested_prop
+        a59: *nested_prop
+        a60: *nested_prop
+        a61: *nested_prop
+        a62: *nested_prop
+        a63: *nested_prop
+        a64: *nested_prop
+        a65: *nested_prop
+        a66: *nested_prop
+        a67: *nested_prop
+        a68: *nested_prop
+        a69: *nested_prop
+        a70: *nested_prop
+        a71: *nested_prop
+        a72: *nested_prop
+        a73: *nested_prop
+        a74: *nested_prop
+        a75: *nested_prop
+        a76: *nested_prop
+        a77: *nested_prop
+        a78: *nested_prop
+        a79: *nested_prop
+        a80: *nested_prop
+        a81: *nested_prop
+        a82: *nested_prop
+        a83: *nested_prop
+        a84: *nested_prop
+        a85: *nested_prop
+        a86: *nested_prop
+        a87: *nested_prop
+        a88: *nested_prop
+        a89: *nested_prop
+        a90: *nested_prop
+        a91: *nested_prop
+        a92: *nested_prop
+        a93: *nested_prop
+        a94: *nested_prop
+        a95: *nested_prop
+        a96: *nested_prop
+        a97: *nested_prop
+        a98: *nested_prop
+        a99: *nested_prop
