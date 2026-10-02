@@ -698,3 +698,10 @@ tests:
     result:
         - { "bar": { "a_b": 1 } }
         - { "bar": { "a_b": 2 } }
+
+  - description: Multiple multipart unaliased group keys from FLATTEN datasource
+    current_db: test
+    query: "SELECT * FROM FLATTEN(FLATTEN([{'a': {'b': 1, 'c': 2, 'x': {'y': 30, 'z': 40}}}, {'a': {'b': 2, 'c': 3, 'x': {'y': 300, 'z': 400}}}, {'a': {'b': 3, 'c': 4, 'x': {'y': 30, 'z': 40}}}] bar WITH DEPTH => 1) WITH DEPTH => 1) GROUP BY bar.a_x_y, bar.a_x_z"
+    result:
+        - { "bar": { "a_x_y": 30, "a_x_z": 40 } }
+        - { "bar": { "a_x_y": 300, "a_x_z": 400 } }
