@@ -162,11 +162,11 @@ impl DeadCodeEliminationVisitor {
                                 //
                                 // This is a safe unwrap since we know the FieldAccess is pure.
                                 let path_components = f.path_if_pure().unwrap();
-                                og_doc.retain_path(&path_components).map(|retained_doc| {
+                                if let Some(retained_doc) = og_doc.retain_path(&path_components) {
                                     let val =
                                         retained_doc.document.get(&path_components[0]).unwrap();
                                     let _ = doc.insert(path_components[0].clone(), val.clone());
-                                });
+                                }
 
                                 Expression::Document(doc.into())
                             }
@@ -206,7 +206,7 @@ impl DeadCodeEliminationVisitor {
                 // swap the Group with the Project.
                 Ok(g) => {
                     self.changed = true;
-                    let s = Stage::Project(Project {
+                    Stage::Project(Project {
                         source: Box::new(Stage::Group(Group {
                             source: p.source,
                             // We obliterate the cache here because it is invalidated by the swap.
@@ -216,8 +216,7 @@ impl DeadCodeEliminationVisitor {
                         expression: new_expr,
                         is_add_fields: false,
                         cache: SchemaCache::new(),
-                    });
-                    s
+                    })
                 }
                 // It is possible for substitution to fail if the Group clause contains Subqueries.
                 // This should be very rare.
