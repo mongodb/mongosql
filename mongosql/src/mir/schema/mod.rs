@@ -19,6 +19,7 @@ use crate::{
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
 use bson::spec::BinarySubtype;
+use mongosql_datastructures::binding_tuple::Key;
 use std::{
     cell::RefCell,
     cmp::min,
@@ -359,14 +360,31 @@ impl CachedSchema for Stage {
 
                 // A helper to bind a field/alias to a schema.
                 // Used for embedding a group key or aggregation function under a datasource.
-                let schema_binding_doc = |field_or_alias: String, schema: Schema| {
+                fn schema_binding_doc(field_or_alias: String, schema: Schema) -> Schema {
                     Schema::Document(Document {
                         keys: map! { field_or_alias.clone() => schema },
                         required: set! { field_or_alias },
                         additional_properties: false,
                         ..Default::default()
                     })
-                };
+                }
+
+                fn schema_binding_doc_for_field_access(
+                    field_access: &FieldAccess,
+                    schema: Schema,
+                ) -> (Key, Schema) {
+                    match field_access.expr.as_ref() {
+                        Expression::Reference(r) => (
+                            r.key.clone(),
+                            schema_binding_doc(field_access.field.clone(), schema),
+                        ),
+                        Expression::FieldAccess(fa) => {
+                            let new_schema = schema_binding_doc(field_access.field.clone(), schema);
+                            schema_binding_doc_for_field_access(fa, new_schema)
+                        }
+                        _ => panic!("group key is a field access with no datasource reference"),
+                    }
+                }
 
                 let schema_env = g
                     .keys
@@ -395,13 +413,9 @@ impl CachedSchema for Stage {
                             ),
                             // Otherwise for a field access group key, bind a document containing the
                             // field access string and the group key's schema to the Reference datasource.
-                            OptionallyAliasedExpr::Unaliased(expr) => match expr {
-                                Expression::FieldAccess(f) => match f.expr.as_ref() {
-                                    Expression::Reference(r) => (
-                                        r.key.clone(),
-                                        schema_binding_doc(f.field.clone(), group_key_schema),
-                                    ),
-                                    _ => panic!("group key at position {index} is an unaliased field access with no datasource reference"),
+                            OptionallyAliasedExpr::Unaliased(ref expr) => match expr {
+                                Expression::FieldAccess(f) => {
+                                    schema_binding_doc_for_field_access(f, group_key_schema)
                                 },
                                 _ => panic!("group key at position {index} is an unaliased non-field access expression"),
                             },
