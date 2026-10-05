@@ -146,7 +146,7 @@ impl DeadCodeEliminationVisitor {
                                 //
                                 // The first time this optimization applies, the unaliased group
                                 // key is a single component (by definition!) so we trivially
-                                // retain the full path 'foo.a_b.c' from the original document.
+                                // retain the full path 'foo.a_b_c' from the original document.
                                 // When the swap occurs, the unaliased group key is effectively
                                 // rewritten to 'foo.a_b.c' (assuming constant folding).
                                 //
