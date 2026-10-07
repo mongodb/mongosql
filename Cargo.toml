@@ -25,7 +25,7 @@ members = [
 edition = "2024"
 
 [workspace.dependencies]
-mongodb = "3.8"
+mongodb = "3.9"
 thiserror = "2"
 serde_yaml = "0"
 serde = "1"
