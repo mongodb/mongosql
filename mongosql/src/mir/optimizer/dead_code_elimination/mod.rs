@@ -100,24 +100,23 @@ impl DeadCodeEliminationVisitor {
                         let expr = match v {
                             Expression::Document(og_doc) => {
                                 let maybe_existing_doc = new_expr.get(&r.key);
-                                let mut doc =
-                                    if let Some(Expression::Document(d)) = maybe_existing_doc {
-                                        // If the new expression already contains this datasource,
-                                        // it should be a Document expression. We need to extend the
-                                        // Document to include the new unaliased group key field.
-                                        d.document.clone()
-                                    } else if maybe_existing_doc.is_none() {
-                                        // If the new expression does not contain this datasource,
-                                        // we need to create a fresh Document expression for it.
-                                        UniqueLinkedHashMap::new()
-                                    } else {
-                                        // If the new expression contains this datasource, but it is
-                                        // not a Document expression, we cannot swap the Group with
-                                        // the Project. This should never happen, but instead of
-                                        // panicking or doing something undefined, we return the
-                                        // original Group stage for safety and correctness.
-                                        return Stage::Group(og);
-                                    };
+                                let mut doc = match maybe_existing_doc {
+                                    // If the new expression already contains this datasource, it
+                                    // should be a Document expression. We need to extend the
+                                    // Document to include the new unaliased group key field.
+                                    Some(Expression::Document(d)) => d.document.clone(),
+
+                                    // If the new expression contains this datasource, but it is not
+                                    // a Document expression, we cannot swap the Group with the
+                                    // Project. This should never happen, but instead of panicking
+                                    // or doing something undefined, we return the original Group
+                                    // stage for safety and correctness.
+                                    None => UniqueLinkedHashMap::new(),
+
+                                    // If the new expression does not contain this datasource,
+                                    // we need to create a fresh Document expression for it.
+                                    Some(_) => return Stage::Group(og),
+                                };
 
                                 // We must retain the full path that exists in the original doc,
                                 // which may or may not include the full path from the unaliased
