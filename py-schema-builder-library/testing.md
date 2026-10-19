@@ -6,6 +6,10 @@ How to build the extension module and validate the Python bindings locally.
 
 - Rust toolchain (the workspace edition is 2024, so a recent stable is required)
 - [maturin](https://www.maturin.rs/): `pip install maturin` (or `uv pip install maturin`)
+- [PyMongo](https://pymongo.readthedocs.io/) (runtime dependency — the Rust
+  bindings call `bson.encode`/`bson.decode`): `pip install pymongo`.
+  Declared in `pyproject.toml`, so wheels installed via `pip` pull it in
+  automatically; `maturin develop` does not install it for you.
 - A virtualenv for the target Python interpreter:
 
   ```sh
@@ -40,30 +44,36 @@ Or inline:
 
 ```sh
 python - <<'EOF'
+import pymongo
 from py_schema_builder_library import sum_as_string, SchemaBuilder
 import bson
 
 print(sum_as_string(2, 40))  # "42"
 
-b = SchemaBuilder()
+# Document-level methods work without a client...
+b = SchemaBuilder(None)
 doc = {"a": 1, "b": "x"}
-
-# Raw-bytes path: encode the document in Python with pymongo's bson...
-encoded = bson.encode(doc)
-print(b.build_schema_for_document_bytes(encoded))
-
-# ...or let the Rust side do the encoding via bson.encode
 print(b.build_schema_for_document(doc))
+
+# ...collection-level methods need a PyMongo client and a running mongod.
+b = SchemaBuilder(pymongo.MongoClient())
+print(b.build_schema_for_collection("smoke_test_db", "smoke_test_coll"))
+print(b.sample_schema_for_collection("smoke_test_db", "smoke_test_coll", 100))
 EOF
 ```
 
-Expected: `42` printed, then two `Generated schema for: ...` lines (the same
-schema from both paths). Requires `pip install pymongo` in the active venv
-for the `bson.encode` calls. Malformed bytes passed to
-`build_schema_for_document_bytes` raise Python `ValueError`.
+Expected: `42` printed, then schema dicts (Python `dict`) for the document
+path, and — with a running MongoDB — dicts for the collection paths.
+Requires `pip install pymongo` in the active venv. Malformed bytes passed to
+`build_schema_for_document_bytes`, a missing collection, or calling a
+collection-level method on a client-less builder all raise Python
+`ValueError`.
 
 ## Things to validate as the bindings evolve
 
+- **Constructor:** `SchemaBuilder(pymongo_client)` for collection-level
+  operations, or `SchemaBuilder(None)` for document-only use. Collection
+  methods on a client-less builder raise `ValueError`.
 - **Signature acceptance:** `build_schema_for_document` must accept a plain
   `dict` positionally; calling it with no arguments should raise
   `TypeError` (missing `document`), not a Rust panic.

@@ -12,6 +12,7 @@ pub use mongodb::MongoDbDataService;
 
 #[cfg(feature = "wasm")]
 pub mod wasm;
+
 #[cfg(feature = "wasm")]
 pub use wasm::{JsDataService, WasmDataService};
 

@@ -12,6 +12,7 @@ members = [
     "mongosql-datastructures",
     "mongosql-c",
     "mongosql",
+    "mongosql-python",
     "schema-builder-library",
     "service",
     "test-utils",
@@ -19,6 +20,7 @@ members = [
     "visitgen",
     "visitgen-test",
     "mongosqltranslate",
+    "py-schema-builder-library",
 ]
 
 [workspace.package]

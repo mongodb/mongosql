@@ -1,28 +1,85 @@
+mod pymongo_data_service;
+
 use pyo3::prelude::*;
 
 /// A Python module implemented in Rust.
 #[pymodule]
 mod py_schema_builder_library {
-    use bson::{Document, doc, to_bson};
+    use std::future::Future;
+
+    use crate::pymongo_data_service::PyMongoDataService;
     use pyo3::prelude::*;
     use pyo3::types::PyDict;
 
     const MAX_SAMPLE_SIZE_HARD_LIMIT: u32 = 50_000;
+
     /// Formats the sum of two numbers as string.
     #[pyfunction]
     fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
         Ok((a + b).to_string())
     }
 
+    /// Runs a non-`Send` schema-derivation future to completion on the current
+    /// thread.
+    ///
+    /// The futures produced by `schema-builder-library` (generic over the
+    /// `LocalDataService` local variant) are not `Send`, so they must never run
+    /// on `tokio::spawn` or a multi-threaded runtime — a fresh current-thread
+    /// runtime per call is the simplest correct harness for a POC.
+    ///
+    /// The GIL is intentionally NOT released around `block_on`: the future's
+    /// output crosses back into Python and the service re-enters Python on
+    /// every I/O call, so `Python::detach`'s `Ungil` bounds don't hold here.
+    // TODO: Release the GIL around network I/O once the service isolates its
+    // Python calls from the Rust state (would need a Send-able output type).
+    fn run_current_thread<F: Future>(fut: F) -> PyResult<F::Output> {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+        Ok(runtime.block_on(fut))
+    }
+
+    /// Converts a derived `Schema` into a Python dict via the `$jsonSchema`
+    /// document and PyMongo's `bson.decode`.
+    fn schema_to_py_dict(
+        py: Python<'_>,
+        schema: schema_builder_library::MongoSqlSchema,
+    ) -> PyResult<Py<PyDict>> {
+        // Schema -> $jsonSchema BSON document (TryFrom impl in mongosql).
+        let json_schema = bson::Document::try_from(schema).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Failed to convert Schema to jsonSchema: {}",
+                e
+            ))
+        })?;
+
+        let mut schema_bytes = Vec::new();
+        json_schema
+            .to_writer(&mut schema_bytes)
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+
+        let bson_module = PyModule::import(py, "bson")?;
+        let decoded = bson_module
+            .getattr("decode")?
+            .call1((schema_bytes,))?
+            .extract::<Bound<'_, PyDict>>()?;
+        Ok(decoded.unbind())
+    }
+
     /// Base class for SchemaBuilder
     #[pyclass]
-    struct SchemaBuilder {}
+    struct SchemaBuilder {
+        client: Option<Py<PyAny>>,
+    }
 
     #[pymethods]
     impl SchemaBuilder {
         #[new]
-        fn __new__() -> Self {
-            SchemaBuilder {}
+        fn __new__(client: Option<Bound<'_, PyAny>>) -> Self {
+            SchemaBuilder {
+                client: client.map(|c| c.unbind().into_any()),
+            }
         }
 
         /// Example method for SchemaBuilder
@@ -105,31 +162,70 @@ mod py_schema_builder_library {
 
         fn build_schema_for_collection(
             &self,
-            collection_name: &str,
+            py: Python<'_>,
             db_name: &str,
-        ) -> PyResult<String> {
-            // TBD: Implement logic to build schema for a collection
-            Ok(format!(
-                "Generated schema for collection: {} in database: {}",
-                collection_name, db_name
-            ))
+            collection_name: &str,
+        ) -> PyResult<Py<PyDict>> {
+            let client = self.client.as_ref().ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "SchemaBuilder was constructed without a PyMongo client; \
+                     a client is required for collection-level operations. \
+                     Pass one when constructing: SchemaBuilder(pymongo.MongoClient(...))",
+                )
+            })?;
+
+            let service = PyMongoDataService::new(client.clone_ref(py));
+            let schema = run_current_thread(schema_builder_library::derive_schema_for_collection(
+                &service,
+                db_name,
+                collection_name,
+                None,
+            ))?
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Failed to derive schema for {db_name}.{collection_name}: {e}"
+                ))
+            })?;
+
+            schema_to_py_dict(py, schema)
         }
 
         fn sample_schema_for_collection(
             &self,
-            collection_name: &str,
+            py: Python<'_>,
             db_name: &str,
+            collection_name: &str,
             sample_size: u32,
-        ) -> PyResult<String> {
-            // TBD: Implement logic to build schema for a collection with a sample size
-            let sample_size = std::cmp::min(sample_size, MAX_SAMPLE_SIZE_HARD_LIMIT);
-            let sampling_pipeline: Vec<Document> = vec![doc! {"$sample": sample_size}];
-            // TODO: Add some error handling in case sample fails. Attempt to sample at least 3 times
+        ) -> PyResult<Py<PyDict>> {
+            let client = self.client.as_ref().ok_or_else(|| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "SchemaBuilder was constructed without a PyMongo client; \
+                     a client is required for collection-level operations. \
+                     Pass one when constructing: SchemaBuilder(pymongo.MongoClient(...))",
+                )
+            })?;
+            let sample_size = std::cmp::min(sample_size, MAX_SAMPLE_SIZE_HARD_LIMIT)
+                .try_into()
+                .map_err(|e| {
+                    PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "Invalid sample size {sample_size}: {e}"
+                    ))
+                })?;
 
-            Ok(format!(
-                "Generated schema for collection: {} in database: {} with sample size: {}",
-                collection_name, db_name, sample_size
-            ))
+            let service = PyMongoDataService::new(client.clone_ref(py));
+            let schema = run_current_thread(schema_builder_library::sample_schema_for_collection(
+                &service,
+                db_name,
+                collection_name,
+                sample_size,
+            ))?
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Failed to sample schema for {db_name}.{collection_name}: {e}"
+                ))
+            })?;
+
+            schema_to_py_dict(py, schema)
         }
     }
 }

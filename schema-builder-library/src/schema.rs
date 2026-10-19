@@ -23,6 +23,47 @@ pub struct SinglePartition {
 
 pub const PARTITION_DOCS_PER_ITERATION: i64 = 20;
 
+/// Derive a schema for a given sample size
+/// sample_size: Number of documents to sample
+/// Note: Given that this function depends on sampling, the resulting schema is non-deterministic
+/// calling sample_schema_for_collection may return different results across runs.
+pub async fn sample_schema_for_collection<S: LocalDataService>(
+    service: &S,
+    db: &str,
+    collection: &str,
+    sample_size: i32,
+) -> Result<Schema, Error<S::Error>> {
+    // TODO: Create a PythonO3 class that implements the DataService interface
+    // so we can pass the client here, and have it do stuff
+    // Execute a $sample pipeline and then derive a schema for the sampled documents?
+    // Or rather iterate through the cursor and union the documents together
+
+    // 1. Create $sample pipeline
+    let sampling_pipeline: Vec<Document> = vec![doc! {"$sample": {"size": sample_size}}];
+    let aggregate_options: AggregateOptions = AggregateOptions { key_hint: None };
+
+    // 2. Execute pipeline
+    let sample_documents_result =
+        service.aggregate(db, collection, sampling_pipeline, aggregate_options);
+
+    // 3. Iterate through the Results and union the document schemas together
+    let cursor = sample_documents_result
+        .await
+        .map_err(Error::DataServiceError)?;
+
+    let mut cursor = Box::pin(cursor);
+    let mut result = Schema::Unsat;
+
+    while let Some(document) = cursor.try_next().await.map_err(Error::DataServiceError)? {
+        // Union the document with the running schema; `union` returns a new
+        // value rather than mutating, so reassign.
+        result = result.union(&schema_for_document(&document));
+    }
+
+    // 4. Return the schema
+    Ok(result)
+}
+
 /// Derive a schema for an entire collection
 ///
 /// Note: This breaks up the work into manageable partitions and operates over

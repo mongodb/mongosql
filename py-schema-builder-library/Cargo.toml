@@ -13,4 +13,8 @@ pyo3 = { version = "0.29.0", features = ["auto-initialize"] }
 schema-builder-library = { path = "../schema-builder-library" }
 schema_derivation = { path = "../agg-ast/schema_derivation" }
 bson = "2.15.0"
+serde = { workspace = true }
 serde_json = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+tokio = { version = "1", default-features = false, features = ["rt"] }
