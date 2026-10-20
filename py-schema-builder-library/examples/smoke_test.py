@@ -19,8 +19,9 @@ def document_tests() -> None:
     # Free function
     print(sum_as_string(2, 40))  # "42"
 
-    # Document-level methods work without a client.
-    b = SchemaBuilder(None)
+    # Document-level methods work without a client. Exercises the
+    # defaulted constructor (`client` defaults to None).
+    b = SchemaBuilder()
     doc = {"a": 1, "b": "x"}
 
     # Raw-bytes path: encode the document in Python with pymongo's bson...
@@ -33,6 +34,14 @@ def document_tests() -> None:
     schema_dict = b.build_schema_for_document(doc)
     assert isinstance(schema_dict, dict), type(schema_dict)
     print("schema from dict:", schema_dict)
+
+    # Multiple documents at once: heterogeneous types across docs should
+    # widen the schema (b: string in doc1, int in doc2 -> both listed).
+    schema_multi = b.build_schema_for_documents(
+        [{"a": 1, "b": "x"}, {"a": 2, "b": 3, "c": True}]
+    )
+    assert isinstance(schema_multi, dict), type(schema_multi)
+    print("schema from list:", schema_multi)
 
     # Error mapping check: malformed bytes must surface as Python ValueError
     try:

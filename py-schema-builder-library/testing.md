@@ -71,12 +71,22 @@ collection-level method on a client-less builder all raise Python
 
 ## Things to validate as the bindings evolve
 
-- **Constructor:** `SchemaBuilder(pymongo_client)` for collection-level
-  operations, or `SchemaBuilder(None)` for document-only use. Collection
-  methods on a client-less builder raise `ValueError`.
+- **Constructor:** `SchemaBuilder(pymongo.MongoClient(...))` for
+  collection-level operations; `SchemaBuilder()` or `SchemaBuilder(None)`
+  for document-only use. Collection methods on a client-less builder raise
+  `ValueError`.
 - **Signature acceptance:** `build_schema_for_document` must accept a plain
   `dict` positionally; calling it with no arguments should raise
   `TypeError` (missing `document`), not a Rust panic.
+- **Multi-document path:** `build_schema_for_documents` must accept a plain
+  Python `list` of dicts. Heterogeneous types across documents should widen
+  the schema (`{"b": "x"}, {"b": 3}` → `b` becomes
+  `anyOf: [int, string]`); a field present in only some docs appears in
+  `properties` but not `required`. NOTE: the current implementation silently
+  skips documents that fail BSON round-tripping (the `TODO` in
+  `build_schema_for_documents`) — malformed input yields a schema derived
+  from the *remaining* documents, no error raised. Tighten this when the
+  error handling TODO is addressed.
 - **Error mapping:** failures inside Rust should surface as Python
   `ValueError`s (we use `PyValueError`), never as panics/aborts.
 - **Rebuild loop:** after editing `src/lib.rs`, re-run

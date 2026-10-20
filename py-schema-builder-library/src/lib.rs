@@ -5,13 +5,38 @@ use pyo3::prelude::*;
 /// A Python module implemented in Rust.
 #[pymodule]
 mod py_schema_builder_library {
+    use crate::pymongo_data_service::PyMongoDataService;
+    use bson::Document;
+    use pyo3::prelude::*;
+    use pyo3::types::{PyDict, PyList};
     use std::future::Future;
 
-    use crate::pymongo_data_service::PyMongoDataService;
-    use pyo3::prelude::*;
-    use pyo3::types::PyDict;
-
     const MAX_SAMPLE_SIZE_HARD_LIMIT: u32 = 50_000;
+
+    /// Converts BSON-encoded bytes (as produced by Python's `bson.encode`)
+    /// into a Rust `bson::Document`.
+    ///
+    /// Internal helper; not exposed to Python. Lives outside the
+    /// `#[pymethods]` block because pyo3 requires every method's parameters
+    /// and return type to be convertible across the Python boundary, and
+    /// `bson::Document` has no Python representation.
+    fn bytes_to_document(document_bytes: &[u8]) -> Result<Document, PyErr> {
+        // Turn the bytes into a rust bson RawDocument
+        let raw_document = bson::RawDocument::from_bytes(document_bytes).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Failed to create RawDocument: {e}"
+            ))
+        })?;
+        // (Use the RawDocument to generate a schema) (or convert RowDocument to Real Document
+        // NOTE: We should probably re-implement the schema stuff against a raw document instead of parsing again
+        // Reference: https://patrickfreed.github.io/rust/2022/04/27/unlocking-greater-performance-in-the-mongodb-rust-driver-via-raw-bson-and-zero-copy-deserialization.html
+        let document = bson::Document::try_from(raw_document).map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "Failed to convert RawDocument to Document: {e}"
+            ))
+        })?;
+        Ok(document)
+    }
 
     /// Formats the sum of two numbers as string.
     #[pyfunction]
@@ -75,7 +100,11 @@ mod py_schema_builder_library {
 
     #[pymethods]
     impl SchemaBuilder {
+        // `client` defaults to None so `SchemaBuilder()` works for
+        // document-level use; collection-level methods raise ValueError
+        // on a client-less builder.
         #[new]
+        #[pyo3(signature = (client = None))]
         fn __new__(client: Option<Bound<'_, PyAny>>) -> Self {
             SchemaBuilder {
                 client: client.map(|c| c.unbind().into_any()),
@@ -102,6 +131,73 @@ mod py_schema_builder_library {
             self.build_schema_for_document_bytes(bytes)
         }
 
+        #[pyo3(signature = (documents))]
+        fn build_schema_for_documents(&self, documents: Bound<'_, PyList>) -> PyResult<Py<PyDict>> {
+            let py = documents.py();
+            let bson_module = PyModule::import(py, "bson")?;
+
+            // 1. Map the documents to bson bytes
+            // a. Get an iterator for the PyList
+            let mut documents_as_bytes: Vec<bson::Document> = vec![];
+            let mut documents_iterator = documents.iter();
+
+            // b. Iterator through the documents, converting to bytes and append to the list
+            while let Some(document) = documents_iterator.next() {
+                let document_as_bytes: Vec<u8> = bson_module
+                    .getattr("encode")?
+                    .call1((document,))?
+                    .extract()?;
+
+                let bytes_as_rust_bson_document = bytes_to_document(&document_as_bytes);
+                if let Ok(converted_document) = bytes_as_rust_bson_document {
+                    documents_as_bytes.push(converted_document);
+                } else {
+                    // TODO: Do something with error. Throw saying one of the documents was malformed
+                    // And could not interface with rust.
+                }
+            }
+
+            // 2. call schema::derivation on the list of documents
+            let derived_schema = schema_derivation::schema_for_documents(&documents_as_bytes);
+
+            // 3. Convert back to a Python Dict
+            // Schema -> $jsonSchema BSON document (TryFrom impl in mongosql).
+            // bson::Document is Serialize, so serde_json can print it.
+            // NOTE: This is basically copy-oaste of the other method. Once we get this working
+            // We can consolidate a lot of the shared logic between these into helper conversion
+            // methods
+            let json_schema = bson::Document::try_from(derived_schema).map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "Failed to convert Schema to jsonSchema: {}",
+                    e
+                ))
+            })?;
+
+            let mut derived_schema_byte_array: Vec<u8> = vec![];
+            json_schema
+                .to_writer(&mut derived_schema_byte_array)
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+
+            // TODO: Revisit the error handling. This is very rough
+            let schema_as_python_dictionary: PyResult<Py<PyDict>> = Python::attach(|py| {
+                let bson_module =
+                    PyModule::import(py, "bson").expect("Unable to import bson module");
+                let decoded_to_python_dict: Bound<'_, PyDict> = bson_module
+                    .getattr("decode")
+                    .expect("Unable to find method decode")
+                    .call1((derived_schema_byte_array,))
+                    .expect("Could not derive schema from bytes")
+                    .extract()
+                    .expect("This should work");
+
+                // Bound<T> implements Display via Python's str(), so this prints the dict.
+                println!("Schema as Python dictionary: {}", decoded_to_python_dict);
+                Ok(decoded_to_python_dict.unbind())
+            });
+
+            schema_as_python_dictionary
+        }
+
         /// Builds a schema from an already BSON-encoded document.
         /// Accepts the raw bytes that Python's `bson.encode` produces. Processes the schema in rust
         /// Then decodes the bytes back into a dictionary
@@ -109,22 +205,7 @@ mod py_schema_builder_library {
         // Not sure cost of converting back to a PyDict? But we can probably go backwards. Schema -> bytes -> PyMongo.encode()
         #[pyo3(signature = (document_bytes))]
         fn build_schema_for_document_bytes(&self, document_bytes: Vec<u8>) -> PyResult<Py<PyDict>> {
-            // Turn the bytes into a rust bson RawDocument
-            let raw_document = bson::RawDocument::from_bytes(&document_bytes).map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                    "Failed to create RawDocument: {}",
-                    e
-                ))
-            })?;
-            // (Use the RawDocument to generate a schema) (or convert RowDocument to Real Document
-            // NOTE: We should probably re-implement the schema stuff against a raw document instead of parsing again
-            // Reference: https://patrickfreed.github.io/rust/2022/04/27/unlocking-greater-performance-in-the-mongodb-rust-driver-via-raw-bson-and-zero-copy-deserialization.html
-            let document = bson::Document::try_from(raw_document).map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                    "Failed to convert RawDocument to Document: {}",
-                    e
-                ))
-            })?;
+            let document = bytes_to_document(&document_bytes)?;
             let derived_schema = schema_derivation::schema_for_document(&document);
             // Schema -> $jsonSchema BSON document (TryFrom impl in mongosql).
             // bson::Document is Serialize, so serde_json can print it.

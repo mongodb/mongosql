@@ -12,7 +12,7 @@ members = [
     "mongosql-datastructures",
     "mongosql-c",
     "mongosql",
-    "mongosql-python",
+    "py-mongosql",
     "schema-builder-library",
     "service",
     "test-utils",

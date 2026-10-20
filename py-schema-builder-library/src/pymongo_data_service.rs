@@ -59,7 +59,9 @@ fn py_object_to_bson_document(
         .and_then(|result| result.extract())
         .map_err(|e| PyMongoDataServiceError::Serialization(e.to_string()))?;
 
-    // NOTE: This re-parses the document; see the note in lib.rs about raw BSON.
+    // NOTE: This re-parses the document, I really think we should try to find a way around this :/
+    // For small N, I wouldn't consider this a problem,  but if generating a schema
+    // from a collection this may cause problems
     let raw_document = RawDocument::from_bytes(&bytes)
         .map_err(|e| PyMongoDataServiceError::Deserialization(e.to_string()))?;
     Document::try_from(raw_document)
