@@ -10,6 +10,11 @@ pub mod mongodb;
 #[cfg(feature = "native-client")]
 pub use mongodb::MongoDbDataService;
 
+#[cfg(feature = "sync-client")]
+pub mod mongodb_sync;
+#[cfg(feature = "sync-client")]
+pub use mongodb_sync::SynchronousMongoDbDataService;
+
 #[cfg(feature = "wasm")]
 pub mod wasm;
 

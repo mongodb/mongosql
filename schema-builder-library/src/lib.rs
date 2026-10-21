@@ -13,6 +13,9 @@ compile_error!("`native-client` and `wasm` features are mutually exclusive");
 #[cfg(feature = "native-client")]
 pub use data_service::MongoDbDataService;
 
+#[cfg(feature = "sync-client")]
+pub use data_service::SynchronousMongoDbDataService;
+
 #[cfg(feature = "wasm")]
 pub use data_service::{JsDataService, WasmDataService};
 
