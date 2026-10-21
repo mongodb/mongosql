@@ -26,7 +26,7 @@ mod schema;
 pub use errors::Error;
 pub use schema::{
     SinglePartition, derive_schema_for_collection, derive_schema_for_partition,
-    derive_schema_for_view,
+    derive_schema_for_view, sample_schema_for_collection,
 };
 
 /// Re-export of mongosql Schema type for convenience

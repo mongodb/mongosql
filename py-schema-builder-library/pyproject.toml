@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin>=1.15,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "py-schema-builder-library"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+dynamic = ["version"]
+# The Rust bindings call PyMongo's `bson.encode`/`bson.decode` for BSON
+# conversion, so pymongo is required at runtime.
+dependencies = ["pymongo>=4.0"]
