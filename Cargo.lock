@@ -2151,14 +2151,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mongosql-python"
-version = "0.1.0"
-dependencies = [
- "mongosql",
- "pyo3",
-]
-
-[[package]]
 name = "mongosqltranslate"
 version = "0.0.0"
 dependencies = [
@@ -2842,6 +2834,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "50793def1b900256624a709439404384204a5dc3a6ec580281bfaac35e882e90"
 dependencies = [
  "pulldown-cmark",
+]
+
+[[package]]
+name = "py-mongosqltranslate"
+version = "0.1.0"
+dependencies = [
+ "agg-ast",
+ "bson",
+ "mongosql",
+ "pyo3",
 ]
 
 [[package]]
