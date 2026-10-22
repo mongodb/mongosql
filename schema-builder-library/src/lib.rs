@@ -13,6 +13,9 @@ compile_error!("`native-client` and `wasm` features are mutually exclusive");
 #[cfg(feature = "native-client")]
 pub use data_service::MongoDbDataService;
 
+#[cfg(feature = "sync-client")]
+pub use data_service::SynchronousMongoDbDataService;
+
 #[cfg(feature = "wasm")]
 pub use data_service::{JsDataService, WasmDataService};
 
@@ -26,7 +29,7 @@ mod schema;
 pub use errors::Error;
 pub use schema::{
     SinglePartition, derive_schema_for_collection, derive_schema_for_partition,
-    derive_schema_for_view,
+    derive_schema_for_view, sample_schema_for_collection,
 };
 
 /// Re-export of mongosql Schema type for convenience

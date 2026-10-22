@@ -1,0 +1,18 @@
+[build-system]
+requires = ["maturin>=1.15,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "py-mongosqltranslate"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+dynamic = ["version"]
+# Translation is pure Rust; there are no Python runtime dependencies.
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
