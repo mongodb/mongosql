@@ -1538,7 +1538,7 @@ buildvariants:
 
   - name: macos
     display_name: "macOS"
-    run_on: [macos-11]
+    run_on: [macos-15-amd64-gui]
     modules:
       - sql-engines-common-test-infra
     tasks:
