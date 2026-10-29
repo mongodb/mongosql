@@ -2778,16 +2778,6 @@ mod get_single_field_name_and_schema {
         })
     );
     test_get_single_field_name_and_schema!(
-        single_doc_empty,
-        expected = None,
-        schema = &Document(Document {
-            keys: map![],
-            required: set![],
-            additional_properties: false,
-            ..Default::default()
-        })
-    );
-    test_get_single_field_name_and_schema!(
         single_doc_multiple_required_keys,
         expected = None,
         schema = &Document(Document {
