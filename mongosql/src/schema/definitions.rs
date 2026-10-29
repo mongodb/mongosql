@@ -2119,15 +2119,16 @@ impl Document {
         ret
     }
 
-    /// union_keys constructs a key map where all the keys from both maps are kept.
-    /// Those keys that overlap have their Schemata merged.
-    fn union_keys(
+    /// combine_keys constructs a key map where all the keys from both maps are kept.
+    /// Those keys that overlap have their Schemata combined according to the combiner function.
+    fn combine_keys(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
+        schema_combine_fn: impl Fn(&Schema, &Schema) -> Schema,
     ) -> BTreeMap<String, Schema> {
         for (key2, schema2) in m2.into_iter() {
             if let Some(old_schema) = m1.remove(&key2) {
-                m1.insert(key2, old_schema.union(&schema2));
+                m1.insert(key2, schema_combine_fn(&old_schema, &schema2));
             } else {
                 m1.insert(key2, schema2);
             }
@@ -2325,7 +2326,7 @@ impl Document {
             }
         } else {
             Document {
-                keys: Document::union_keys(self.keys, other.keys),
+                keys: Document::combine_keys(self.keys, other.keys, Schema::union),
                 required: self
                     .required
                     .intersection(&other.required)
@@ -2440,7 +2441,7 @@ impl Document {
     pub fn merge(self, other: Document) -> Document {
         let jaccard_index = Document::get_jaccard_index(&self, &other);
         Document {
-            keys: Document::union_keys(self.keys, other.keys),
+            keys: Document::combine_keys(self.keys, other.keys, Schema::merge),
             required: self.required.into_iter().chain(other.required).collect(),
             additional_properties: self.additional_properties || other.additional_properties,
             jaccard_index,
