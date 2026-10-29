@@ -4068,3 +4068,89 @@ mod get_array_item_schema {
         ]),
     );
 }
+
+mod schema_predicate_meet {
+    use crate::{
+        schema::{Atomic, Satisfaction, Schema},
+        set,
+    };
+
+    macro_rules! test_schema_predicate_meet {
+        ($func_name:ident, expected = $expected:expr, input_schemas = $input_schemas:expr, input_predicate = $input_predicate:expr,) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!(
+                    $expected,
+                    Schema::schema_predicate_meet($input_schemas, $input_predicate)
+                );
+            }
+        };
+    }
+
+    test_schema_predicate_meet!(
+        empty_set_returns_must,
+        expected = Satisfaction::Must,
+        input_schemas = &set![],
+        input_predicate = &|_| Satisfaction::Not,
+    );
+
+    test_schema_predicate_meet!(
+        all_must_returns_must,
+        expected = Satisfaction::Must,
+        input_schemas = &set![Schema::Any, Schema::Any],
+        input_predicate = &|_| Satisfaction::Must,
+    );
+
+    test_schema_predicate_meet!(
+        all_may_returns_may,
+        expected = Satisfaction::May,
+        input_schemas = &set![Schema::Any, Schema::Any],
+        input_predicate = &|_| Satisfaction::May,
+    );
+
+    test_schema_predicate_meet!(
+        all_not_returns_not,
+        expected = Satisfaction::Not,
+        input_schemas = &set![Schema::Any, Schema::Any],
+        input_predicate = &|_| Satisfaction::Not,
+    );
+
+    test_schema_predicate_meet!(
+        must_and_not_returns_may,
+        expected = Satisfaction::May,
+        input_schemas = &set![Schema::Any, Schema::Atomic(Atomic::Integer), Schema::Any],
+        input_predicate = &|s| {
+            if s == &Schema::Any {
+                Satisfaction::Must
+            } else {
+                Satisfaction::Not
+            }
+        },
+    );
+
+    test_schema_predicate_meet!(
+        must_and_may_returns_may,
+        expected = Satisfaction::May,
+        input_schemas = &set![Schema::Any, Schema::Atomic(Atomic::Integer), Schema::Any],
+        input_predicate = &|s| {
+            if s == &Schema::Any {
+                Satisfaction::Must
+            } else {
+                Satisfaction::May
+            }
+        },
+    );
+
+    test_schema_predicate_meet!(
+        not_and_may_returns_may,
+        expected = Satisfaction::May,
+        input_schemas = &set![Schema::Any, Schema::Atomic(Atomic::Integer), Schema::Any],
+        input_predicate = &|s| {
+            if s == &Schema::Any {
+                Satisfaction::May
+            } else {
+                Satisfaction::Not
+            }
+        },
+    );
+}
