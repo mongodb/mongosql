@@ -1326,34 +1326,50 @@ impl Schema {
 
     /// get_single_field_name_and_schema returns `Some((fieldName, fieldSchema))` if every value
     /// matched by `self` which is not the empty document is a document containing a single field
-    /// called `fieldName`.
+    /// referred to as `fieldName`.
     /// If this is not the case, or `self` doesn't match any values, it returns `None`.
     pub fn get_single_field_name_and_schema(&self) -> Option<(&str, Schema)> {
         match self {
-            AnyOf(any_of) => {
-                let mut fields = BTreeMap::<&str, Schema>::new();
-                let found_schema_without_single_field = any_of
+            AnyOf(ao) => {
+                let mut output_single_field = None;
+
+                // Note: if the AnyOf is empty or only contains Unsat, then we will return None
+                // since the loop will never run.
+                for maybe_single_field_name_and_schema in ao
                     .iter()
                     .filter(|schema| !matches!(schema, Unsat))
                     .map(|schema| schema.get_single_field_name_and_schema())
-                    .fold(false, |acc, field_info| match field_info {
+                {
+                    match maybe_single_field_name_and_schema {
+                        // If any schema in the AnyOf doesn't have a single field, return None.
+                        None => return None,
+
+                        // Otherwise, if this schema has a single field, track it.
                         Some((field_name, field_schema)) => {
-                            let sch = fields
-                                .get(field_name)
-                                .map(|s| s.union(&field_schema))
-                                .unwrap_or(field_schema);
-                            fields.insert(field_name, sch);
-                            acc
+                            match output_single_field {
+                                // If we have not yet found a single field, store this one.
+                                None => output_single_field = Some((field_name, field_schema)),
+                                Some((existing_field_name, existing_field_schema)) => {
+                                    if existing_field_name != field_name {
+                                        // If we have already found a single field and this one has
+                                        // a different name, then we return None since that means
+                                        // there are multiple fields.
+                                        return None;
+                                    } else {
+                                        // If we have already found a single field and this one has
+                                        // the same name, then we union the schemas.
+                                        output_single_field = Some((
+                                            existing_field_name,
+                                            existing_field_schema.union(&field_schema),
+                                        ));
+                                    }
+                                }
+                            }
                         }
-                        None => true,
-                    });
-                if found_schema_without_single_field {
-                    return None;
+                    }
                 }
-                match fields.len() {
-                    1 => fields.into_iter().next(),
-                    _ => None,
-                }
+
+                output_single_field
             }
             Schema::Document(d) => match d.num_keys() {
                 (num_required, Some(1)) if num_required <= 1 => {
