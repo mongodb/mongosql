@@ -1441,7 +1441,7 @@ impl Schema {
     ) -> Result<(BTreeSet<Vec<String>>, bool), Error> {
         match self {
             Schema::Document(d) => {
-                // Error if we do not have complete schem information
+                // Error if we do not have complete schema information
                 if d.additional_properties {
                     return Err(Error::CannotEnumerateAllFieldPaths(self.clone()));
                 }
