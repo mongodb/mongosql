@@ -3011,12 +3011,14 @@ mod enumerate_field_paths {
 
     lazy_static! {
         static ref A_B_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
-            keys: map! {"a".to_string() => Document(Document {
-            keys: map! {"b".to_string() => Atomic(Integer)},
-            required: BTreeSet::new(),
-            additional_properties: false,
-            ..Default::default()
-            })},
+            keys: map! {
+                "a".to_string() => Document(Document {
+                    keys: map! {"b".to_string() => Atomic(Integer)},
+                    required: BTreeSet::new(),
+                    additional_properties: false,
+                    ..Default::default()
+                })
+            },
             required: BTreeSet::new(),
             additional_properties: false,
             ..Default::default()
@@ -3068,12 +3070,16 @@ mod enumerate_field_paths {
         schema = Schema::AnyOf(set![
             A_B_DOCUMENT_SCHEMA.clone(),
             Document(Document {
-                keys: map! {"x".to_string() => Document(Document {
-                keys: map! {"y".to_string() => Atomic(Integer)},
-                required: BTreeSet::new(),
-                additional_properties: false,
-                ..Default::default()
-                })},
+                keys: map! {
+                    "x".to_string() => Document(Document {
+                        keys: map! {
+                            "y".to_string() => Atomic(Integer)
+                        },
+                        required: BTreeSet::new(),
+                        additional_properties: false,
+                        ..Default::default()
+                        })
+                },
                 required: BTreeSet::new(),
                 additional_properties: false,
                 ..Default::default()

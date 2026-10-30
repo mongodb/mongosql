@@ -1434,7 +1434,6 @@ impl Schema {
     ///
     /// If `self` is a schema AnyOf([Int, Double]) and `inside_document` is true, then
     /// enumerate_field_paths_aux returns the set containing an empty vector `set![vec![]]``.
-    #[allow(clippy::manual_try_fold)]
     fn enumerate_field_paths_aux(
         &self,
         max_length: Option<u32>,
@@ -1446,84 +1445,84 @@ impl Schema {
                 if d.additional_properties {
                     return Err(Error::CannotEnumerateAllFieldPaths(self.clone()));
                 }
-                d.keys.clone().into_iter().fold(
-                    Ok((BTreeSet::new(), true)),
-                    |acc, (key, schema)| match max_length {
-                        Some(0) => acc,
-                        _ => {
-                            let (mut new_paths, has_only_nullable_polymorphism) = schema
-                                .enumerate_field_paths_aux(max_length.map(|l| l - 1), true)?;
-                            if new_paths.is_empty() {
-                                new_paths = set![vec![]];
-                            }
-                            let mut acc = acc?;
-                            acc.0.extend(
-                                new_paths
-                                    .into_iter()
-                                    .map(|path| {
-                                        vec![key.clone()].into_iter().chain(path).collect_vec()
-                                    })
-                                    .collect::<BTreeSet<Vec<String>>>(),
-                            );
-                            Ok((acc.0, acc.1 && has_only_nullable_polymorphism))
-                        }
-                    },
-                )
+                // If we're already at the depth limit there are no further paths to enumerate.
+                if max_length == Some(0) {
+                    return Ok((BTreeSet::new(), true));
+                }
+                let mut paths = BTreeSet::new();
+                let mut only_nullable = true;
+                for (key, schema) in d.keys.iter() {
+                    let (mut new_paths, has_only_nullable_polymorphism) =
+                        schema.enumerate_field_paths_aux(max_length.map(|l| l - 1), true)?;
+
+                    // If we are in the context of a document, propagate an empty vector to
+                    // recursively build document field paths.
+                    if new_paths.is_empty() {
+                        new_paths = set![vec![]];
+                    }
+                    paths.extend(
+                        new_paths
+                            .into_iter()
+                            .map(|path| std::iter::once(key.clone()).chain(path).collect_vec()),
+                    );
+                    only_nullable = only_nullable && has_only_nullable_polymorphism;
+                }
+                Ok((paths, only_nullable))
             }
             AnyOf(a) => {
-                let mut mut_copy_of_a = a.clone();
-                let mut object_found = false;
+                // Partition into documents and everything else, avoiding a full clone of `a`.
+                let (docs, non_docs): (Vec<&Schema>, Vec<&Schema>) =
+                    a.iter().partition(|s| matches!(s, Schema::Document(_)));
 
-                let combined_doc = a.iter().fold(EMPTY_DOCUMENT.clone(), |acc, schema| {
-                    let acc = acc.document_union(schema.clone());
-                    if let Schema::Document(_) = schema {
-                        object_found = true;
-                        // After combining all the documents into one, it is no longer necessary to deal with each individual document,
-                        // so we can remove them after using them in the document_union above.
-                        mut_copy_of_a.remove(schema);
-                    }
-                    acc
-                });
+                let object_found = !docs.is_empty();
 
-                // We don't want to add a document unless there already is one in the AnyOf because we could potentially create a polymorphic object.
-                // If there already is a document in the AnyOf, adding another one will not create any new consequences.
+                // Combine all document schemas into one to avoid redundant per-document iteration.
+                let combined_doc = docs
+                    .into_iter()
+                    .cloned()
+                    .fold(EMPTY_DOCUMENT.clone(), Schema::document_union);
+
+                // Build the effective set of schemas to iterate: the merged document (if any)
+                // plus all non-document schemas.
+                let mut schemas_to_visit: Vec<&Schema> = non_docs;
+
                 if object_found {
-                    mut_copy_of_a.insert(combined_doc);
+                    // Importantly: we don't want to add a document unless there already is one in
+                    // the AnyOf. This is because we could potentially create a polymorphic object
+                    // by adding an empty document to the schemas_to_visit. If there already is a
+                    // document in the AnyOf, adding another one (the combined one) will not create
+                    // any new consequences.
+                    schemas_to_visit.push(&combined_doc);
                 }
 
+                let mut paths = BTreeSet::new();
+                let mut only_nullable = true;
                 let mut non_null_or_missing_found = false;
-                mut_copy_of_a.iter().fold(
-                    Ok((BTreeSet::new(), true)),
-                    |acc: Result<(BTreeSet<Vec<String>>, bool), Error>, schema| {
-                        let acc = acc?;
+                for schema in schemas_to_visit {
+                    // Only non-document, non-null, non-missing schemas indicate true polymorphism.
+                    if !matches!(
+                        schema,
+                        Schema::Missing | Schema::Atomic(Atomic::Null) | Schema::Document(_)
+                    ) {
+                        non_null_or_missing_found = true;
+                    }
+                    let (mut new_paths, has_only_nullable_polymorphism) =
+                        schema.enumerate_field_paths_aux(max_length, inside_document)?;
 
-                        if !matches!(
-                            schema,
-                            Schema::Missing | Schema::Atomic(Atomic::Null) | Schema::Document(_)
-                        ) {
-                            non_null_or_missing_found = true;
-                        }
+                    // If we are in the context of a document, propagate an empty vector to
+                    // recursively build document field paths
+                    if new_paths.is_empty() && inside_document {
+                        new_paths = set![vec![]];
+                    }
+                    paths.extend(new_paths);
 
-                        let (mut new_paths, has_only_nullable_polymorphism) =
-                            schema.enumerate_field_paths_aux(max_length, inside_document)?;
-                        // If we are in the context of a document, propagate an empty vector to
-                        // recursively build document field paths
-                        if new_paths.is_empty() && inside_document {
-                            new_paths = set![vec![]]
-                        }
-                        Ok((
-                            acc.0
-                                .union(&new_paths)
-                                .cloned()
-                                .collect::<BTreeSet<Vec<String>>>(),
-                            // If we encountered an object and any non-nullable schema in this AnyOf,
-                            // then we know the schema at this field path is polymorphic with non-null values.
-                            !(object_found && non_null_or_missing_found)
-                                && has_only_nullable_polymorphism
-                                && acc.1,
-                        ))
-                    },
-                )
+                    // If we encountered an object and any non-nullable schema in this AnyOf, then
+                    // we know the schema at this field path is polymorphic with non-null values.
+                    only_nullable = !(object_found && non_null_or_missing_found)
+                        && has_only_nullable_polymorphism
+                        && only_nullable;
+                }
+                Ok((paths, only_nullable))
             }
             Schema::Any => Err(Error::CannotEnumerateAllFieldPaths(Schema::Any)),
             Schema::Array(_) | Schema::Atomic(_) | Schema::Missing | Schema::Unsat => {
