@@ -1020,6 +1020,12 @@ impl Schema {
         }
         match schema {
             Schema::AnyOf(a) => {
+                if a.is_empty() {
+                    return Unsat;
+                }
+                if a.contains(&Schema::Any) {
+                    return Schema::Any;
+                }
                 let ret: BTreeSet<Schema> = a
                     .iter()
                     .map(Schema::simplify)
@@ -1040,11 +1046,7 @@ impl Schema {
                     non_doc_schemata.insert(doc_schema);
                 };
                 let ret = non_doc_schemata;
-                if ret.is_empty() {
-                    Unsat
-                } else if ret.contains(&Schema::Any) {
-                    Schema::Any
-                } else if ret.len() == 1 {
+                if ret.len() == 1 {
                     ret.into_iter().next().unwrap()
                 } else {
                     Schema::AnyOf(ret)
