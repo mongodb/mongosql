@@ -13,12 +13,14 @@ members = [
     "mongosql-c",
     "mongosql",
     "schema-builder-library",
+    "py-schema-builder-library",
     "service",
     "test-utils",
     "usererrordisplay-impl",
     "visitgen",
     "visitgen-test",
     "mongosqltranslate",
+    "py-mongosqltranslate"
 ]
 
 [workspace.package]
