@@ -64,7 +64,7 @@ pre:
   - func: "prepare resources"
 
 post:
-  - func: "stop mongo-orchestration"
+  - func: "stop mongodb"
   - func: "upload static analysis information"
 
 functions:
@@ -1049,7 +1049,7 @@ tasks:
 
   - name: test-schema-builder-library-integration
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
@@ -1084,7 +1084,7 @@ tasks:
     depends_on:
       - name: compile-schema-builder-library
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 6.0
           TOPOLOGY: server
@@ -1118,7 +1118,7 @@ tasks:
     allow_for_git_tag: false
     disable: false
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1136,7 +1136,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1154,7 +1154,7 @@ tasks:
     allow_for_git_tag: false
     disable: false
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1170,7 +1170,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1186,7 +1186,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1204,7 +1204,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1221,7 +1221,7 @@ tasks:
       - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1239,7 +1239,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1257,7 +1257,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1275,7 +1275,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1291,7 +1291,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1307,7 +1307,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1323,7 +1323,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1339,7 +1339,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1355,7 +1355,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1371,7 +1371,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1387,7 +1387,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1403,7 +1403,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1419,7 +1419,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1435,7 +1435,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1451,7 +1451,7 @@ tasks:
     allow_for_git_tag: false
     disable: false
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server
@@ -1466,7 +1466,7 @@ tasks:
     allow_for_git_tag: false
     disable: true
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: 8.0
           TOPOLOGY: server

@@ -59,7 +59,7 @@ fn main() {
   - name: test-{{test_name}}_{{version}}-{{topology_name}}
     tags: [{{version}}, {{topology_name}}]
     commands:
-      - func: "bootstrap mongo-orchestration"
+      - func: "start mongodb"
         vars:
           MONGODB_VERSION: {{version}}
           TOPOLOGY: {{topology}}
