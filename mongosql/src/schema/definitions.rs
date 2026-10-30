@@ -1480,9 +1480,7 @@ impl Schema {
                 let combined_doc = docs
                     .into_iter()
                     .cloned()
-                    .fold(EMPTY_DOCUMENT.clone(), |acc, schema| {
-                        acc.document_union(schema)
-                    });
+                    .fold(EMPTY_DOCUMENT.clone(), Schema::document_union);
 
                 // Build the effective set of schemas to iterate: the merged document (if any)
                 // plus all non-document schemas.
