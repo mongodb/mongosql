@@ -243,6 +243,243 @@ mod union_schemata {
     );
 }
 
+mod merge {
+    use crate::{
+        map,
+        schema::{Atomic::*, Document, Schema::*},
+        set,
+    };
+
+    macro_rules! test_merge_schema {
+        ($func_name:ident, expected = $expected:expr, left = $left:expr, right = $right:expr,) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, $left.merge(&$right));
+            }
+        };
+    }
+
+    test_merge_schema!(
+        x_and_x_is_x,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        left = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        right = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+    );
+
+    test_merge_schema!(
+        unsat_and_x_is_x,
+        expected = Atomic(Double),
+        left = Unsat,
+        right = Atomic(Double),
+    );
+
+    test_merge_schema!(
+        x_and_unsat_is_x,
+        expected = Atomic(Double),
+        left = Atomic(Double),
+        right = Unsat,
+    );
+
+    test_merge_schema!(
+        any_and_x_is_any,
+        expected = Any,
+        left = Any,
+        right = Atomic(Double),
+    );
+
+    test_merge_schema!(
+        x_and_any_is_any,
+        expected = Any,
+        left = Atomic(Double),
+        right = Any,
+    );
+
+    test_merge_schema!(
+        divergent_scalar_schemas_become_any_of,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double)}),
+        left = Atomic(Integer),
+        right = Atomic(Double),
+    );
+
+    test_merge_schema!(
+        scalar_schema_and_any_of_adds_scalar_to_any_of,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double)}),
+        left = Atomic(Integer),
+        right = AnyOf(set! {Atomic(Double)}),
+    );
+
+    test_merge_schema!(
+        any_of_and_any_of_are_combined,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        left = AnyOf(set! {Atomic(Integer), Atomic(Double)}),
+        right = AnyOf(set! {Atomic(Integer), Atomic(Decimal)}),
+    );
+
+    test_merge_schema!(
+        array_and_array_combine_inner_schema,
+        expected = Array(Box::new(AnyOf(set! {Atomic(Integer), Atomic(Double)}))),
+        left = Array(Box::new(Atomic(Integer))),
+        right = Array(Box::new(Atomic(Double))),
+    );
+
+    test_merge_schema!(
+        array_and_any_of_without_arrays_adds_array_to_any_of,
+        expected = AnyOf(set! {Array(Box::new(Atomic(Integer))), Atomic(Double)}),
+        left = Array(Box::new(Atomic(Integer))),
+        right = AnyOf(set! {Atomic(Double)}),
+    );
+
+    test_merge_schema!(
+        array_and_any_of_with_one_array_combines_inner_schema_of_arrays,
+        expected = AnyOf(
+            set! {Array(Box::new(AnyOf(set! {Atomic(Integer), Atomic(Double)}))), Atomic(String)}
+        ),
+        left = Array(Box::new(Atomic(Integer))),
+        right = AnyOf(set! {Array(Box::new(Atomic(Double))), Atomic(String)}),
+    );
+
+    test_merge_schema!(
+        array_and_any_of_with_multiple_arrays_becomes_any_of_with_array_of_any,
+        expected = AnyOf(set! {Array(Box::new(Any)), Atomic(String)}),
+        left = Array(Box::new(Atomic(Long))),
+        right = AnyOf(
+            set! {Array(Box::new(Atomic(Integer))), Array(Box::new(Atomic(Double))), Atomic(String)}
+        ),
+    );
+
+    test_merge_schema!(
+        document_and_document_merge_keys_and_required,
+        expected = Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+                "b".to_string() => Atomic(String),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right = Document(Document {
+            keys: map! {
+                "b".to_string() => Atomic(String),
+            },
+            required: set! {"b".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+    );
+
+    test_merge_schema!(
+        nested_documents_merge_keys_and_required,
+        expected = Document(Document {
+            keys: map! {
+                "a".to_string() => Document(Document {
+                    keys: map! {
+                        "b".to_string() => Atomic(Integer),
+                        "c".to_string() => Atomic(String),
+                    },
+                    required: set! {"b".to_string(), "c".to_string()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Document(Document {
+                    keys: map! {
+                        "b".to_string() => Atomic(Integer),
+                    },
+                    required: set! {"b".to_string()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right = Document(Document {
+            keys: map! {
+                "a".to_string() => Document(Document {
+                    keys: map! {
+                        "c".to_string() => Atomic(String),
+                    },
+                    required: set! {"c".to_string()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+    );
+
+    test_merge_schema!(
+        document_and_any_of_without_documents_adds_document_to_any_of,
+        expected = AnyOf(set! {Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }), Atomic(Double)}),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right = AnyOf(set! {Atomic(Double)}),
+    );
+
+    test_merge_schema!(
+        document_and_any_of_with_documents_merges_documents,
+        expected = AnyOf(set! {Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+                "b".to_string() => Atomic(String),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }), Atomic(Double)}),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right = AnyOf(set! {Document(Document {
+            keys: map! {
+                "b".to_string() => Atomic(String),
+            },
+            required: set! {"b".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }), Atomic(Double)}),
+    );
+
+    // todo:
+    //  - doc - anyof w/ docs
+}
+
 mod to_bson {
     use crate::{
         map,
