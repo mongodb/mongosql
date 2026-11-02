@@ -4,7 +4,6 @@ use crate::{
         Type, TypeOrMissing,
         binding_tuple::{self, BindingTuple, DatasourceName, DuplicateKeyError, Key},
     },
-    schema::Schema::{AnyOf, Unsat},
     set,
 };
 use enum_iterator::{Sequence, all};
@@ -399,11 +398,11 @@ impl Display for Schema {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Schema::Any => write!(f, "any type"),
-            Unsat => write!(f, "Unsat"),
+            Schema::Unsat => write!(f, "Unsat"),
             Schema::Missing => write!(f, "missing value"),
             Schema::Atomic(atomic) => atomic.fmt(f),
-            AnyOf(schema_set) => {
-                let self_copy = AnyOf(schema_set.clone());
+            Schema::AnyOf(schema_set) => {
+                let self_copy = Schema::AnyOf(schema_set.clone());
 
                 if schema_set.len() == 3
                     && schema_set.contains(&Schema::Missing)
@@ -411,9 +410,9 @@ impl Display for Schema {
                 {
                     let self_copy_without_nullish = self_copy.clone().subtract_nullish();
                     match self_copy_without_nullish {
-                        AnyOf(mut set) => {
+                        Schema::AnyOf(mut set) => {
                             let anyof_contents = set.pop_first().unwrap();
-                            if let AnyOf(_) = anyof_contents {
+                            if let Schema::AnyOf(_) = anyof_contents {
                                 write!(f, "polymorphic type")
                             } else {
                                 write!(f, "nullable {anyof_contents}")
@@ -962,10 +961,10 @@ impl Schema {
     pub fn keys(&self) -> Vec<String> {
         match self {
             Schema::Any => vec![],
-            Unsat => vec![],
+            Schema::Unsat => vec![],
             Schema::Missing => vec![],
             Schema::Atomic(_) => vec![],
-            AnyOf(a) => a.iter().flat_map(|s| s.keys()).collect(),
+            Schema::AnyOf(a) => a.iter().flat_map(|s| s.keys()).collect(),
             Schema::Array(_) => vec![],
             Schema::Document(d) => d.clone().keys.into_keys().collect(),
         }
@@ -1021,7 +1020,7 @@ impl Schema {
         match schema {
             Schema::AnyOf(a) => {
                 if a.is_empty() {
-                    return Unsat;
+                    return Schema::Unsat;
                 }
                 if a.contains(&Schema::Any) {
                     return Schema::Any;
@@ -1334,14 +1333,14 @@ impl Schema {
     /// If this is not the case, or `self` doesn't match any values, it returns `None`.
     pub fn get_single_field_name_and_schema(&self) -> Option<(&str, Schema)> {
         match self {
-            AnyOf(ao) => {
+            Schema::AnyOf(ao) => {
                 let mut output_single_field = None;
 
                 // Note: if the AnyOf is empty or only contains Unsat, then we will return None
                 // since the loop will never run.
                 for maybe_single_field_name_and_schema in ao
                     .iter()
-                    .filter(|schema| !matches!(schema, Unsat))
+                    .filter(|schema| !matches!(schema, Schema::Unsat))
                     .map(|schema| schema.get_single_field_name_and_schema())
                 {
                     match maybe_single_field_name_and_schema {
@@ -1392,7 +1391,7 @@ impl Schema {
     pub fn subtract_nullish(self) -> Schema {
         let nullish = &NULLISH.clone();
         match self {
-            AnyOf(schemas) => AnyOf(
+            Schema::AnyOf(schemas) => Schema::AnyOf(
                 schemas
                     .into_iter()
                     .filter(|schema| schema.satisfies(nullish) != Satisfaction::Must)
@@ -1403,7 +1402,7 @@ impl Schema {
             schema => {
                 // If the schemas overlap fully, then their difference is empty.
                 if schema.satisfies(nullish) == Satisfaction::Must {
-                    Unsat
+                    Schema::Unsat
                 } else {
                     schema
                 }
@@ -1489,7 +1488,7 @@ impl Schema {
                 }
                 Ok((paths, only_nullable))
             }
-            AnyOf(a) => {
+            Schema::AnyOf(a) => {
                 // Partition into documents and everything else, avoiding a full clone of `a`.
                 let (docs, non_docs): (Vec<&Schema>, Vec<&Schema>) =
                     a.iter().partition(|s| matches!(s, Schema::Document(_)));
@@ -1787,12 +1786,12 @@ impl Schema {
     /// cartesian product between two Schemas.
     fn schema_set(&self) -> BTreeSet<Schema> {
         match self {
-            Unsat
+            Schema::Unsat
             | Schema::Missing
             | Schema::Atomic(_)
             | Schema::Array(_)
             | Schema::Document(_) => set! {self.clone()},
-            AnyOf(ao) => ao.clone(),
+            Schema::AnyOf(ao) => ao.clone(),
             Schema::Any => UNFOLDED_ANY.schema_set(),
         }
     }
@@ -1818,7 +1817,7 @@ impl Schema {
             // If the schema is an array, return the item schema
             Schema::Array(item_schema) => Some(item_schema.as_ref().clone()),
             // Return an AnyOf of the item schemas of any Array elements of the AnyOf
-            AnyOf(ao) => ao
+            Schema::AnyOf(ao) => ao
                 .iter()
                 .fold(None, |acc, s| match s.get_array_item_schema() {
                     None => acc,
@@ -1830,7 +1829,7 @@ impl Schema {
             // Any could be an Array<Any>, so we return Any
             Schema::Any => Some(Schema::Any),
             // These are never Arrays, so they return None
-            Unsat | Schema::Missing | Schema::Atomic(_) | Schema::Document(_) => None,
+            Schema::Unsat | Schema::Missing | Schema::Atomic(_) | Schema::Document(_) => None,
         }
     }
 }
@@ -1969,7 +1968,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                         // contains the single type and any relevant fields and recursively call
                         // Schema::try_from on it. Then, wrap the resulting vector in a Schema::AnyOf
                         // and call `simplify` in order to remove any unnecessary AnyOf wrappings.
-                        Ok(Schema::simplify(&AnyOf(
+                        Ok(Schema::simplify(&Schema::AnyOf(
                             m.into_iter()
                                 .map(|bson_type| match bson_type {
                                     json_schema::BsonTypeName::Array => {
