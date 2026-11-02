@@ -102,7 +102,7 @@ pub fn derive_schema_for_pipeline(
         state.result_set_schema = stage.derive_schema(state)?;
         Ok(())
     })?;
-    Ok(Schema::simplify(&std::mem::take(
+    Ok(Schema::simplify(std::mem::take(
         &mut state.result_set_schema,
     )))
 }
@@ -406,7 +406,7 @@ impl DeriveSchema for Stage {
                     );
                 }
             }
-            Ok(Schema::simplify(&state.result_set_schema).to_owned())
+            Ok(Schema::simplify(state.result_set_schema.clone()))
         }
 
         /// bucket_output_derive_keys is a helper for the $bucket and $bucketAuto stages.
@@ -707,7 +707,7 @@ impl DeriveSchema for Stage {
                         _ => {}
                     }
                 }
-                Schema::simplify(&Schema::AnyOf(schemas))
+                Schema::simplify(Schema::AnyOf(schemas))
             // assignments are often new fields, so we don't require a parent schema to evaluate
             } else if let Some(ProjectItem::Assignment(e)) = &node.project_item.as_ref() {
                 e.derive_schema(state).unwrap()
@@ -742,7 +742,7 @@ impl DeriveSchema for Stage {
                     );
                 });
                 // undo the promotion of missing
-                state.result_set_schema = Schema::simplify(&state.result_set_schema);
+                state.result_set_schema = Schema::simplify(state.result_set_schema.clone());
                 return Ok(state.result_set_schema.to_owned());
             }
 
@@ -779,8 +779,8 @@ impl DeriveSchema for Stage {
             }
 
             // undo the promotion of missing
-            state.result_set_schema = Schema::simplify(&state.result_set_schema);
-            Ok(Schema::simplify(&result_doc))
+            state.result_set_schema = Schema::simplify(state.result_set_schema.clone());
+            Ok(Schema::simplify(result_doc))
         }
 
         /// lookup_derive_schema derives the schema for a $lookup stage by calling the appropriate function based on
@@ -1119,7 +1119,7 @@ impl DeriveSchema for Stage {
                     }
                 }
             }
-            Ok(Schema::simplify(&state.result_set_schema.to_owned()))
+            Ok(Schema::simplify(state.result_set_schema.clone()))
         }
 
         /// unset_derive_schema derives schema for $unset stages. It simply removes any fields
@@ -1185,7 +1185,7 @@ impl DeriveSchema for Stage {
                 .to_owned()
                 .expression()
                 .derive_schema(state)
-                .map(|schema| Schema::simplify(&schema)),
+                .map(|schema| Schema::simplify(schema)),
             Stage::Sample(_) => Ok(state.result_set_schema.to_owned()),
             Stage::SetWindowFields(s) => set_window_fields_derive_schema(s, state),
             Stage::Skip(_) | Stage::Sort(_) => Ok(state.result_set_schema.to_owned()),
@@ -1376,7 +1376,7 @@ fn handle_null_satisfaction(
 ) -> Result<Schema> {
     match arguments_schema_satisfies(&args, state, &NULLISH)? {
         Satisfaction::Not => Ok(non_null_type),
-        Satisfaction::May => Ok(Schema::simplify(&Schema::AnyOf(set!(
+        Satisfaction::May => Ok(Schema::simplify(Schema::AnyOf(set!(
             Schema::Atomic(Atomic::Null),
             non_null_type
         )))),
@@ -1404,7 +1404,7 @@ impl DeriveSchema for TaggedOperator {
                 {
                     types.insert(Schema::Atomic(Atomic::Double));
                 }
-                Ok(Schema::simplify(&Schema::AnyOf(types)))
+                Ok(Schema::simplify(Schema::AnyOf(types)))
             }};
         }
         /// derive_date_addition is a macro helper for deriving the schema for the $dateAdd and $dateSubtract operators.
@@ -1594,7 +1594,7 @@ impl DeriveSchema for TaggedOperator {
                 if let Some(error_schema) = d.on_error.as_ref().map(|x| x.derive_schema(state)) {
                     types.insert(error_schema?);
                 }
-                Ok(Schema::simplify(&Schema::AnyOf(types)))
+                Ok(Schema::simplify(Schema::AnyOf(types)))
             }
             // $dateToParts returns a document with a fixed schema, however, the fixed schema is different
             // depending on whether iso8601 is true or false
@@ -1680,7 +1680,7 @@ impl DeriveSchema for TaggedOperator {
                     }
                     _ => {}
                 };
-                Ok(Schema::simplify(&Schema::AnyOf(types)))
+                Ok(Schema::simplify(Schema::AnyOf(types)))
             }
             TaggedOperator::DateAdd(d) => derive_date_addition!(d),
             TaggedOperator::DateSubtract(d) => derive_date_addition!(d),
@@ -1756,7 +1756,7 @@ impl DeriveSchema for TaggedOperator {
                                     vec![s.field.clone()],
                                     true,
                                 );
-                                Ok(Schema::simplify(&input_schema))
+                                Ok(Schema::simplify(input_schema))
                             } else {
                                 let new_field = Schema::Document(Document {
                                     keys: map! {
@@ -1765,10 +1765,10 @@ impl DeriveSchema for TaggedOperator {
                                     required: set!(s.field.clone()),
                                     ..Default::default()
                                 });
-                                Ok(Schema::simplify(&input_schema.union(&new_field)))
+                                Ok(Schema::simplify(input_schema.union(&new_field)))
                             }
                         } else {
-                            Ok(Schema::simplify(&input_schema))
+                            Ok(Schema::simplify(input_schema))
                         }
                     }
                     // if we are handling a new field, check first if the schema is missing (could either be
@@ -1782,7 +1782,7 @@ impl DeriveSchema for TaggedOperator {
                                 *field_schema = value_schema;
                             }
                         }
-                        Ok(Schema::simplify(&input_schema))
+                        Ok(Schema::simplify(input_schema))
                     }
                 }
             }
@@ -1799,7 +1799,7 @@ impl DeriveSchema for TaggedOperator {
             TaggedOperator::Cond(c) => {
                 let then_schema = c.then.derive_schema(state)?;
                 let else_schema = c.r#else.derive_schema(state)?;
-                Ok(Schema::simplify(&Schema::AnyOf(
+                Ok(Schema::simplify(Schema::AnyOf(
                     set! {then_schema, else_schema},
                 )))
             }
@@ -2017,7 +2017,7 @@ fn get_input_schema(args: &[&Expression], state: &mut ResultSetState) -> Result<
                 .map(|schema| schema.upconvert_missing_to_null())
         })
         .collect::<Result<BTreeSet<_>>>()?;
-    Ok(Schema::simplify(&Schema::AnyOf(x)))
+    Ok(Schema::simplify(Schema::AnyOf(x)))
 }
 
 /// get_decimal_double_or_nullish_from_schema is a helper for some numeric operators that return
@@ -2172,7 +2172,7 @@ impl DeriveSchema for UntaggedOperator {
                     _ => {}
                 }
             }
-            let mut schema = Schema::simplify(&Schema::AnyOf(type_set));
+            let mut schema = Schema::simplify(Schema::AnyOf(type_set));
             // the operators calling this, like multiply and add, will return a long if the
             // inputs are integers and the value is sufficiently large, so we add that type
             if schema.satisfies(&Schema::Atomic(Atomic::Long)) != Satisfaction::Not
@@ -2281,7 +2281,7 @@ impl DeriveSchema for UntaggedOperator {
                 };
                 Ok(match state.null_behavior {
                     Satisfaction::Not => non_null_schema,
-                    Satisfaction::May => Schema::simplify(&Schema::AnyOf(set!(Schema::Atomic(Atomic::Null), non_null_schema))),
+                    Satisfaction::May => Schema::simplify(Schema::AnyOf(set!(Schema::Atomic(Atomic::Null), non_null_schema))),
                     Satisfaction::Must => Schema::Atomic(Atomic::Null)
                 })
             }
@@ -2321,7 +2321,7 @@ impl DeriveSchema for UntaggedOperator {
                 let numeric_schema = get_numeric_operator_schema(&args, state)?;
 
                 if may_be_date {
-                    Ok(Schema::simplify(&Schema::AnyOf(set!{numeric_schema, Schema::Atomic(Atomic::Date)})))
+                    Ok(Schema::simplify(Schema::AnyOf(set!{numeric_schema, Schema::Atomic(Atomic::Date)})))
                 } else {
                     Ok(numeric_schema)
                 }
@@ -2332,7 +2332,7 @@ impl DeriveSchema for UntaggedOperator {
 
                 let cp = left_schema.cartesian_product(&right_schema);
 
-                Ok(Schema::simplify(&Schema::AnyOf(cp.into_iter().filter_map(|(l, r)| match (l, r) {
+                Ok(Schema::simplify(Schema::AnyOf(cp.into_iter().filter_map(|(l, r)| match (l, r) {
                     // If either operand is Null, the result may be Null
                     (Schema::Atomic(Atomic::Null), _) | (_, Schema::Atomic(Atomic::Null)) => Some(Schema::Atomic(Atomic::Null)),
                     // If both are Date, the result may be Long
@@ -2379,7 +2379,7 @@ impl DeriveSchema for UntaggedOperator {
                 {
                     types.insert(Schema::Atomic(Atomic::Double));
                 }
-                Ok(Schema::simplify(&Schema::AnyOf(types)))
+                Ok(Schema::simplify(Schema::AnyOf(types)))
             }
             // mod returns the maximal numeric type of its inputs
             UntaggedOperatorName::Mod => {
@@ -2401,7 +2401,7 @@ impl DeriveSchema for UntaggedOperator {
                     _ => &Schema::Unsat
                 };
                 match types {
-                    Schema::AnyOf(ao) => Ok(Schema::simplify(&Schema::AnyOf(ao.into_iter().filter(|s| s >= lower_bound).collect()))),
+                    Schema::AnyOf(ao) => Ok(Schema::simplify(Schema::AnyOf(ao.into_iter().filter(|s| s >= lower_bound).collect()))),
                     schema => Ok(schema)
                 }
             }
@@ -2410,7 +2410,7 @@ impl DeriveSchema for UntaggedOperator {
             UntaggedOperatorName::ArrayElemAt => {
                 let input_schema = self.args[0].derive_schema(state)?;
                 match input_schema.clone() {
-                    Schema::Array(a) => Ok(Schema::simplify(&a.as_ref().union(&Schema::Atomic(Atomic::Null)))),
+                    Schema::Array(a) => Ok(Schema::simplify(a.as_ref().union(&Schema::Atomic(Atomic::Null)))),
                     ao @ Schema::AnyOf(_) => {
                         let array_schema = match ao.intersection(&Schema::Array(Box::new(Schema::Any))) {
                             Schema::Array(a) => *a,
@@ -2420,7 +2420,7 @@ impl DeriveSchema for UntaggedOperator {
                         if array_schema == Schema::Unsat && null_schema == Schema::Unsat {
                             Err(Error::InvalidType(input_schema, 0usize))
                         } else {
-                            Ok(Schema::simplify(&null_schema.union(&array_schema).union(&Schema::Atomic(Atomic::Null))))
+                            Ok(Schema::simplify(null_schema.union(&array_schema).union(&Schema::Atomic(Atomic::Null))))
                         }
                     }
                     _ => {
@@ -2441,7 +2441,7 @@ impl DeriveSchema for UntaggedOperator {
                 let schema = self.args[0].derive_schema(state)?;
                 Ok(match schema.intersection(&NULLISH.clone()) {
                     Schema::Unsat => Schema::Document(Document::any()),
-                    nullish_schema => Schema::simplify(&nullish_schema.union(&Schema::Document(Document::any()))),
+                    nullish_schema => Schema::simplify(nullish_schema.union(&Schema::Document(Document::any()))),
                 })
             }
             // $concatArrays and $setUnion operators both return array schemas where the inner objects
@@ -2629,7 +2629,7 @@ impl DeriveSchema for UntaggedOperator {
                         }
                     }
                 }).collect();
-                Ok(Schema::simplify(&Schema::Document(arg_schemas?
+                Ok(Schema::simplify(Schema::Document(arg_schemas?
                     .into_iter()
                     .fold(Document::empty(), |acc, arg_schema| {
                         // Generally, mergeObjects retains the last value seen

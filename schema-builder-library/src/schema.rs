@@ -103,7 +103,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     // The initial schema might be empty, in which case we
     // default to `Unsat` if there are also no refinement entries for the DB
     let mut schema = initial_schema_doc
-        .map(|s| Schema::simplify(&s))
+        .map(|s| Schema::simplify(Arc::unwrap_or_clone(s)))
         .unwrap_or(Schema::Unsat);
 
     let mut saw_unstable = false;

@@ -183,7 +183,7 @@ pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<S
                     })
                     .collect::<BTreeSet<_>>();
                 if !types.is_empty() {
-                    return Some(Schema::simplify(&Schema::AnyOf(types)));
+                    return Some(Schema::simplify(Schema::AnyOf(types)));
                 }
                 return None;
             }
