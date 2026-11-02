@@ -1560,7 +1560,14 @@ impl Schema {
     /// lattice join over additional_properties (if one document is true, and the other is false,
     /// the solution is true).
     pub fn union(&self, other: &Schema) -> Schema {
-        self.combine(other, Schema::union, Document::union)
+        let left = Schema::simplify(self);
+        let right = Schema::simplify(other);
+        left.combine(&right, Schema::union_simplified, Document::union)
+    }
+
+    /// Unions two simplified schemata.
+    fn union_simplified(&self, other: &Schema) -> Schema {
+        self.combine(other, Schema::union_simplified, Document::union)
     }
 
     /// Merges two schemata. Unlike union, this method combines two schemata such that values that
@@ -1568,11 +1575,18 @@ impl Schema {
     /// subset of the other. This is primarily useful when building a Document result schema field
     /// by field and updating the environment as each schema is computed.
     pub fn merge(&self, other: &Schema) -> Schema {
-        self.combine(other, Schema::merge, Document::merge)
+        let left = Schema::simplify(self);
+        let right = Schema::simplify(other);
+        left.combine(&right, Schema::merge_simplified, Document::merge)
+    }
+
+    /// Merges two simplified schemata.
+    fn merge_simplified(&self, other: &Schema) -> Schema {
+        self.combine(other, Schema::merge_simplified, Document::merge)
     }
 
     /// Combines two schemata using the combinator functions provided. Typically, this is used for
-    /// union and merge.
+    /// union and merge. This function assumes the inputs are simplified.
     fn combine(
         &self,
         other: &Schema,
@@ -1581,13 +1595,13 @@ impl Schema {
     ) -> Schema {
         use Schema::*;
         use std::cmp::Ordering;
-        let (left, right) = (Schema::simplify(self), Schema::simplify(other));
-        let ordering = left.cmp(&right);
+        let ordering = self.cmp(other);
+        // todo: be sure to remove these clones in a future commit
         let (left, right) = match ordering {
-            Ordering::Greater => (right, left),
-            Ordering::Less => (left, right),
+            Ordering::Greater => (other.clone(), self.clone()),
+            Ordering::Less => (self.clone(), other.clone()),
             Ordering::Equal => {
-                return left;
+                return self.clone();
             }
         };
         // Schema types ordered least to greatest. We use the order to reduce the number
