@@ -108,7 +108,7 @@ impl SchemaEnvironment {
         SchemaEnvironment(
             self.0
                 .into_iter()
-                .map(|(k, v)| (k, Schema::simplify(&v)))
+                .map(|(k, v)| (k, Schema::simplify(v)))
                 .collect(),
         )
     }
@@ -1000,7 +1000,7 @@ impl Schema {
     }
 
     /// returns a simplified version of this schema.
-    pub fn simplify(schema: &Schema) -> Schema {
+    pub fn simplify(schema: Schema) -> Schema {
         // remove_missing removes all Missing types from the given Schema. It should
         // never be called on a Schema that Must satisfy Missing, and the argument Schema
         // must always be pre-simplified, so there is never a nested AnyOf.
@@ -1013,7 +1013,15 @@ impl Schema {
                 | Schema::Array(_)
                 | Schema::Atomic(_) => s,
                 Schema::AnyOf(ao) => {
-                    Schema::AnyOf(ao.into_iter().filter(|x| x != &Schema::Missing).collect())
+                    let ao: BTreeSet<Schema> =
+                        ao.into_iter().filter(|x| x != &Schema::Missing).collect();
+                    if ao.is_empty() {
+                        Schema::Unsat
+                    } else if ao.len() == 1 {
+                        ao.into_iter().next().unwrap()
+                    } else {
+                        Schema::AnyOf(ao)
+                    }
                 }
             }
         }
@@ -1025,46 +1033,45 @@ impl Schema {
                 if a.contains(&Schema::Any) {
                     return Schema::Any;
                 }
-                let ret: BTreeSet<Schema> = a
-                    .iter()
-                    .map(Schema::simplify)
-                    .flat_map(|x| match x {
-                        Schema::AnyOf(vs) => vs,
-                        _ => set![x],
-                    })
-                    .collect();
                 // Merge any document schemata in an AnyOf.
-                let (docs, mut non_doc_schemata): (Vec<_>, BTreeSet<_>) =
-                    ret.into_iter().partition_map(|s| match s {
+                let (docs, mut non_docs): (Vec<_>, BTreeSet<_>) =
+                    a.into_iter().partition_map(|s| match s {
                         Schema::Document(d) => Either::Left(d),
                         _ => Either::Right(s),
                     });
                 if !docs.is_empty() {
                     let doc_schema =
                         Schema::Document(docs.into_iter().reduce(|acc, s| acc.union(s)).unwrap());
-                    non_doc_schemata.insert(doc_schema);
+                    non_docs.insert(Schema::simplify(doc_schema));
                 };
-                let ret = non_doc_schemata;
+                let ret: BTreeSet<Schema> = non_docs
+                    .into_iter()
+                    .map(Schema::simplify)
+                    .flat_map(|x| match x {
+                        Schema::AnyOf(vs) => vs,
+                        _ => set![x],
+                    })
+                    .collect();
                 if ret.len() == 1 {
                     ret.into_iter().next().unwrap()
                 } else {
                     Schema::AnyOf(ret)
                 }
             }
-            Schema::Array(arr) => Schema::Array(Box::new(Schema::simplify(arr))),
+            Schema::Array(arr) => Schema::Array(Box::new(Schema::simplify(*arr))),
             Schema::Document(d) => {
                 let mut missing_keys = BTreeSet::new();
                 Schema::Document(Document {
                     keys: d
                         .keys
-                        .iter()
+                        .into_iter()
                         .filter_map(|(k, s)| {
                             let s = Schema::simplify(s);
                             match s.satisfies(&Schema::Missing) {
                                 Satisfaction::Not => Some((k.clone(), s)),
                                 Satisfaction::May => {
                                     missing_keys.insert(k.clone());
-                                    Some((k.clone(), Schema::simplify(&remove_missing(s))))
+                                    Some((k.clone(), remove_missing(s)))
                                 }
                                 Satisfaction::Must => {
                                     missing_keys.insert(k.clone());
@@ -1074,7 +1081,7 @@ impl Schema {
                         })
                         .collect(),
                     required: d.required.difference(&missing_keys).cloned().collect(),
-                    ..*d
+                    ..d
                 })
             }
             Schema::Atomic(_) => schema.clone(),
@@ -1559,8 +1566,8 @@ impl Schema {
     /// lattice join over additional_properties (if one document is true, and the other is false,
     /// the solution is true).
     pub fn union(&self, other: &Schema) -> Schema {
-        let left = Schema::simplify(self);
-        let right = Schema::simplify(other);
+        let left = Schema::simplify(self.clone());
+        let right = Schema::simplify(other.clone());
         left.combine(&right, Schema::union_simplified, Document::union)
     }
 
@@ -1574,8 +1581,8 @@ impl Schema {
     /// subset of the other. This is primarily useful when building a Document result schema field
     /// by field and updating the environment as each schema is computed.
     pub fn merge(&self, other: &Schema) -> Schema {
-        let left = Schema::simplify(self);
-        let right = Schema::simplify(other);
+        let left = Schema::simplify(self.clone());
+        let right = Schema::simplify(other.clone());
         left.combine(&right, Schema::merge_simplified, Document::merge)
     }
 
@@ -1669,7 +1676,7 @@ impl Schema {
         if intersection.is_empty() {
             Schema::Unsat
         } else {
-            Schema::simplify(&Schema::AnyOf(intersection))
+            Schema::simplify(Schema::AnyOf(intersection))
         }
     }
 
@@ -1678,8 +1685,8 @@ impl Schema {
     /// for schema derivation, where we can use intersection to combine the
     /// implied schemas of $match filters.
     pub fn intersection(&self, other: &Schema) -> Schema {
-        let left = Schema::simplify(self);
-        let right = Schema::simplify(other);
+        let left = Schema::simplify(self.clone());
+        let right = Schema::simplify(other.clone());
         left.intersection_simplified(&right)
     }
 
@@ -1805,8 +1812,8 @@ impl Schema {
     /// Computes the cartesian product of two Schemas. The inputs are simplified as part of this
     /// process.
     pub fn cartesian_product(&self, other: &Schema) -> BTreeSet<(Self, Self)> {
-        let self_schema = Schema::simplify(self);
-        let other_schema = Schema::simplify(other);
+        let self_schema = Schema::simplify(self.clone());
+        let other_schema = Schema::simplify(other.clone());
 
         let self_set = self_schema.schema_set();
         let other_set = other_schema.schema_set();
@@ -1974,7 +1981,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                         // contains the single type and any relevant fields and recursively call
                         // Schema::try_from on it. Then, wrap the resulting vector in a Schema::AnyOf
                         // and call `simplify` in order to remove any unnecessary AnyOf wrappings.
-                        Ok(Schema::simplify(&Schema::AnyOf(
+                        Ok(Schema::simplify(Schema::AnyOf(
                             m.into_iter()
                                 .map(|bson_type| match bson_type {
                                     json_schema::BsonTypeName::Array => {
