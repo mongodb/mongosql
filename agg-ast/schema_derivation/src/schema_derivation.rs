@@ -1185,7 +1185,7 @@ impl DeriveSchema for Stage {
                 .to_owned()
                 .expression()
                 .derive_schema(state)
-                .map(|schema| Schema::simplify(schema)),
+                .map(Schema::simplify),
             Stage::Sample(_) => Ok(state.result_set_schema.to_owned()),
             Stage::SetWindowFields(s) => set_window_fields_derive_schema(s, state),
             Stage::Skip(_) | Stage::Sort(_) => Ok(state.result_set_schema.to_owned()),
