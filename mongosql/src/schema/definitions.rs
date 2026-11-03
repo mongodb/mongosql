@@ -1094,27 +1094,29 @@ impl Schema {
     ///
     /// Must if the predicate returns Must for all Schemata.
     /// Not if the predicate returns Not for all Schemata.
-    /// May if the predcate is not Must or Not for all Schemata.
+    /// May if the predicate is not Must or Not for all Schemata.
     ///
     /// If looked at as a binary operator we get:
     /// meet(X, Y) = May
     /// meet(X, X) = X
     /// where X != Y; X, Y in {May, Must, Not}
     ///
-    fn schema_predicate_meet(
+    pub(crate) fn schema_predicate_meet(
         vs: &BTreeSet<Schema>,
         predicate: &dyn Fn(&Schema) -> Satisfaction,
     ) -> Satisfaction {
-        vs.iter()
-            .fold(None, |so_far, schema| {
-                let satisfaction = predicate(schema);
-                match (so_far, satisfaction) {
-                    (None, s) => Some(s),
-                    (Some(s1), s2) if s1 == s2 => Some(s1),
-                    _ => Some(Satisfaction::May),
-                }
-            })
-            .unwrap_or(Satisfaction::Must)
+        let mut ret = None;
+
+        for v in vs.iter() {
+            let satisfaction = predicate(v);
+            match (ret, satisfaction) {
+                (None, s) => ret = Some(s),
+                (Some(s1), s2) if s1 == s2 => (),
+                _ => return Satisfaction::May,
+            }
+        }
+
+        ret.unwrap_or(Satisfaction::Must)
     }
 
     /// Satisfies AnyOf the passed set of Schemata.
