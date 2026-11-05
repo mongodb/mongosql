@@ -1084,10 +1084,7 @@ impl Schema {
                     ..d
                 })
             }
-            Schema::Atomic(_) => schema,
-            Schema::Any => Schema::Any,
-            Schema::Unsat => Schema::Unsat,
-            Schema::Missing => Schema::Missing,
+            Schema::Atomic(_) | Schema::Any | Schema::Unsat | Schema::Missing => schema,
         }
     }
 
