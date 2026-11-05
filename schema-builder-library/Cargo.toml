@@ -41,6 +41,9 @@ tracing-test = "0.2"
 integration = []
 default = ["native-client"]
 native-client = ["dep:mongodb", "dep:test-utils", "dep:tokio", "tokio/full"]
+# Blocking `mongodb::sync` driver variant for hosts without an async runtime
+# (e.g. Python extensions); see `data_service::mongodb_sync`.
+sync-client = ["dep:mongodb", "mongodb/sync"]
 wasm = [
     "dep:console_error_panic_hook",
     "dep:serde-wasm-bindgen",
