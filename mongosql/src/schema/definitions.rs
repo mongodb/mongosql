@@ -1572,12 +1572,12 @@ impl Schema {
     pub fn union(&self, other: &Schema) -> Schema {
         let left = Schema::simplify(self.clone());
         let right = Schema::simplify(other.clone());
-        left.combine(right, Schema::union_simplified, Document::union)
+        left.combine(right, Schema::union_simplified, Document::union_simplified)
     }
 
     /// Unions two simplified schemata.
     fn union_simplified(self, other: Schema) -> Schema {
-        self.combine(other, Schema::union_simplified, Document::union)
+        self.combine(other, Schema::union_simplified, Document::union_simplified)
     }
 
     /// Merges two schemata. Unlike union, this method combines two schemata such that values that
@@ -1587,12 +1587,12 @@ impl Schema {
     pub fn merge(&self, other: &Schema) -> Schema {
         let left = Schema::simplify(self.clone());
         let right = Schema::simplify(other.clone());
-        left.combine(right, Schema::merge_simplified, Document::merge)
+        left.combine(right, Schema::merge_simplified, Document::merge_simplified)
     }
 
     /// Merges two simplified schemata.
     fn merge_simplified(self, other: Schema) -> Schema {
-        self.combine(other, Schema::merge_simplified, Document::merge)
+        self.combine(other, Schema::merge_simplified, Document::merge_simplified)
     }
 
     /// Combines two schemata using the combinator functions provided. Typically, this is used for
@@ -2168,11 +2168,11 @@ impl Document {
     fn combine_keys(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
-        schema_combine_fn: impl Fn(&Schema, &Schema) -> Schema,
+        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
     ) -> BTreeMap<String, Schema> {
         for (key2, schema2) in m2.into_iter() {
             if let Some(old_schema) = m1.remove(&key2) {
-                m1.insert(key2, schema_combine_fn(&old_schema, &schema2));
+                m1.insert(key2, schema_combine_fn(old_schema, schema2));
             } else {
                 m1.insert(key2, schema2);
             }
@@ -2236,18 +2236,24 @@ impl Document {
         out
     }
 
-    /// retain_keys retains keys from the m1 map argument, creating an AnyOf for the Schema of any
-    /// that overlap, and ignoring the keys from the m2 map that are not overlapping with m1.
+    /// retain_keys retains keys from the m1 map argument, creating an AnyOf for
+    /// the Schema of any that overlap, and ignoring the keys from the m2 map
+    /// that are not overlapping with m1. If m2 contains any keys that are not
+    /// in m1, the boolean return value will be true.
     fn retain_keys(
         mut m1: BTreeMap<String, Schema>,
-        m2: &BTreeMap<String, Schema>,
-    ) -> BTreeMap<String, Schema> {
-        for (key, s1) in m2.iter() {
-            if let Some(s2) = m1.remove(key) {
-                m1.insert(key.clone(), s1.union(&s2));
+        m2: BTreeMap<String, Schema>,
+        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+    ) -> (BTreeMap<String, Schema>, bool) {
+        let mut other_contains_extra_keys = false;
+        for (key, s1) in m2.into_iter() {
+            if let Some(s2) = m1.remove(&key) {
+                m1.insert(key.clone(), schema_combine_fn(s1, s2));
+            } else {
+                other_contains_extra_keys = true;
             }
         }
-        m1
+        (m1, other_contains_extra_keys)
     }
 
     /// determines whether there is a jaccard index for the document(s),
@@ -2339,8 +2345,29 @@ impl Document {
     //       base value.
     ///   5. `unstable` - Unconditionally set to `true`.
     pub fn union(self, other: Document) -> Document {
+        self.union_aux(other, |s1, s2| Schema::union(&s1, &s2))
+    }
+
+    /// Unions Documents following the same rules described above, but this
+    /// method assumes the inputs have been simplified. This method is used
+    /// internally by the `Schema::union` and `Schema::union_simplified`
+    /// methods, as it should reduce repeated calls to `Schema::simplify`
+    /// on already-simplified Schemas.
+    pub(crate) fn union_simplified(self, other: Document) -> Document {
+        self.union_aux(other, Schema::union_simplified)
+    }
+
+    /// Unions Documents following the rules described on the public `union`
+    /// method. This method exists so that the optimized "simplified" path
+    /// can be used internally while maintaining the public API of `union`
+    /// which does not assume simplification.
+    fn union_aux(
+        self,
+        other: Document,
+        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+    ) -> Document {
         if self.unstable || other.unstable {
-            return self.unstable_union(other);
+            return self.unstable_union(other, schema_combine_fn);
         }
 
         // If both are stable, attempt to union using Jaccard Index information, or union "normally"
@@ -2370,7 +2397,7 @@ impl Document {
             }
         } else {
             Document {
-                keys: Document::combine_keys(self.keys, other.keys, Schema::union),
+                keys: Document::combine_keys(self.keys, other.keys, schema_combine_fn),
                 required: self
                     .required
                     .intersection(&other.required)
@@ -2384,7 +2411,11 @@ impl Document {
 
     /// Performs an unstable union. See the `union` doc comment for further details, as that method
     /// is public and therefore contains all relevant information.
-    fn unstable_union(self, other: Document) -> Document {
+    fn unstable_union(
+        self,
+        other: Document,
+        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+    ) -> Document {
         let (pref_doc, other_doc) = if self.unstable && other.unstable {
             match (self.jaccard_index, other.jaccard_index) {
                 // If neither has a JaccardIndex or only self has one, prefer self.
@@ -2418,15 +2449,14 @@ impl Document {
             Self::update_jaccard_index(ji, union_size, intersection_size)
         });
 
-        let keys = Self::retain_keys(pref_doc.keys, &other_doc.keys);
+        let (keys, other_contains_extra_keys) =
+            Self::retain_keys(pref_doc.keys, other_doc.keys, schema_combine_fn);
 
         let required = pref_doc
             .required
             .intersection(&other_doc.required)
             .cloned()
             .collect();
-
-        let other_contains_extra_keys = other_doc.keys.keys().any(|k| !keys.contains_key(k));
 
         // We know with certainty that the result schema must indicate there are additional
         // properties if pref_doc already indicates that there are or if any of other_doc's keys do
@@ -2483,9 +2513,30 @@ impl Document {
     /// satisfy one of the input schemas will not satisfy the resulting schema unless one is a
     /// subset of the other.
     pub fn merge(self, other: Document) -> Document {
+        self.merge_aux(other, |s1, s2| Schema::merge(&s1, &s2))
+    }
+
+    /// Merges Documents following the same rules described above, but this
+    /// method assumes the inputs have been simplified. This method is used
+    /// internally by the `Schema::merge` and `Schema::merge_simplified`
+    /// methods, as it should reduce repeated calls to `Schema::simplify`
+    /// on already-simplified Schemas.
+    fn merge_simplified(self, other: Document) -> Document {
+        self.merge_aux(other, Schema::merge_simplified)
+    }
+
+    /// Merges Documents following the rules described on the public `merge`
+    /// method. This method exists so that the optimized "simplified" path
+    /// can be used internally while maintaining the public API of `merge`
+    /// which does not assume simplification.
+    fn merge_aux(
+        self,
+        other: Document,
+        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+    ) -> Document {
         let jaccard_index = Document::get_jaccard_index(&self, &other);
         Document {
-            keys: Document::combine_keys(self.keys, other.keys, Schema::merge),
+            keys: Document::combine_keys(self.keys, other.keys, schema_combine_fn),
             required: self.required.into_iter().chain(other.required).collect(),
             additional_properties: self.additional_properties || other.additional_properties,
             jaccard_index,
