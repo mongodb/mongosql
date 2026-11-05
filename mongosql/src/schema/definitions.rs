@@ -1731,9 +1731,9 @@ impl Schema {
             }
             (Schema::Document(a), Schema::Document(b)) => {
                 if a == Document::any() {
-                    return Schema::Document(a.clone());
+                    return Schema::Document(a);
                 } else if b == Document::any() {
-                    return Schema::Document(b.clone());
+                    return Schema::Document(b);
                 }
                 let mut doc_intersection = Document::default();
                 a.keys.into_iter().for_each(|(key, schema)| {
