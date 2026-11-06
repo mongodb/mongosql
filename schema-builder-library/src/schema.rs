@@ -7,6 +7,7 @@ use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
 use crate::data_service::{AggregateOptions, LocalDataService};
+use crate::partitioning::SAMPLE_FALLBACK_SIZE;
 use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
 use crate::{PartitionedCollection, get_partitions};
 
@@ -186,6 +187,65 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     }
 
     Ok(schema)
+}
+
+/// Derive a schema for a collection by sampling a bounded number of documents.
+///
+/// Issues a single `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents and unions the inferred
+/// schemas. This is used for collections too large to partition cheaply. Returns `None` if the
+/// query fails to open, fails mid-stream, or returns no documents, so the caller can choose a
+/// fallback.
+#[instrument(level = "trace", skip_all)]
+pub async fn sample_schema_for_collection<S: LocalDataService>(
+    service: &S,
+    db: &str,
+    collection_info: &CollectionInfo,
+    initial_schema_doc: Option<Arc<Schema>>
+) -> Option<Schema> {
+    let pipeline = vec![doc! { "$sample": { "size": SAMPLE_FALLBACK_SIZE } }];
+
+    let cursor = service
+        .aggregate(
+            db,
+            &collection_info.name,
+            pipeline,
+            AggregateOptions::default(),
+        )
+        .await
+        .inspect_err(|e| {
+            warn!(
+                db,
+                collection = %collection_info.name,
+                "collection sampling failed to open: {e}"
+            );
+        })
+        .ok()?;
+
+    let mut schema = None;
+    let mut cursor = Box::pin(cursor);
+    loop {
+        match cursor.try_next().await {
+            Ok(Some(doc)) => {
+                schema = Some(schema.map_or_else(
+                    || schema_for_document(&doc),
+                    |s: Schema| s.union(&schema_for_document(&doc)),
+                ));
+            }
+            Ok(None) => break,
+            // A partial sample would silently under-report the schema, so fail closed and let
+            // the caller fall back.
+            Err(e) => {
+                warn!(
+                    db,
+                    collection = %collection_info.name,
+                    "collection sampling failed mid-stream: {e}"
+                );
+                return None;
+            }
+        }
+    }
+
+    schema
 }
 
 /// derive_schema_for_view takes a CollectionInfo and executes the pipeline
