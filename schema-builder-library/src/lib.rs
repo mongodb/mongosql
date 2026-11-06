@@ -20,7 +20,10 @@ pub use data_service::{JsDataService, WasmDataService};
 pub mod client_util;
 
 mod partitioning;
-pub use partitioning::{PartitionedCollection, get_partitions};
+pub use partitioning::{
+    CollectionSizes, PartitionedCollection, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, get_partitions,
+    get_size_counts,
+};
 mod errors;
 mod schema;
 #[cfg(test)]
@@ -28,7 +31,7 @@ pub(crate) mod test_util;
 pub use errors::Error;
 pub use schema::{
     SinglePartition, derive_schema_for_collection, derive_schema_for_partition,
-    derive_schema_for_view,
+    derive_schema_for_view, sample_schema_for_collection,
 };
 
 /// Re-export of mongosql Schema type for convenience

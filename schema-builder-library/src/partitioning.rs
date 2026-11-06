@@ -1,4 +1,4 @@
-pub(crate) use crate::partitioning::partition::{
+pub use crate::partitioning::partition::{
     PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
 };
 use crate::{
@@ -157,7 +157,7 @@ pub async fn get_partitions<S: LocalDataService>(
 
 /// Utility struct for collection size and count information.
 #[derive(Debug, PartialEq)]
-pub(crate) struct CollectionSizes {
+pub struct CollectionSizes {
     pub size: i64,
     pub count: Option<i64>,
 }
@@ -165,7 +165,7 @@ pub(crate) struct CollectionSizes {
 /// get_size_counts uses the $collStats aggregation stage to get size and count information for the
 /// argued collection.
 #[instrument(level = "trace", skip(service))]
-pub(crate) async fn get_size_counts<S: LocalDataService>(
+pub async fn get_size_counts<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
