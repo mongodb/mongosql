@@ -1,4 +1,6 @@
-pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
+pub(crate) use crate::partitioning::partition::{
+    PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
+};
 use crate::{
     Error, LocalDataService,
     data_service::{AggregateOptions, CollectionInfo, CollectionType},
@@ -179,36 +181,53 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
         .map_err(Error::DataServiceError)?;
     let mut cursor = Box::pin(cursor);
 
-    let stats = cursor
-        .next()
-        .await
-        .transpose()
-        .map_err(Error::DataServiceError)?
-        .ok_or_else(|| Error::NoCollectionStats(collection.to_string()))?;
+    // Sharded collections return one `$collStats` document per shard:
+    // https://www.mongodb.com/docs/manual/reference/operator/aggregation/collstats/#mongodb-pipeline-pipe.-collStats
+    // We sum sizes and counts across every document. A shard that does not report `count` (e.g. timeseries)
+    // is skipped rather than discarding the counts reported by other shards; the count is
+    // `None` only when no shard reports one.
+    let mut size_sum: i64 = 0;
+    let mut count_sum: Option<i64> = None;
+    let mut found_stats = false;
 
-    let stats = stats
-        .get_document("storageStats")
-        .map_err(|_| Error::BsonFailure)?;
-    let size = stats.get("size").cloned().ok_or(Error::BsonFailure)?;
-    // For timeseries collections, there is no `count` field reported, so we ignore it.
-    let count = stats.get("count").cloned();
+    while let Some(document) = cursor.try_next().await.map_err(Error::DataServiceError)? {
+        found_stats = true;
 
-    let (size, count) = match (size, count) {
-        (Bson::Int32(size), Some(Bson::Int32(count))) => (size as i64, Some(count as i64)),
-        (Bson::Int32(size), Some(Bson::Int64(count))) => (size as i64, Some(count)),
-        (Bson::Int64(size), Some(Bson::Int32(count))) => (size, Some(count as i64)),
-        (Bson::Int64(size), Some(Bson::Int64(count))) => (size, Some(count)),
-        (Bson::Int32(size), None) => (size as i64, None),
-        (Bson::Int64(size), None) => (size, None),
-        _ => {
-            return Err(Error::BsonFailure);
+        let storage_stats = document
+            .get_document("storageStats")
+            .map_err(|_| Error::BsonFailure)?;
+
+        let shard_size = match storage_stats.get("size") {
+            Some(Bson::Int32(size)) => i64::from(*size),
+            Some(Bson::Int64(size)) => *size,
+            _ => return Err(Error::BsonFailure),
+        };
+
+        let shard_count = match storage_stats.get("count") {
+            Some(Bson::Int32(count)) => Some(i64::from(*count)),
+            Some(Bson::Int64(count)) => Some(*count),
+            None => None,
+            _ => return Err(Error::BsonFailure),
+        };
+
+        size_sum += shard_size;
+        // Keep every count we do find; a shard without a count is skipped.
+        if let Some(count) = shard_count {
+            count_sum = Some(count_sum.unwrap_or(0) + count);
         }
-    };
+    }
 
-    if size == 0 || count.is_some_and(|c| c == 0) {
+    if !found_stats {
+        return Err(Error::NoCollectionStats(collection.to_string()));
+    }
+
+    if size_sum == 0 || count_sum.is_some_and(|c| c == 0) {
         Err(Error::EmptyCollection(collection.to_string()))
     } else {
-        Ok(CollectionSizes { size, count })
+        Ok(CollectionSizes {
+            size: size_sum,
+            count: count_sum,
+        })
     }
 }
 

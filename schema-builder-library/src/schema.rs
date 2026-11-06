@@ -6,9 +6,16 @@ use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
+use crate::Error::JsonSchemaFailure;
 use crate::data_service::{AggregateOptions, LocalDataService};
+use crate::partitioning::{
+    SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, get_size_counts,
+};
 use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
 use crate::{PartitionedCollection, get_partitions};
+
+#[cfg(all(test, feature = "native-client"))]
+mod test;
 
 /// The amount of samples to fetch for view schema derivation
 const VIEW_SAMPLE_SIZE: i64 = 1000;
@@ -28,6 +35,7 @@ pub const PARTITION_DOCS_PER_ITERATION: i64 = 20;
 /// Note: This breaks up the work into manageable partitions and operates over
 /// them in order. If you want to control the execution of these partitions,
 /// please refer to [derive_schema_for_partition].
+///
 pub async fn derive_schema_for_collection<S: LocalDataService>(
     service: &S,
     db: &str,
@@ -42,6 +50,35 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
         .into_iter()
         .find(|c| c.name == collection)
         .ok_or_else(|| Error::NoCollection(collection.to_string()))?;
+
+    // If the collection is > 1GB we fallback to sampling
+    let size_info = get_size_counts(service, db, &collection_info.name).await?;
+    if size_info.size > SAMPLE_FALLBACK_THRESHOLD_IN_BYTES {
+        // The collection is too large to partition cheaply, so the schema is derived from a
+        // sample rather than a comprehensive scan of the whole collection. Log this so consumers
+        // know the result is sampled and may not reflect the full set of fields.
+        info!(
+            db,
+            collection,
+            size_in_bytes = size_info.size,
+            threshold_in_bytes = SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
+            sample_size = SAMPLE_FALLBACK_SIZE,
+            "collection exceeds the sampling threshold; deriving schema from a sample instead of a full scan"
+        );
+        // Call the sampling method instead
+        if let Some(schema) = sample_schema_for_collection(service, db, &collection_info).await {
+            return Ok(schema);
+        }
+        warn!(
+            db,
+            collection, "sampling fallback produced no schema for this collection"
+        );
+        // If sampling fails, fall back to calling the method for just one partition
+        // [TODO] Call for a single partition
+        return Err(Error::MissingCountFieldForCollection(
+            collection_info.name.clone(),
+        ));
+    }
 
     let PartitionedCollection {
         partitions,
@@ -188,11 +225,14 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     Ok(schema)
 }
 
-/// derive_schema_for_view takes a CollectionInfo and executes the pipeline
-/// against the viewOn collection to generate a schema for the view.
-/// It does this by first prepending $sample to the pipeline
+/// Derive a schema for a view by sampling documents from its source collection.
+///
+/// Prepends a `$sample` of [`VIEW_SAMPLE_SIZE`] documents to the view's pipeline and runs it
+/// against the view's source collection (`view.options.view_on`), then unions the inferred
+/// schemas. Returns `None` if the query cannot be opened or no documents are returned; a
+/// mid-stream failure yields the schema inferred from the documents read so far.
 #[instrument(level = "trace", skip_all)]
-pub async fn derive_schema_for_view<S: LocalDataService>(
+pub async fn sample_schema_for_view<S: LocalDataService>(
     service: &S,
     db: &str,
     view: &CollectionInfo,
@@ -215,7 +255,7 @@ pub async fn derive_schema_for_view<S: LocalDataService>(
                 db,
                 view_name = view.name,
                 "view sampling encountered an error: {e}"
-            )
+            );
         })
         .ok()?;
 
@@ -231,7 +271,7 @@ pub async fn derive_schema_for_view<S: LocalDataService>(
                 view_name = view.name,
                 iteration = iterations,
                 "view sampling encountered an error: {e}"
-            )
+            );
         })
         .transpose()
     {
@@ -253,4 +293,75 @@ pub async fn derive_schema_for_view<S: LocalDataService>(
     }
 
     schema
+}
+
+/// Derive a schema for a collection by sampling a bounded number of documents.
+///
+/// Issues a single `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents and unions the inferred
+/// schemas. This is used for collections too large to partition cheaply. Returns `None` if the
+/// query fails to open, fails mid-stream, or returns no documents, so the caller can choose a
+/// fallback.
+#[instrument(level = "trace", skip_all)]
+pub async fn sample_schema_for_collection<S: LocalDataService>(
+    service: &S,
+    db: &str,
+    collection_info: &CollectionInfo,
+) -> Option<Schema> {
+    let pipeline = vec![doc! { "$sample": { "size": SAMPLE_FALLBACK_SIZE } }];
+
+    let cursor = service
+        .aggregate(
+            db,
+            &collection_info.name,
+            pipeline,
+            AggregateOptions::default(),
+        )
+        .await
+        .inspect_err(|e| {
+            warn!(
+                db,
+                collection = %collection_info.name,
+                "collection sampling failed to open: {e}"
+            );
+        })
+        .ok()?;
+
+    let mut schema = None;
+    let mut cursor = Box::pin(cursor);
+    loop {
+        match cursor.try_next().await {
+            Ok(Some(doc)) => {
+                schema = Some(schema.map_or_else(
+                    || schema_for_document(&doc),
+                    |s: Schema| s.union(&schema_for_document(&doc)),
+                ));
+            }
+            Ok(None) => break,
+            // A partial sample would silently under-report the schema, so fail closed and let
+            // the caller fall back.
+            Err(e) => {
+                warn!(
+                    db,
+                    collection = %collection_info.name,
+                    "collection sampling failed mid-stream: {e}"
+                );
+                return None;
+            }
+        }
+    }
+
+    schema
+}
+
+/// Derive a schema for a view by sampling its source collection.
+///
+/// Prepends `$sample` to the view's pipeline and executes it against the view's source
+/// collection (`view.options.view_on`). See [`sample_schema_for_view`] for the sampling details.
+#[instrument(level = "trace", skip_all)]
+pub async fn derive_schema_for_view<S: LocalDataService>(
+    service: &S,
+    db: &str,
+    view: &CollectionInfo,
+) -> Option<Schema> {
+    sample_schema_for_view(service, db, view).await
 }
