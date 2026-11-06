@@ -16,6 +16,7 @@ use std::{
     iter::once,
 };
 use thiserror::Error;
+use variant_count::VariantCount;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
@@ -371,7 +372,7 @@ impl TryFrom<bson::Document> for Schema {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy, Sequence)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy, Sequence, VariantCount)]
 pub enum Atomic {
     MinKey,
     Null,
@@ -1027,19 +1028,16 @@ impl Schema {
         }
         match schema {
             Schema::AnyOf(a) => {
+                // We choose to short-circuit here if either of this is true at the start; this
+                // allows us to avoid running recursive calls on the rest of the AnyOf.
                 if a.is_empty() {
                     return Schema::Unsat;
                 }
                 if a.contains(&Schema::Any) {
                     return Schema::Any;
                 }
-                // Merge any document schemata in an AnyOf.
-                let (docs, non_docs): (Vec<_>, BTreeSet<_>) =
-                    a.into_iter().partition_map(|s| match s {
-                        Schema::Document(d) => Either::Left(d),
-                        _ => Either::Right(s),
-                    });
-                let mut ret: BTreeSet<Schema> = non_docs
+
+                let ret: BTreeSet<Schema> = a
                     .into_iter()
                     .map(Schema::simplify)
                     .flat_map(|x| match x {
@@ -1047,10 +1045,30 @@ impl Schema {
                         _ => set![x],
                     })
                     .collect();
+
+                // We check this again after simplifying every element but before combining
+                // documents. This is because it is possible an element of the AnyOf simplified to
+                // Any; if that is the case, there is no need to consider the other elements or
+                // combine the document elements.
+                if ret.contains(&Schema::Any) {
+                    return Schema::Any;
+                }
+
+                // Merge any document schemata in an AnyOf.
+                let (docs, mut ret): (Vec<_>, BTreeSet<_>) =
+                    ret.into_iter().partition_map(|s| match s {
+                        Schema::Document(d) => Either::Left(d),
+                        _ => Either::Right(s),
+                    });
                 if !docs.is_empty() {
-                    let doc_schema =
-                        Schema::Document(docs.into_iter().reduce(|acc, s| acc.union(s)).unwrap());
-                    ret.insert(Schema::simplify(doc_schema));
+                    let doc_schema = Schema::Document(
+                        docs.into_iter()
+                            // We use union_simplified since all Documents have already been
+                            // simplified by this point.
+                            .reduce(|acc, s| acc.union_simplified(s))
+                            .unwrap(),
+                    );
+                    ret.insert(doc_schema);
                 };
                 if ret.len() == 1 {
                     ret.into_iter().next().unwrap()
@@ -1573,7 +1591,7 @@ impl Schema {
     }
 
     /// Unions two simplified schemata.
-    fn union_simplified(self, other: Schema) -> Schema {
+    pub fn union_simplified(self, other: Schema) -> Schema {
         self.combine(other, Schema::union_simplified, Document::union_simplified)
     }
 
@@ -1588,7 +1606,7 @@ impl Schema {
     }
 
     /// Merges two simplified schemata.
-    fn merge_simplified(self, other: Schema) -> Schema {
+    pub fn merge_simplified(self, other: Schema) -> Schema {
         self.combine(other, Schema::merge_simplified, Document::merge_simplified)
     }
 
@@ -1628,7 +1646,22 @@ impl Schema {
             (AnyOf(mut b1), AnyOf(b2)) => {
                 // this is equivalent to a destructive union
                 b1.extend(b2);
-                AnyOf(b1)
+
+                // Merge any documents that ended up in the combined set.
+                // This ensures the output is simplified.
+                let (docs, mut rest): (Vec<_>, BTreeSet<_>) =
+                    b1.into_iter().partition_map(|s| match s {
+                        Document(d) => Either::Left(d),
+                        _ => Either::Right(s),
+                    });
+                if let Some(combined_doc) = docs.into_iter().reduce(doc_combine_fn) {
+                    rest.insert(Document(combined_doc));
+                }
+                if rest.len() == 1 {
+                    rest.into_iter().next().unwrap()
+                } else {
+                    AnyOf(rest)
+                }
             }
             (Array(s1), Array(s2)) => Array(Box::new(schema_combine_fn(*s1, *s2))),
             (Array(s1), AnyOf(schemas)) => {
@@ -1643,7 +1676,11 @@ impl Schema {
                 } else {
                     unreachable!();
                 }
-                AnyOf(rest)
+                if rest.len() == 1 {
+                    rest.into_iter().next().unwrap()
+                } else {
+                    AnyOf(rest)
+                }
             }
             (Document(d1), Document(d2)) => Document(doc_combine_fn(d1, d2)),
             (Document(d), AnyOf(schemas)) => {
@@ -1656,7 +1693,11 @@ impl Schema {
                 } else {
                     unreachable!();
                 }
-                AnyOf(rest)
+                if rest.len() == 1 {
+                    rest.into_iter().next().unwrap()
+                } else {
+                    AnyOf(rest)
+                }
             }
             // x (strictly) < AnyOf
             (x, AnyOf(mut b)) => {
@@ -2532,9 +2573,23 @@ impl Document {
         schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
     ) -> Document {
         let jaccard_index = Document::get_jaccard_index(&self, &other);
+        let keys = Document::combine_keys(self.keys, other.keys, schema_combine_fn);
+        let required = self
+            .required
+            .into_iter()
+            .chain(other.required)
+            .filter(|k| {
+                keys.get(k)
+                    .map(|s| s.satisfies(&Schema::Missing) == Satisfaction::Not)
+                    // A required key with no entry in `keys` (additional_properties) cannot be
+                    // Missing, so keep it. This is an unlikely situation but may happen for
+                    // manually created (or arbitrarily created) schemas.
+                    .unwrap_or(true)
+            })
+            .collect();
         Document {
-            keys: Document::combine_keys(self.keys, other.keys, schema_combine_fn),
-            required: self.required.into_iter().chain(other.required).collect(),
+            keys,
+            required,
             additional_properties: self.additional_properties || other.additional_properties,
             jaccard_index,
             unstable: self.unstable || other.unstable,
