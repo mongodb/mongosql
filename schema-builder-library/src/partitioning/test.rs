@@ -4,7 +4,7 @@ mod test {
     use bson::{Bson, Document, doc, oid::ObjectId};
     use mongosql::json_schema;
 
-    use crate::partitioning::{Partition, get_num_partitions};
+    use crate::partitioning::{Partition, format_size, get_num_partitions};
     use schema_derivation::schema_for_document;
     use std::sync::LazyLock;
 
@@ -383,6 +383,17 @@ mod test {
             get_num_partitions(collection_size_one_gb, PARTITION_SIZE_IN_BYTES),
             11
         );
+    }
+
+    #[test]
+    fn format_size_renders_each_unit() {
+        assert_eq!(format_size(0), "0 B");
+        assert_eq!(format_size(500), "500 B");
+        assert_eq!(format_size(1024), "1.0 KiB");
+        assert_eq!(format_size(1536), "1.5 KiB");
+        assert_eq!(format_size(1024 * 1024), "1.0 MiB");
+        assert_eq!(format_size(1024 * 1024 * 1024), "1.0 GiB");
+        assert_eq!(format_size(1024 * 1024 * 1024 * 3 / 2), "1.5 GiB");
     }
 
     /// Tests for the fallbacks taken when partition sampling fails, driven by a scripted service.

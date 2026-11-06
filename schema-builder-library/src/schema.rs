@@ -9,7 +9,7 @@ use tracing::{info, instrument, warn};
 use crate::Error::JsonSchemaFailure;
 use crate::data_service::{AggregateOptions, LocalDataService};
 use crate::partitioning::{
-    SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, get_size_counts,
+    SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, format_size, get_size_counts,
 };
 use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
 use crate::{PartitionedCollection, get_partitions};
@@ -61,6 +61,8 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
             db,
             collection,
             size_in_bytes = size_info.size,
+            size_readable = %format_size(size_info.size),
+            count = ?size_info.count,
             threshold_in_bytes = SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
             sample_size = SAMPLE_FALLBACK_SIZE,
             "collection exceeds the sampling threshold; deriving schema from a sample instead of a full scan"
@@ -79,6 +81,18 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
             collection_info.name.clone(),
         ));
     }
+
+    // The collection is within the threshold, so its schema is derived from a comprehensive
+    // partition scan of the whole collection rather than a sample.
+    info!(
+        db,
+        collection,
+        size_in_bytes = size_info.size,
+        size_readable = %format_size(size_info.size),
+        count = ?size_info.count,
+        threshold_in_bytes = SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
+        "collection is within the sampling threshold; deriving schema from a full partition scan"
+    );
 
     let PartitionedCollection {
         partitions,
