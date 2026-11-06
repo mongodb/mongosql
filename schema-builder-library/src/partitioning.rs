@@ -7,6 +7,7 @@ use crate::{
 };
 use bson::{Bson, Document, doc};
 use futures::{StreamExt as _, TryStreamExt as _};
+use tokio::count;
 use tracing::{info, instrument, trace};
 
 mod partition;
@@ -17,6 +18,48 @@ pub struct PartitionedCollection {
     pub partitions: Vec<Partition>,
     pub partition_key: String,
     pub hint: Option<Document>,
+}
+
+/// A utility function for getting a single partition for a collection
+/// This is used as a fallback if we are unable to derive a schema from an entire colleciton
+/// A single partition gives us some coverage.
+#[instrument(level = "trace", skip(service))]
+pub async fn get_single_partition<S: LocalDataService>(
+    service: &S,
+    db: &str,
+    collection_info: CollectionInfo,
+) -> Result<PartitionedCollection, Error<S::Error>> {
+    let (partition_key, hint) = match collection_info.collection_type {
+        CollectionType::Timeseries => {
+            let timeseries_options = collection_info
+                .options
+                .timeseries
+                .ok_or_else(|| Error::NoTimeFieldSpecified(collection_info.name.clone()))?;
+
+            let partition_key = timeseries_options.time_field;
+            let hint = timeseries_options.meta_field.map(|meta_field| {
+                doc! { meta_field: 1, partition_key.as_str(): 1 }
+            });
+            (partition_key, hint)
+        }
+        CollectionType::Collection | CollectionType::View => {
+            ("_id".to_string(), Some(doc! {"_id": 1}))
+        }
+    };
+
+    let (mut min_bound, max_bound) =
+        get_bounds(service, db, &collection_info.name, partition_key.as_str()).await?;
+    let partitions = vec![Partition {
+        min: min_bound,
+        max: max_bound,
+        is_max_bound_inclusive: true,
+    }];
+
+    Ok(PartitionedCollection {
+        partitions,
+        partition_key,
+        hint,
+    })
 }
 
 /// A utility function for determining the partitions of a collection.
