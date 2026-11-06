@@ -1587,11 +1587,12 @@ impl Schema {
     pub fn union(&self, other: &Schema) -> Schema {
         let left = Schema::simplify(self.clone());
         let right = Schema::simplify(other.clone());
-        left.combine(right, Schema::union_simplified, Document::union_simplified)
+        let (schema, _) = left.combine(right, Schema::union_simplified, Document::union_simplified);
+        schema
     }
 
     /// Unions two simplified schemata.
-    pub fn union_simplified(self, other: Schema) -> Schema {
+    pub fn union_simplified(self, other: Schema) -> (Schema, bool) {
         self.combine(other, Schema::union_simplified, Document::union_simplified)
     }
 
@@ -1602,11 +1603,12 @@ impl Schema {
     pub fn merge(&self, other: &Schema) -> Schema {
         let left = Schema::simplify(self.clone());
         let right = Schema::simplify(other.clone());
-        left.combine(right, Schema::merge_simplified, Document::merge_simplified)
+        let (schema, _) = left.combine(right, Schema::merge_simplified, Document::merge_simplified);
+        schema
     }
 
     /// Merges two simplified schemata.
-    pub fn merge_simplified(self, other: Schema) -> Schema {
+    pub fn merge_simplified(self, other: Schema) -> (Schema, bool) {
         self.combine(other, Schema::merge_simplified, Document::merge_simplified)
     }
 
@@ -1615,9 +1617,9 @@ impl Schema {
     fn combine(
         self,
         other: Schema,
-        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+        schema_combine_fn: impl Fn(Schema, Schema) -> (Schema, bool),
         doc_combine_fn: impl Fn(Document, Document) -> Document,
-    ) -> Schema {
+    ) -> (Schema, bool) {
         use Schema::*;
         use std::cmp::Ordering;
         let ordering = self.cmp(&other);
@@ -1625,7 +1627,7 @@ impl Schema {
             Ordering::Greater => (other, self),
             Ordering::Less => (self, other),
             Ordering::Equal => {
-                return self;
+                return (self, false);
             }
         };
         // Schema types ordered least to greatest. We use the order to reduce the number
@@ -1640,7 +1642,7 @@ impl Schema {
         // Document(Document)
         // AnyOf(BTreeSet<Schema>)
         // Any
-        match (left, right) {
+        let out = match (left, right) {
             (Unsat, s) => s,
             (_, Any) => Any,
             (AnyOf(mut b1), AnyOf(b2)) => {
@@ -1663,7 +1665,7 @@ impl Schema {
                     AnyOf(rest)
                 }
             }
-            (Array(s1), Array(s2)) => Array(Box::new(schema_combine_fn(*s1, *s2))),
+            (Array(s1), Array(s2)) => Array(Box::new(schema_combine_fn(*s1, *s2).0)),
             (Array(s1), AnyOf(schemas)) => {
                 let (arrays, mut rest): (BTreeSet<_>, BTreeSet<_>) =
                     schemas.into_iter().partition(|s| matches!(s, Array(_)));
@@ -1672,7 +1674,7 @@ impl Schema {
                 } else if arrays.len() > 1 {
                     rest.insert(Array(Box::new(Schema::Any)));
                 } else if let Some(Array(old_s)) = arrays.into_iter().next() {
-                    rest.insert(Array(Box::new(schema_combine_fn(*old_s, *s1))));
+                    rest.insert(Array(Box::new(schema_combine_fn(*old_s, *s1).0)));
                 } else {
                     unreachable!();
                 }
@@ -1705,7 +1707,8 @@ impl Schema {
                 AnyOf(b)
             }
             (s1, s2) => AnyOf(set! {s1, s2}),
-        }
+        };
+        (out, true)
     }
 
     /// This helper takes a BTreeSet -- the intersection of each member of an AnyOf with another schema --
@@ -1873,7 +1876,7 @@ impl Schema {
                     None => acc,
                     Some(schema) => match acc {
                         None => Some(schema),
-                        Some(acc) => Some(acc.union_simplified(schema)),
+                        Some(acc) => Some(acc.union_simplified(schema).0),
                     },
                 }),
             // Any could be an Array<Any>, so we return Any
@@ -2206,11 +2209,11 @@ impl Document {
     fn combine_keys(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
-        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+        schema_combine_fn: impl Fn(Schema, Schema) -> (Schema, bool),
     ) -> BTreeMap<String, Schema> {
         for (key2, schema2) in m2.into_iter() {
             if let Some(old_schema) = m1.remove(&key2) {
-                m1.insert(key2, schema_combine_fn(old_schema, schema2));
+                m1.insert(key2, schema_combine_fn(old_schema, schema2).0);
             } else {
                 m1.insert(key2, schema2);
             }
@@ -2281,12 +2284,12 @@ impl Document {
     fn retain_keys(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
-        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+        schema_combine_fn: impl Fn(Schema, Schema) -> (Schema, bool),
     ) -> (BTreeMap<String, Schema>, bool) {
         let mut other_contains_extra_keys = false;
         for (key, s1) in m2.into_iter() {
             if let Some(s2) = m1.remove(&key) {
-                m1.insert(key.clone(), schema_combine_fn(s1, s2));
+                m1.insert(key.clone(), schema_combine_fn(s1, s2).0);
             } else {
                 other_contains_extra_keys = true;
             }
@@ -2383,7 +2386,7 @@ impl Document {
     //       base value.
     ///   5. `unstable` - Unconditionally set to `true`.
     pub fn union(self, other: Document) -> Document {
-        self.union_aux(other, |s1, s2| Schema::union(&s1, &s2))
+        self.union_aux(other, |s1, s2| (Schema::union(&s1, &s2), false))
     }
 
     /// Unions Documents following the same rules described above, but this
@@ -2402,7 +2405,7 @@ impl Document {
     fn union_aux(
         self,
         other: Document,
-        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+        schema_combine_fn: impl Fn(Schema, Schema) -> (Schema, bool),
     ) -> Document {
         if self.unstable || other.unstable {
             return self.unstable_union(other, schema_combine_fn);
@@ -2452,7 +2455,7 @@ impl Document {
     fn unstable_union(
         self,
         other: Document,
-        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+        schema_combine_fn: impl Fn(Schema, Schema) -> (Schema, bool),
     ) -> Document {
         let (pref_doc, other_doc) = if self.unstable && other.unstable {
             match (self.jaccard_index, other.jaccard_index) {
@@ -2551,7 +2554,7 @@ impl Document {
     /// satisfy one of the input schemas will not satisfy the resulting schema unless one is a
     /// subset of the other.
     pub fn merge(self, other: Document) -> Document {
-        self.merge_aux(other, |s1, s2| Schema::merge(&s1, &s2))
+        self.merge_aux(other, |s1, s2| (Schema::merge(&s1, &s2), false))
     }
 
     /// Merges Documents following the same rules described above, but this
@@ -2570,7 +2573,7 @@ impl Document {
     fn merge_aux(
         self,
         other: Document,
-        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
+        schema_combine_fn: impl Fn(Schema, Schema) -> (Schema, bool),
     ) -> Document {
         let jaccard_index = Document::get_jaccard_index(&self, &other);
         let keys = Document::combine_keys(self.keys, other.keys, schema_combine_fn);

@@ -523,7 +523,7 @@ fn schema_for_bson_array_elements(bs: &[Bson]) -> Schema {
     }
     bs.iter()
         .map(schema_for_bson)
-        .reduce(|acc, s| acc.union(&s))
+        .reduce(|acc, s| acc.union_simplified(s).0)
         .unwrap_or(Schema::Any)
 }
 

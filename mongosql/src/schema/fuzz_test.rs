@@ -7,7 +7,7 @@ fn prop_union_simplified_returns_simplified_schema() {
     fn union_simplified_schemas(s1: Schema, s2: Schema) -> TestResult {
         let s1_simplified = Schema::simplify(s1);
         let s2_simplified = Schema::simplify(s2);
-        let union_simplified = s1_simplified.union_simplified(s2_simplified);
+        let (union_simplified, _) = s1_simplified.union_simplified(s2_simplified);
         TestResult::from_bool(Schema::simplify(union_simplified.clone()) == union_simplified)
     }
 
@@ -25,7 +25,7 @@ fn prop_merge_simplified_returns_simplified_schema() {
     fn merge_simplified_schemas(s1: Schema, s2: Schema) -> TestResult {
         let s1_simplified = Schema::simplify(s1);
         let s2_simplified = Schema::simplify(s2);
-        let merge_simplified = s1_simplified.merge_simplified(s2_simplified);
+        let (merge_simplified, _) = s1_simplified.merge_simplified(s2_simplified);
         TestResult::from_bool(Schema::simplify(merge_simplified.clone()) == merge_simplified)
     }
 
