@@ -22,7 +22,7 @@ pub mod client_util;
 mod partitioning;
 pub use partitioning::{
     CollectionSizes, PartitionedCollection, SAMPLE_FALLBACK_SIZE,
-    SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, get_partitions, get_size_counts,
+    SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, get_partitions, get_single_partition, get_size_counts,
 };
 mod errors;
 mod schema;

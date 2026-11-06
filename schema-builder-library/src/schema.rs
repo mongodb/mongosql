@@ -200,6 +200,7 @@ pub async fn sample_schema_for_collection<S: LocalDataService>(
     service: &S,
     db: &str,
     collection_info: &CollectionInfo,
+    initial_schema_doc: Option<Arc<Schema>>
 ) -> Option<Schema> {
     let pipeline = vec![doc! { "$sample": { "size": SAMPLE_FALLBACK_SIZE } }];
 
