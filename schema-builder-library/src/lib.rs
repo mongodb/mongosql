@@ -21,13 +21,11 @@ pub mod client_util;
 
 mod partitioning;
 pub use partitioning::{
-    CollectionSizes, PartitionedCollection, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, get_partitions,
-    get_size_counts,
+    CollectionSizes, PartitionedCollection, SAMPLE_FALLBACK_SIZE,
+    SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, get_partitions, get_size_counts,
 };
 mod errors;
 mod schema;
-#[cfg(test)]
-pub(crate) mod test_util;
 pub use errors::Error;
 pub use schema::{
     SinglePartition, derive_schema_for_collection, derive_schema_for_partition,

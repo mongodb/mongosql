@@ -6,7 +6,6 @@ use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
-use crate::Error::JsonSchemaFailure;
 use crate::data_service::{AggregateOptions, LocalDataService};
 use crate::partitioning::SAMPLE_FALLBACK_SIZE;
 use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
@@ -30,7 +29,6 @@ pub const PARTITION_DOCS_PER_ITERATION: i64 = 20;
 /// Note: This breaks up the work into manageable partitions and operates over
 /// them in order. If you want to control the execution of these partitions,
 /// please refer to [derive_schema_for_partition].
-///
 pub async fn derive_schema_for_collection<S: LocalDataService>(
     service: &S,
     db: &str,
