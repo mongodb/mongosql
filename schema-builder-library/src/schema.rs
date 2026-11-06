@@ -69,7 +69,7 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
         )
         .await?;
 
-        result = result.union(&schema);
+        result = result.union_simplified(schema).0;
     }
 
     Ok(result)
@@ -103,7 +103,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     // The initial schema might be empty, in which case we
     // default to `Unsat` if there are also no refinement entries for the DB
     let mut schema = initial_schema_doc
-        .map(|s| Schema::simplify(&s))
+        .map(|s| Schema::simplify(Arc::unwrap_or_clone(s)))
         .unwrap_or(Schema::Unsat);
 
     let mut saw_unstable = false;
@@ -141,7 +141,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             info!(db, collection, "processing partition {partition_ix}");
             if let Some(id) = doc.get(partition_key) {
                 partition.min = id.clone();
-                iter_schema = iter_schema.union(&schema_for_document(&doc));
+                iter_schema = iter_schema.union_simplified(schema_for_document(&doc)).0;
                 no_result = false;
             } else {
                 warn!(
@@ -155,7 +155,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             break;
         }
 
-        let new_schema = schema.union(&iter_schema);
+        let (new_schema, changed) = schema.union_simplified(iter_schema);
 
         // A batch that widened nothing means `schema` already covers what came back, yet
         // `$nor: [$jsonSchema]` returned it anyway -- so the document at `partition.min`
@@ -167,7 +167,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         // already folded into `schema`, so excluding it from here on loses nothing.
         //
         // Otherwise, `min` has advanced past any previous blocker and `$gte` excludes it.
-        ignored_min_id = (new_schema == schema).then(|| partition.min.clone());
+        ignored_min_id = changed.then(|| partition.min.clone());
 
         schema = new_schema;
 
@@ -246,7 +246,7 @@ pub async fn derive_schema_for_view<S: LocalDataService>(
         }
 
         schema = schema.map_or(Some(schema_for_document(&doc)), |s: Schema| {
-            Some(s.union(&schema_for_document(&doc)))
+            Some(s.union_simplified(schema_for_document(&doc)).0)
         });
 
         iterations += 1;

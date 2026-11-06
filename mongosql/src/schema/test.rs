@@ -106,7 +106,7 @@ mod union_schemata {
     // with the result anyway.
     test_union_schema!(
         union_arrays_of_arrays_of_multiple_types_is_any,
-        expected = AnyOf(set! {Array(Box::new(Any))}),
+        expected = Array(Box::new(Any)),
         left = Array(Box::new(Atomic(Integer))),
         right = AnyOf(set! {Array(Box::new(Atomic(String))), Array(Box::new(Atomic(Double)))}),
     );
@@ -2747,7 +2747,7 @@ mod simplify {
         ($func_name:ident, expected = $expected:expr, input = $input:expr $(,)?) => {
             #[test]
             fn $func_name() {
-                let res = schema::Schema::simplify(&$input);
+                let res = schema::Schema::simplify($input);
                 assert_eq!($expected, res)
             }
         };
@@ -3177,7 +3177,7 @@ mod subtract_nullish {
             #[test]
             fn $func_name() {
                 let res = $self.subtract_nullish();
-                assert_eq!($expected, Schema::simplify(&res))
+                assert_eq!($expected, Schema::simplify(res))
             }
         };
     }

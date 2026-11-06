@@ -183,7 +183,7 @@ pub(crate) fn get_schema_for_path(schema: Schema, path: Vec<String>) -> Option<S
                     })
                     .collect::<BTreeSet<_>>();
                 if !types.is_empty() {
-                    return Some(Schema::simplify(&Schema::AnyOf(types)));
+                    return Some(Schema::simplify(Schema::AnyOf(types)));
                 }
                 return None;
             }
@@ -523,7 +523,7 @@ fn schema_for_bson_array_elements(bs: &[Bson]) -> Schema {
     }
     bs.iter()
         .map(schema_for_bson)
-        .reduce(|acc, s| acc.union(&s))
+        .reduce(|acc, s| acc.union_simplified(s).0)
         .unwrap_or(Schema::Any)
 }
 
