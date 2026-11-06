@@ -8,14 +8,9 @@ use tracing::{info, instrument, warn};
 
 use crate::Error::JsonSchemaFailure;
 use crate::data_service::{AggregateOptions, LocalDataService};
-use crate::partitioning::{
-    SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, format_size, get_size_counts,
-};
+use crate::partitioning::SAMPLE_FALLBACK_SIZE;
 use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
 use crate::{PartitionedCollection, get_partitions};
-
-#[cfg(all(test, feature = "native-client"))]
-mod test;
 
 /// The amount of samples to fetch for view schema derivation
 const VIEW_SAMPLE_SIZE: i64 = 1000;
@@ -50,49 +45,6 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
         .into_iter()
         .find(|c| c.name == collection)
         .ok_or_else(|| Error::NoCollection(collection.to_string()))?;
-
-    // If the collection is > 1GB we fallback to sampling
-    let size_info = get_size_counts(service, db, &collection_info.name).await?;
-    if size_info.size > SAMPLE_FALLBACK_THRESHOLD_IN_BYTES {
-        // The collection is too large to partition cheaply, so the schema is derived from a
-        // sample rather than a comprehensive scan of the whole collection. Log this so consumers
-        // know the result is sampled and may not reflect the full set of fields.
-        info!(
-            db,
-            collection,
-            size_in_bytes = size_info.size,
-            size_readable = %format_size(size_info.size),
-            count = ?size_info.count,
-            threshold_in_bytes = SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
-            sample_size = SAMPLE_FALLBACK_SIZE,
-            "collection exceeds the sampling threshold; deriving schema from a sample instead of a full scan"
-        );
-        // Call the sampling method instead
-        if let Some(schema) = sample_schema_for_collection(service, db, &collection_info).await {
-            return Ok(schema);
-        }
-        warn!(
-            db,
-            collection, "sampling fallback produced no schema for this collection"
-        );
-        // If sampling fails, fall back to calling the method for just one partition
-        // [TODO] Call for a single partition
-        return Err(Error::MissingCountFieldForCollection(
-            collection_info.name.clone(),
-        ));
-    }
-
-    // The collection is within the threshold, so its schema is derived from a comprehensive
-    // partition scan of the whole collection rather than a sample.
-    info!(
-        db,
-        collection,
-        size_in_bytes = size_info.size,
-        size_readable = %format_size(size_info.size),
-        count = ?size_info.count,
-        threshold_in_bytes = SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
-        "collection is within the sampling threshold; deriving schema from a full partition scan"
-    );
 
     let PartitionedCollection {
         partitions,
@@ -239,76 +191,6 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     Ok(schema)
 }
 
-/// Derive a schema for a view by sampling documents from its source collection.
-///
-/// Prepends a `$sample` of [`VIEW_SAMPLE_SIZE`] documents to the view's pipeline and runs it
-/// against the view's source collection (`view.options.view_on`), then unions the inferred
-/// schemas. Returns `None` if the query cannot be opened or no documents are returned; a
-/// mid-stream failure yields the schema inferred from the documents read so far.
-#[instrument(level = "trace", skip_all)]
-pub async fn sample_schema_for_view<S: LocalDataService>(
-    service: &S,
-    db: &str,
-    view: &CollectionInfo,
-) -> Option<Schema> {
-    let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]
-        .into_iter()
-        .chain(view.options.pipeline.clone().into_iter())
-        .collect::<Vec<Document>>();
-
-    let cursor = service
-        .aggregate(
-            db,
-            &view.options.view_on,
-            pipeline,
-            AggregateOptions::default(),
-        )
-        .await
-        .inspect_err(|e| {
-            warn!(
-                db,
-                view_name = view.name,
-                "view sampling encountered an error: {e}"
-            );
-        })
-        .ok()?;
-
-    let mut schema = None;
-    let mut iterations = 0u64;
-    let mut cursor = Box::pin(cursor);
-    while let Some(Ok(doc)) = cursor
-        .try_next()
-        .await
-        .inspect_err(|e| {
-            warn!(
-                db,
-                view_name = view.name,
-                iteration = iterations,
-                "view sampling encountered an error: {e}"
-            );
-        })
-        .transpose()
-    {
-        // Notify every 100 iterations, so it isn't too spammy
-        if iterations.is_multiple_of(100) {
-            info!(
-                db,
-                view_name = view.name,
-                iteration = iterations,
-                "Calculating schema for sampled view"
-            );
-        }
-
-        schema = schema.map_or(Some(schema_for_document(&doc)), |s: Schema| {
-            Some(s.union(&schema_for_document(&doc)))
-        });
-
-        iterations += 1;
-    }
-
-    schema
-}
-
 /// Derive a schema for a collection by sampling a bounded number of documents.
 ///
 /// Issues a single `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents and unions the inferred
@@ -367,15 +249,69 @@ pub async fn sample_schema_for_collection<S: LocalDataService>(
     schema
 }
 
-/// Derive a schema for a view by sampling its source collection.
-///
-/// Prepends `$sample` to the view's pipeline and executes it against the view's source
-/// collection (`view.options.view_on`). See [`sample_schema_for_view`] for the sampling details.
+/// derive_schema_for_view takes a CollectionInfo and executes the pipeline
+/// against the viewOn collection to generate a schema for the view.
+/// It does this by first prepending $sample to the pipeline
 #[instrument(level = "trace", skip_all)]
 pub async fn derive_schema_for_view<S: LocalDataService>(
     service: &S,
     db: &str,
     view: &CollectionInfo,
 ) -> Option<Schema> {
-    sample_schema_for_view(service, db, view).await
+    let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]
+        .into_iter()
+        .chain(view.options.pipeline.clone().into_iter())
+        .collect::<Vec<Document>>();
+
+    let cursor = service
+        .aggregate(
+            db,
+            &view.options.view_on,
+            pipeline,
+            AggregateOptions::default(),
+        )
+        .await
+        .inspect_err(|e| {
+            warn!(
+                db,
+                view_name = view.name,
+                "view sampling encountered an error: {e}"
+            )
+        })
+        .ok()?;
+
+    let mut schema = None;
+    let mut iterations = 0u64;
+    let mut cursor = Box::pin(cursor);
+    while let Some(Ok(doc)) = cursor
+        .try_next()
+        .await
+        .inspect_err(|e| {
+            warn!(
+                db,
+                view_name = view.name,
+                iteration = iterations,
+                "view sampling encountered an error: {e}"
+            )
+        })
+        .transpose()
+    {
+        // Notify every 100 iterations, so it isn't too spammy
+        if iterations.is_multiple_of(100) {
+            info!(
+                db,
+                view_name = view.name,
+                iteration = iterations,
+                "Calculating schema for sampled view"
+            );
+        }
+
+        schema = schema.map_or(Some(schema_for_document(&doc)), |s: Schema| {
+            Some(s.union(&schema_for_document(&doc)))
+        });
+
+        iterations += 1;
+    }
+
+    schema
 }

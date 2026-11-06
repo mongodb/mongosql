@@ -87,11 +87,6 @@ impl ScriptedDataService {
         self.pipelines().iter().any(|p| is_sample(p))
     }
 
-    /// Returns true if the primary `$sampleRate` partitioning pipeline was issued.
-    pub(crate) fn issued_sample_rate(&self) -> bool {
-        self.pipelines().iter().any(|p| is_sample_rate(p))
-    }
-
     fn respond(&self, pipeline: &[Document]) -> Response {
         let first = pipeline.first();
         let first_has = |key: &str| first.is_some_and(|stage| stage.contains_key(key));
