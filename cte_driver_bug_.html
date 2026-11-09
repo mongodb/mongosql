@@ -117,6 +117,88 @@ returns rows:</p>
 <p><small>The CLI tolerates the extra namespace (it silently skips a schema lookup for a
 non-existent collection); the driver does not, hence the different behaviour.</small></p>
 
+<h2>3b. Corroboration — the JDBC driver code path (line-level)</h2>
+
+<p>The error string is thrown <em>inside the driver</em>
+(<code>mongo-jdbc-driver/src/main/java/com/mongodb/jdbc/mongosql/MongoSQLTranslate.java:310</code>).
+Here is every hop from the public JDBC call to that throw:</p>
+
+<table>
+  <tr><th>#</th><th>Where</th><th>File : line</th><th>What happens</th></tr>
+  <tr>
+    <td>1</td><td><code>MongoStatement.executeQuery</code></td>
+    <td><code>MongoStatement.java:298</code></td>
+    <td>Public entry point. For an Enterprise cluster it calls
+        <code>executeDirectClusterQuery(sql)</code> (line 309).</td>
+  </tr>
+  <tr>
+    <td>2</td><td><code>MongoStatement.executeDirectClusterQuery</code></td>
+    <td><code>MongoStatement.java:235</code></td>
+    <td>Orchestrates: get namespaces → build catalog → translate → execute.</td>
+  </tr>
+  <tr>
+    <td>3</td><td>getNamespaces call</td>
+    <td><code>MongoStatement.java:242</code></td>
+    <td><code>mongoSQLTranslate.getNamespaces(currentDB.getName(), sql)</code></td>
+  </tr>
+  <tr>
+    <td>4</td><td><code>MongoSQLTranslate.getNamespaces</code></td>
+    <td><code>MongoSQLTranslate.java:176</code></td>
+    <td>Builds <code>{"command":"getNamespaces","options":{"sql":…,"db":…}}</code> and sends it
+        through <code>runCommand</code> (line 68) to the server. The response is decoded into
+        <code>GetNamespacesResult</code> (<code>GetNamespacesResult.java:28-41</code>).</td>
+  </tr>
+  <tr>
+    <td>5</td><td>Server command handler</td>
+    <td><code>mongosqltranslate/src/command.rs:157 → :169</code></td>
+    <td><code>Command::get_namespaces</code> calls
+        <code>mongosql::get_namespaces(current_db, sql)</code>.</td>
+  </tr>
+  <tr>
+    <td>6</td><td><code>mongosql::get_namespaces</code></td>
+    <td><code>mongosql/src/lib.rs:134</code></td>
+    <td><strong>The defect.</strong> Pre-fix it collected collection sources from the raw AST, so the
+        CTE name was returned as a namespace alongside the real collections.</td>
+  </tr>
+  <tr>
+    <td>7</td><td><code>MongoStatement.executeDirectClusterQuery</code> → <code>buildCatalogDocument</code></td>
+    <td><code>MongoStatement.java:256</code> → <code>MongoSQLTranslate.java:196</code></td>
+    <td>Fetches each namespace's schema from the <code>__sql_schemas</code> collection
+        (<code>SQL_SCHEMAS_COLLECTION</code>, line 45; aggregate at line 273) and computes
+        <code>missingCollections</code> (line 301).</td>
+  </tr>
+  <tr>
+    <td>8</td><td>Throw</td>
+    <td><code>MongoSQLTranslate.java:308-310</code></td>
+    <td>Since <code>user_accounts</code> has no schema document, it lands in
+        <code>missingCollections</code> and the driver throws
+        <code>"Could not retrieve schema for collections: " + missingCollections</code>.</td>
+  </tr>
+</table>
+
+<p>This matches the reported stack trace exactly: <code>MongoStatement.executeQuery(:316)</code> is the
+catch that wraps the failure into a <code>RuntimeException</code>, and
+<code>MongoSQLTranslate.getNamespaces(:184)</code> is the <code>runCommand</code> call inside step 4.</p>
+
+<pre class="bad">java.lang.RuntimeException: com.mongodb.jdbc.mongosql.MongoSQLException:
+    Could not retrieve schema for collections: [user_accounts]
+    at com.mongodb.jdbc.MongoStatement.executeQuery(MongoStatement.java:316)
+    at com.mongodb.jdbc.MongoStatement.execute(MongoStatement.java:197)
+    ...
+Caused by: ... MongoSQLTranslate.runCommand(MongoSQLTranslate.java:84)
+            MongoSQLTranslate.getNamespaces(MongoSQLTranslate.java:184)
+            MongoStatement.executeDirectClusterQuery(MongoStatement.java:242)</pre>
+
+<p><small>There is also an FFI/Go variant of the same call:
+<code>go/mongosql/mongosql_darwin.go:73</code> <code>callGetNamespaces</code> → C
+<code>get_namespaces</code> (<code>mongosql-c/src/lib.rs</code>) → the same
+<code>mongosql::get_namespaces</code>.</small></p>
+
+<p><strong>Bottom line:</strong> the driver is behaving correctly — it faithfully asks for a schema for
+every namespace the translator reports, and refuses to proceed when one is missing. The extra
+namespace is introduced by <code>mongosql::get_namespaces</code>, which is why the fix belongs in the
+translator (step 6), not the driver.</p>
+
 <h2>4. Root cause</h2>
 
 <ul>
