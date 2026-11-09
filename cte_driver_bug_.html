@@ -114,8 +114,10 @@ returns rows:</p>
 { "user_accounts": { "username": "stricklandjeffery", "user_account": 285957 } }
 ...</pre>
 
-<p><small>The CLI tolerates the extra namespace (it silently skips a schema lookup for a
-non-existent collection); the driver does not, hence the different behaviour.</small></p>
+<p><small>The CLI gets the same bad namespace list but handles it differently. When it finds no
+schema for a namespace, it prints a warning and uses an empty schema, whether all of the namespaces
+are missing or only some (<code>mongosql-cli/src/main.rs:280-298</code> and <code>:304-320</code>).
+The driver only does that when <em>all</em> of them are missing. See §3c.</small></p>
 
 <h2>3b. Corroboration — the JDBC driver code path (line-level)</h2>
 
@@ -199,6 +201,114 @@ every namespace the translator reports, and refuses to proceed when one is missi
 namespace is introduced by <code>mongosql::get_namespaces</code>, which is why the fix belongs in the
 translator (step 6), not the driver.</p>
 
+<h2>3c. The gap: why some CTEs <em>do</em> work through the driver</h2>
+
+<p>An obvious objection is that some CTE queries already work through the JDBC driver. This one,
+for example, runs fine in DBeaver:</p>
+
+<pre class="good">WITH my_stuff AS (SELECT CASE WHEN 1 = 1 THEN 2 END) (SELECT * FROM my_stuff)</pre>
+
+<p>This query hits the <strong>same bug</strong>. The driver just happens to hide it. Here is what
+pre-fix <code>get_namespaces</code> returns for both queries, alongside the contents of
+<code>sample_analytics.__sql_schemas</code> (which holds schemas for <code>transactions</code>,
+<code>accounts</code> and <code>customers</code>):</p>
+
+<table>
+  <tr><th>Query</th><th>Namespaces returned (pre-fix)</th><th>Of those, have a schema</th><th>Driver result</th></tr>
+  <tr>
+    <td><code>WITH my_stuff AS (SELECT CASE WHEN 1 = 1 THEN 2 END) (SELECT * FROM my_stuff)</code></td>
+    <td><code>{<span class="no">my_stuff</span>}</code></td>
+    <td><strong>none</strong></td>
+    <td class="ok">Works (by accident)</td>
+  </tr>
+  <tr>
+    <td><code>WITH user_accounts AS (… FROM UNWIND(sample_analytics.customers …)) (SELECT * FROM user_accounts)</code></td>
+    <td><code>{customers, <span class="no">user_accounts</span>}</code></td>
+    <td><strong>only <code>customers</code></strong></td>
+    <td class="no">Throws</td>
+  </tr>
+</table>
+
+<p>Both queries leak their CTE name. The different outcome comes from the two branches in
+<code>MongoSQLTranslate.buildCatalogDocument</code>:</p>
+
+<table>
+  <tr><th>Branch</th><th>File : line</th><th>Behavior</th><th>Hit by</th></tr>
+  <tr>
+    <td><strong>No schemas found</strong></td>
+    <td><code>MongoSQLTranslate.java:287-296</code></td>
+    <td>If no requested collection has a schema, the driver logs <code>"No schema information found
+        for any of the requested collections. Will use empty schemas."</code> and puts an empty schema
+        in for <em>every</em> namespace. The <code>missingCollections</code> check (line 301) then
+        finds nothing missing, so nothing is thrown.</td>
+    <td><code>my_stuff</code>: catalog becomes <code>{my_stuff: {}}</code></td>
+  </tr>
+  <tr>
+    <td><strong>Some schemas found</strong></td>
+    <td><code>MongoSQLTranslate.java:299-310</code></td>
+    <td>If at least one schema is found, the catalog holds only the schemas found. Any other
+        namespace goes into <code>missingCollections</code>, and the driver throws
+        <code>"Could not retrieve schema for collections: …"</code>.</td>
+    <td><code>user_accounts</code>: <code>customers</code> is found, <code>user_accounts</code> is not</td>
+  </tr>
+</table>
+
+<p>The <code>my_stuff</code> query works because its CTE reads no collection, so the only namespace
+returned is the fake one, and the "no schemas found" branch fills it with an empty schema. During
+translation <code>WithQueryRewritePass</code> replaces <code>my_stuff</code> with the CTE body, so
+that fake catalog entry is never used. The query succeeds despite the bug.</p>
+
+<div class="verdict">
+  <strong>The gap:</strong> today, a CTE query works through the JDBC driver only if
+  <strong>none</strong> of the real collections it reads has a generated schema. A CTE over a
+  collection that has a schema (the normal case once schemas are generated) fails. Whether a query
+  works depends on schema state that has nothing to do with the query, which is further evidence the
+  namespace list is wrong.
+</div>
+
+<p><small>The CLI fills in empty schemas in both cases (see the note in §3), so it never shows this
+difference. That's why the reported query worked from the CLI but not from DBeaver.</small></p>
+
+<h2>3d. Workaround until the fix ships: use a derived table</h2>
+
+<p>Rewriting the CTE as a derived table gives the same result. A derived table's alias is never
+parsed as a <code>CollectionSource</code>, so pre-fix <code>get_namespaces</code> returns only the
+real collection:</p>
+
+<pre class="good">SELECT *
+FROM (
+    SELECT username, accounts AS user_account
+    FROM UNWIND(sample_analytics.customers WITH PATH => accounts, INDEX => idx)
+) AS user_accounts;</pre>
+
+<table>
+  <tr><th>Form</th><th>Namespaces returned (pre-fix)</th><th>Through the driver</th></tr>
+  <tr>
+    <td>CTE (<code>WITH user_accounts AS (…) (SELECT * FROM user_accounts)</code>)</td>
+    <td><code>{customers, <span class="no">user_accounts</span>}</code></td>
+    <td class="no">Throws</td>
+  </tr>
+  <tr>
+    <td>Derived table (<code>SELECT * FROM (…) AS user_accounts</code>)</td>
+    <td><code>{customers}</code></td>
+    <td class="ok">Works: every namespace has a schema</td>
+  </tr>
+</table>
+
+<p>Run against the live <code>mongod</code>, it returns the same rows as the CTE form:</p>
+
+<pre class="good">$ ./target/debug/mongosql-cli --db sample_analytics --execute \
+    "SELECT * FROM (SELECT username, accounts AS user_account \
+     FROM UNWIND(sample_analytics.customers WITH PATH => accounts, INDEX => idx)) AS user_accounts"
+
+...
+{ "user_accounts": { "username": "qknight", "user_account": 89698 } }
+{ "user_accounts": { "username": "ecasey", "user_account": 896364 } }
+{ "user_accounts": { "username": "ecasey", "user_account": 450464 } }</pre>
+
+<p><small>This only works around the problem for one CTE used once. With several CTEs, or a CTE used
+more than once, each one has to be inlined as its own derived table. The real fix is §5.</small></p>
+
 <h2>4. Root cause</h2>
 
 <ul>
@@ -262,7 +372,10 @@ $ cargo test -p mongosql --lib
 test result: ok. 3539 passed; 0 failed; 2 ignored</pre>
 
 <p>After the fix, the same four <code>with.yml</code> queries yield only their real collections
-(<code>{biz}</code>, <code>{baz, biz}</code>, <code>{baz, biz}</code>, <code>{bar, biz}</code>).</p>
+(<code>{biz}</code>, <code>{baz, biz}</code>, <code>{baz, biz}</code>, <code>{bar, biz}</code>).
+The two driver examples from §3c also come out right: <code>my_stuff</code> → <code>{}</code>
+(the driver's normal "no collections" path, <code>MongoSQLTranslate.java:202-209</code>) and
+<code>user_accounts</code> → <code>{customers}</code>.</p>
 
 <h2>7. Notes / follow-ups</h2>
 <ul>
@@ -270,6 +383,11 @@ test result: ok. 3539 passed; 0 failed; 2 ignored</pre>
       driver bug.</li>
   <li>Consider adding a <code>get_namespaces</code> case to the CTE spec-test coverage so this path is
       exercised — the existing <code>with.yml</code> tests only cover <code>translate_sql</code>.</li>
+  <li>Separately, the driver treats missing schemas inconsistently: it uses empty schemas when all
+      are missing (<code>MongoSQLTranslate.java:287-296</code>) but throws when only some are missing
+      (<code>:299-310</code>), while the CLI uses empty schemas in both cases. That isn't the cause of
+      this bug, but it's why the bug only shows up some of the time. The team may want to decide which
+      behavior is intended.</li>
 </ul>
 
 </body>
