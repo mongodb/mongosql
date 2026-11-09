@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CTE namespacing bug — get_namespaces reports WITH names as collections</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.55; color: #1a1a1a; }
+  h1 { font-size: 1.6rem; border-bottom: 2px solid #13aa52; padding-bottom: .4rem; }
+  h2 { font-size: 1.2rem; margin-top: 2rem; color: #0b3d24; }
+  h3 { font-size: 1rem; margin-top: 1.4rem; }
+  code, pre { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: .86rem; }
+  code { background: #f2f4f3; padding: .1rem .3rem; border-radius: 3px; }
+  pre { background: #0f1b14; color: #d6f5e3; padding: .9rem 1rem; border-radius: 6px; overflow-x: auto; }
+  pre.bad { background: #2a1414; color: #ffd9d9; }
+  pre.good { background: #10240f; color: #d9f7d0; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .9rem; }
+  th, td { border: 1px solid #d5dbd8; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+  th { background: #eef4f0; }
+  .verdict { background: #fff4e5; border-left: 5px solid #f0a000; padding: .8rem 1rem; margin: 1rem 0; }
+  .ok { color: #0b7a2f; font-weight: 600; }
+  .no { color: #b3261e; font-weight: 600; }
+  .tag { display: inline-block; background: #13aa52; color: #fff; border-radius: 3px;
+         padding: .05rem .4rem; font-size: .75rem; vertical-align: middle; }
+  small { color: #666; }
+</style>
+</head>
+<body>
+
+<h1>Is the CTE driver failure a real bug? <span class="tag">YES</span></h1>
+
+<p><strong>Short answer:</strong> the SQL is valid and executes. The failure is real, but it is
+<em>not</em> in query translation or execution — it is in a separate public API,
+<code>mongosql::get_namespaces</code>, which the JDBC driver calls <em>before</em> translation to
+learn which collection schemas to fetch. That function reports <code>WITH</code>-clause (CTE) names
+as if they were collections.</p>
+
+<div class="verdict">
+  <strong>Why the existing <code>with.yml</code> tests still pass:</strong> those tests call
+  <code>mongosql::translate_sql(...)</code>, which runs the full rewrite pipeline (including CTE
+  resolution) and then executes. They never call <code>get_namespaces</code>. The two are different
+  code paths, so passing <code>with.yml</code> and failing <code>get_namespaces</code> are fully
+  consistent.
+</div>
+
+<h2>1. The two code paths</h2>
+
+<table>
+  <tr><th>Path</th><th>Used by</th><th>Handles CTEs?</th></tr>
+  <tr>
+    <td><code>translate_sql</code> → rewrite pipeline (<code>WithQueryRewritePass</code>)</td>
+    <td><code>with.yml</code> spec/e2e tests, query execution</td>
+    <td class="ok">Yes — CTE names are resolved to derived sources</td>
+  </tr>
+  <tr>
+    <td><code>get_namespaces</code> → <code>get_collection_sources</code></td>
+    <td>JDBC driver (<code>MongoSQLTranslate.getNamespaces</code>) to fetch schemas</td>
+    <td class="no">No — runs on the raw parsed AST</td>
+  </tr>
+</table>
+
+<h2>2. Evidence — <code>get_namespaces</code> returns CTE names</h2>
+
+<p>Running each query from <code>tests/spec_tests/query_tests/with.yml</code> through
+<code>get_namespaces("spec_query_with", &lt;query&gt;)</code> (before the fix):</p>
+
+<table>
+  <tr><th>Query (from <code>with.yml</code>)</th><th>Namespaces returned</th><th>CTE names leaked</th></tr>
+  <tr>
+    <td><code>WITH t as (SELECT foo from biz) (SELECT * from t)</code></td>
+    <td><code>{biz, <span class="no">t</span>}</code></td>
+    <td class="no">t</td>
+  </tr>
+  <tr>
+    <td><code>WITH t as (SELECT foo, bar, car from biz JOIN baz ...) (SELECT * from t)</code></td>
+    <td><code>{baz, biz, <span class="no">t</span>}</code></td>
+    <td class="no">t</td>
+  </tr>
+  <tr>
+    <td><code>WITH t as (...biz), u as (...baz) (SELECT * from t JOIN u ...)</code></td>
+    <td><code>{baz, biz, <span class="no">t</span>, <span class="no">u</span>}</code></td>
+    <td class="no">t, u</td>
+  </tr>
+  <tr>
+    <td><code>WITH t as (...biz WHERE ...), u as (...bar WHERE ...) (SELECT ...)</code></td>
+    <td><code>{bar, biz, <span class="no">t</span>, <span class="no">u</span>}</code></td>
+    <td class="no">t, u</td>
+  </tr>
+</table>
+
+<p><code>t</code> and <code>u</code> are CTE names, not collections. Every query in
+<code>with.yml</code> leaks them.</p>
+
+<h2>3. The user-visible failure</h2>
+
+<p>For the reported query, <code>get_namespaces</code> returns
+<code>{customers, <span class="no">user_accounts</span>}</code>. The JDBC driver then tries to fetch a
+schema for a collection named <code>user_accounts</code> and throws:</p>
+
+<pre class="bad">Could not retrieve schema for collections: [user_accounts]
+  at com.mongodb.jdbc.MongoStatement.executeQuery(MongoStatement.java:316)
+Caused by: ... MongoSQLTranslate.getNamespaces(MongoSQLTranslate.java:184)</pre>
+
+<p>The SQL itself is fine — executed directly against the live <code>mongod</code> via the CLI, it
+returns rows:</p>
+
+<pre class="good">$ ./target/debug/mongosql-cli --db sample_analytics --execute \
+    "WITH user_accounts AS (SELECT username, accounts as user_account \
+     FROM UNWIND(sample_analytics.customers WITH PATH => accounts, INDEX => idx)) \
+     (SELECT * FROM user_accounts)"
+
+{ "user_accounts": { "username": "amandawilliams", "user_account": 912504 } }
+{ "user_accounts": { "username": "amandawilliams", "user_account": 88163 } }
+{ "user_accounts": { "username": "stricklandjeffery", "user_account": 285957 } }
+...</pre>
+
+<p><small>The CLI tolerates the extra namespace (it silently skips a schema lookup for a
+non-existent collection); the driver does not, hence the different behaviour.</small></p>
+
+<h2>4. Root cause</h2>
+
+<ul>
+  <li><code>get_namespaces</code> — <code>mongosql/src/lib.rs:134</code> — parses the SQL and calls
+      <code>ast::visitors::get_collection_sources</code> directly on the parsed AST.</li>
+  <li><code>get_collection_sources</code> — <code>mongosql/src/ast/visitors/collections.rs:14</code> —
+      walks the AST and collects <em>every</em> <code>CollectionSource</code> node. A CTE reference
+      (<code>FROM t</code>) is syntactically a collection datasource, so it is collected too.</li>
+  <li>CTE names are only turned into derived sources by
+      <code>WithQueryRewritePass</code> (<code>mongosql/src/ast/rewrites/with_query.rs</code>), which
+      the full <code>translate_sql</code> pipeline runs but <code>get_namespaces</code> does not.</li>
+</ul>
+
+<p>So the bug is: <strong>namespace extraction runs before CTE resolution.</strong></p>
+
+<h2>5. Fix</h2>
+
+<p>Apply <code>WithQueryRewritePass</code> before collecting collection sources, in
+<code>mongosql/src/lib.rs</code>:</p>
+
+<pre class="good">pub fn get_namespaces(
+    current_db: &str,
+    sql: &str,
+) -> Result&lt;BTreeSet&lt;agg_ast::definitions::Namespace&gt;&gt; {
+    use ast::rewrites::Pass;
+
+    let ast = parser::parse_query(sql)?;
+    // Resolve `WITH` clause references before collecting collection sources. Otherwise CTE
+    // names (which are not collections) are reported as namespaces, causing consumers such
+    // as the JDBC driver to fail while trying to fetch a schema for a non-existent collection.
+    let ast = ast::rewrites::WithQueryRewritePass.apply(ast)?;
+    let namespaces = ast::visitors::get_collection_sources(&ast)
+        .into_iter()
+        .map(|cs| agg_ast::definitions::Namespace {
+            database: cs.database.unwrap_or_else(|| current_db.to_string()),
+            collection: cs.collection,
+        })
+        .collect();
+    Ok(namespaces)
+}</pre>
+
+<p>For non-<code>WITH</code> queries the pass is a no-op (the visitor returns the query unchanged),
+so behaviour is otherwise identical. The existing <code>test_get_namespaces</code> suite plus two new
+regression tests cover it:</p>
+
+<ul>
+  <li><code>with_clause_excludes_cte_names</code></li>
+  <li><code>with_clause_multiple_ctes</code></li>
+</ul>
+
+<h2>6. Verification</h2>
+
+<pre class="good">$ cargo test -p mongosql test_get_namespaces
+running 8 tests
+...
+test test::test_get_namespaces::with_clause_excludes_cte_names ... ok
+test test::test_get_namespaces::with_clause_multiple_ctes ... ok
+test result: ok. 8 passed; 0 failed
+
+$ cargo test -p mongosql --lib
+test result: ok. 3539 passed; 0 failed; 2 ignored</pre>
+
+<p>After the fix, the same four <code>with.yml</code> queries yield only their real collections
+(<code>{biz}</code>, <code>{baz, biz}</code>, <code>{baz, biz}</code>, <code>{bar, biz}</code>).</p>
+
+<h2>7. Notes / follow-ups</h2>
+<ul>
+  <li>The driver-side failure is a <em>consequence</em> of this translator behaviour, not a separate
+      driver bug.</li>
+  <li>Consider adding a <code>get_namespaces</code> case to the CTE spec-test coverage so this path is
+      exercised — the existing <code>with.yml</code> tests only cover <code>translate_sql</code>.</li>
+</ul>
+
+</body>
+</html>

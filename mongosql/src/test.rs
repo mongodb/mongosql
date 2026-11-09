@@ -74,6 +74,32 @@ mod test_get_namespaces {
         db = "mydb",
         query = "not a valid query",
     );
+
+    test_get_namespaces!(
+        with_clause_excludes_cte_names,
+        expected = Ok(set![agg_ast::definitions::Namespace {
+            database: "mydb".into(),
+            collection: "foo".into()
+        }]),
+        db = "mydb",
+        query = "WITH t AS (SELECT a FROM foo) (SELECT * FROM t)",
+    );
+
+    test_get_namespaces!(
+        with_clause_multiple_ctes,
+        expected = Ok(set![
+            agg_ast::definitions::Namespace {
+                database: "mydb".into(),
+                collection: "foo".into()
+            },
+            agg_ast::definitions::Namespace {
+                database: "mydb".into(),
+                collection: "bar".into()
+            }
+        ]),
+        db = "mydb",
+        query = "WITH t AS (SELECT a FROM foo), u AS (SELECT b FROM bar) (SELECT * FROM t JOIN u ON t.a = u.b)",
+    );
 }
 
 mod test_mql_schema_env_to_json_schema {

@@ -135,7 +135,13 @@ pub fn get_namespaces(
     current_db: &str,
     sql: &str,
 ) -> Result<BTreeSet<agg_ast::definitions::Namespace>> {
+    use ast::rewrites::Pass;
+
     let ast = parser::parse_query(sql)?;
+    // Resolve `WITH` clause references before collecting collection sources. Otherwise CTE
+    // names (which are not collections) are reported as namespaces, causing consumers such
+    // as the JDBC driver to fail while trying to fetch a schema for a non-existent collection.
+    let ast = ast::rewrites::WithQueryRewritePass.apply(ast)?;
     let namespaces = ast::visitors::get_collection_sources(&ast)
         .into_iter()
         .map(|cs| agg_ast::definitions::Namespace {
