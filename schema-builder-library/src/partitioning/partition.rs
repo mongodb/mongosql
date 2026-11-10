@@ -3,18 +3,12 @@ use tracing::instrument;
 
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 
-/// Collection size above which partitioning is skipped in favor of `$sample`.
-///
-/// The partition-boundary query sorts every partition key in the collection, which on very large
-/// sharded collections is merged across all shards and can run for hours before the cursor is
-/// killed. Above this size, the schema is derived from [`SAMPLE_FALLBACK_SIZE`] sampled documents
-/// instead. Lowering it trades schema coverage for speed on more collections.
+/// Collection size above which we use sampling via $sample instead of reading all partitions of a collection.
+/// Above this size, the schema is derived from [`SAMPLE_FALLBACK_SIZE`] sampled documents
+/// instead.
 pub const SAMPLE_FALLBACK_THRESHOLD_IN_BYTES: i64 = 1024 * 1024 * 1024; // 1 GiB
 
 /// Number of documents sampled when a collection exceeds [`SAMPLE_FALLBACK_THRESHOLD_IN_BYTES`].
-///
-/// Matches the BI Connector's default sample size and `VIEW_SAMPLE_SIZE`. Larger values improve
-/// coverage at the cost of a longer `$sample` query.
 pub const SAMPLE_FALLBACK_SIZE: i64 = 1000;
 
 /// Returns true when `min` and `max` can be compared using match-language range operators.

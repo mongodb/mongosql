@@ -192,15 +192,20 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
 /// Derive a schema for a collection by sampling a bounded number of documents.
 ///
 /// Issues a single `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents and unions the inferred
-/// schemas. This is used for collections too large to partition cheaply. Returns `None` if the
-/// query fails to open, fails mid-stream, or returns no documents, so the caller can choose a
-/// fallback.
+/// schemas. When `initial_schema_doc` is supplied, its simplified schema seeds the union, so the
+/// result is the initial schema unioned with the sampled schemas. This is used for collections
+/// too large to partition cheaply.
+///
+/// Returns `None` if the query fails to open, fails mid-stream, or returns no documents and no
+/// `initial_schema_doc` was supplied, so the caller can choose a fallback. When
+/// `initial_schema_doc` is supplied, its simplified schema is returned even if the sample yields
+/// no documents.
 #[instrument(level = "trace", skip_all)]
 pub async fn sample_schema_for_collection<S: LocalDataService>(
     service: &S,
     db: &str,
     collection_info: &CollectionInfo,
-    initial_schema_doc: Option<Arc<Schema>>
+    initial_schema_doc: Option<Arc<Schema>>,
 ) -> Option<Schema> {
     let pipeline = vec![doc! { "$sample": { "size": SAMPLE_FALLBACK_SIZE } }];
 
@@ -221,7 +226,11 @@ pub async fn sample_schema_for_collection<S: LocalDataService>(
         })
         .ok()?;
 
-    let mut schema = None;
+    // Seed the accumulator with the caller-supplied initial schema so the
+    // returned schema is `initial_schema_doc ∪ (sampled documents)`. `Unsat`
+    // is the identity for `union`, so `None` keeps the previous behavior of
+    // starting from nothing.
+    let mut schema = initial_schema_doc.map(|s| Schema::simplify(&s));
     let mut cursor = Box::pin(cursor);
     loop {
         match cursor.try_next().await {
@@ -238,7 +247,7 @@ pub async fn sample_schema_for_collection<S: LocalDataService>(
                 warn!(
                     db,
                     collection = %collection_info.name,
-                    "collection sampling failed mid-stream: {e}"
+                    "Collection sampling failed mid-stream: {e}. Schema will be partially reported."
                 );
                 return None;
             }
@@ -313,4 +322,81 @@ pub async fn derive_schema_for_view<S: LocalDataService>(
     }
 
     schema
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    use bson::{Document, doc};
+
+    use super::*;
+    use crate::data_service::test::MockDataService;
+
+    /// Build a [`MockDataService`] whose `aggregate` returns `docs` for the `db.collection`
+    /// lookup that `sample_schema_for_collection` performs.
+    fn mock_service(db: &str, coll: &str, docs: Vec<Document>) -> MockDataService {
+        MockDataService {
+            databases: Vec::new(),
+            collections: HashMap::new(),
+            documents: HashMap::from([(format!("{db}.{coll}"), docs)]),
+        }
+    }
+
+    fn collection_info() -> CollectionInfo {
+        CollectionInfo {
+            name: "coll".to_string(),
+            ..Default::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn sample_unions_initial_schema_with_sampled_documents() {
+        let service = mock_service(
+            "db",
+            "coll",
+            vec![doc! { "a": 1 }, doc! { "a": 2, "b": "x" }],
+        );
+        let initial = Arc::new(schema_for_document(&doc! { "seed": true }));
+
+        let result = sample_schema_for_collection(
+            &service,
+            "db",
+            &collection_info(),
+            Some(Arc::clone(&initial)),
+        )
+        .await
+        .expect("a non-empty sample returns Some");
+
+        let expected = Schema::simplify(&initial)
+            .union(&schema_for_document(&doc! { "a": 1 }))
+            .union(&schema_for_document(&doc! { "a": 2, "b": "x" }));
+        assert_eq!(result, expected);
+    }
+
+    #[tokio::test]
+    async fn sample_returns_initial_schema_when_empty() {
+        let service = mock_service("db", "coll", Vec::new());
+        let initial = Arc::new(schema_for_document(&doc! { "seed": true }));
+
+        let result = sample_schema_for_collection(
+            &service,
+            "db",
+            &collection_info(),
+            Some(Arc::clone(&initial)),
+        )
+        .await;
+
+        assert_eq!(result, Some(Schema::simplify(&initial)));
+    }
+
+    #[tokio::test]
+    async fn sample_returns_none_when_empty_and_no_initial_schema() {
+        let service = mock_service("db", "coll", Vec::new());
+
+        let result = sample_schema_for_collection(&service, "db", &collection_info(), None).await;
+
+        assert_eq!(result, None);
+    }
 }

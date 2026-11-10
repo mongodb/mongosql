@@ -206,7 +206,11 @@ pub struct CollectionSizes {
 }
 
 /// get_size_counts uses the $collStats aggregation stage to get size and count information for the
-/// argued collection.
+/// argued collection.  Sharded collections return one `$collStats` document per shard:
+/// https://www.mongodb.com/docs/manual/reference/operator/aggregation/collstats/#mongodb-pipeline-pipe.-collStats
+/// To ensure accurate calculation, we sum sizes and counts across every document.
+/// A shard that does not report `count` (e.g. timeseries) is skipped rather than discarding the counts reported by other shards; the count is
+/// `None` when no shard reports one.
 #[instrument(level = "trace", skip(service))]
 pub async fn get_size_counts<S: LocalDataService>(
     service: &S,
@@ -224,17 +228,12 @@ pub async fn get_size_counts<S: LocalDataService>(
         .map_err(Error::DataServiceError)?;
     let mut cursor = Box::pin(cursor);
 
-    // Sharded collections return one `$collStats` document per shard:
-    // https://www.mongodb.com/docs/manual/reference/operator/aggregation/collstats/#mongodb-pipeline-pipe.-collStats
-    // We sum sizes and counts across every document. A shard that does not report `count` (e.g. timeseries)
-    // is skipped rather than discarding the counts reported by other shards; the count is
-    // `None` only when no shard reports one.
     let mut size_sum: i64 = 0;
     let mut count_sum: Option<i64> = None;
-    let mut found_stats = false;
+    let mut has_coll_stats = false;
 
     while let Some(document) = cursor.try_next().await.map_err(Error::DataServiceError)? {
-        found_stats = true;
+        has_coll_stats = true;
 
         let storage_stats = document
             .get_document("storageStats")
@@ -260,7 +259,7 @@ pub async fn get_size_counts<S: LocalDataService>(
         }
     }
 
-    if !found_stats {
+    if !has_coll_stats {
         return Err(Error::NoCollectionStats(collection.to_string()));
     }
 
