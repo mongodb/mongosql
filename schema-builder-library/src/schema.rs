@@ -226,10 +226,6 @@ pub async fn sample_schema_for_collection<S: LocalDataService>(
         })
         .ok()?;
 
-    // Seed the accumulator with the caller-supplied initial schema so the
-    // returned schema is `initial_schema_doc ∪ (sampled documents)`. `Unsat`
-    // is the identity for `union`, so `None` keeps the previous behavior of
-    // starting from nothing.
     let mut schema = initial_schema_doc.map(|s| Schema::simplify(&s));
     let mut cursor = Box::pin(cursor);
     loop {
@@ -247,7 +243,7 @@ pub async fn sample_schema_for_collection<S: LocalDataService>(
                 warn!(
                     db,
                     collection = %collection_info.name,
-                    "Collection sampling failed mid-stream: {e}. Schema will be partially reported."
+                    "Collection sampling failed mid-stream: {e}. No schema will be reported."
                 );
                 return None;
             }
