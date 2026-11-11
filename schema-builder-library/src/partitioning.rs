@@ -238,7 +238,6 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
     db: &str,
     collection: &str,
 ) -> Result<CollectionSizes, Error<S::Error>> {
-
     let pipeline = vec![
         // Run $collStats to get storage stats.
         // On sharded collections, returns document per shard.

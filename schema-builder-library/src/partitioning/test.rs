@@ -406,4 +406,116 @@ mod test {
         assert_eq!(format_size(1024 * 1024 * 1024), "1.0 GiB");
         assert_eq!(format_size(1024 * 1024 * 1024 * 3 / 2), "1.5 GiB");
     }
+
+    mod get_partitions {
+        use std::collections::HashMap;
+
+        use bson::{Bson, Document, doc};
+
+        use crate::{
+            Error,
+            data_service::{CollectionInfo, test::MockDataService},
+            partitioning::{
+                Partition, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, ScanStrategy, get_partitions,
+            },
+        };
+
+        /// One shard's `$collStats` document, as the server returns it for a sharded collection.
+        ///
+        /// The mock answers every query on the collection with the same documents, so the bound
+        /// queries read their `_id` from the first of these too; real `$collStats` output has no
+        /// `_id`.
+        fn coll_stats(id: i32, size: i64, count: i64) -> Document {
+            doc! {
+                "_id": id,
+                "ns": "db.coll",
+                "shard": format!("shard{id}"),
+                "storageStats": { "size": size, "count": count, "storageSize": size },
+            }
+        }
+
+        /// Three shards whose sizes sum to `total_size`, each reporting `count_per_shard`.
+        fn three_shards(total_size: i64, count_per_shard: i64) -> Vec<Document> {
+            let quarter = total_size / 4;
+            vec![
+                coll_stats(1, total_size - 2 * quarter, count_per_shard),
+                coll_stats(2, quarter, count_per_shard),
+                coll_stats(3, quarter, count_per_shard),
+            ]
+        }
+
+        fn mock(documents: Vec<Document>) -> MockDataService {
+            MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([("db.coll".to_string(), documents)]),
+            }
+        }
+
+        fn collection_info() -> CollectionInfo {
+            CollectionInfo {
+                name: "coll".to_string(),
+                ..Default::default()
+            }
+        }
+
+        #[tokio::test]
+        async fn large_collection_returns_single_sample_partition() {
+            // No shard reaches the threshold on its own; only their sum does.
+            let service = mock(three_shards(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, 1_000_000));
+
+            let partitioned = get_partitions(&service, "db", collection_info())
+                .await
+                .expect("a large collection is partitioned");
+
+            assert_eq!(
+                partitioned.partitions,
+                vec![Partition {
+                    min: Bson::Int32(1),
+                    max: Bson::Int32(1),
+                    is_max_bound_inclusive: true,
+                    strategy: ScanStrategy::Sample,
+                }]
+            );
+            assert_eq!(partitioned.partition_key, "_id");
+            assert_eq!(partitioned.hint, Some(doc! { "_id": 1 }));
+        }
+
+        #[tokio::test]
+        async fn collection_below_threshold_is_not_sampled() {
+            let service = mock(three_shards(
+                SAMPLE_FALLBACK_THRESHOLD_IN_BYTES - 1,
+                1_000_000,
+            ));
+
+            let partitioned = get_partitions(&service, "db", collection_info())
+                .await
+                .expect("a collection below the threshold is partitioned");
+
+            assert!(
+                partitioned
+                    .partitions
+                    .iter()
+                    .all(|p| p.strategy == ScanStrategy::Range)
+            );
+        }
+
+        #[tokio::test]
+        async fn missing_coll_stats_is_an_error() {
+            let service = mock(Vec::new());
+
+            let result = get_partitions(&service, "db", collection_info()).await;
+
+            assert!(matches!(result, Err(Error::NoCollectionStats(c)) if c == "coll"));
+        }
+
+        #[tokio::test]
+        async fn empty_collection_is_an_error() {
+            let service = mock(three_shards(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, 0));
+
+            let result = get_partitions(&service, "db", collection_info()).await;
+
+            assert!(matches!(result, Err(Error::EmptyCollection(c)) if c == "coll"));
+        }
+    }
 }
