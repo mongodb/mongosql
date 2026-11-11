@@ -82,7 +82,21 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
     Ok(result)
 }
 
-/// A utility function for deriving the schema for a single partition of a collection.
+/// Derives the schema for a single partition of a collection.
+///
+/// A partition is normally scanned in batches between its bounds, skipping documents that
+/// already match the schema built so far. When `initial_schema_doc` is supplied, its simplified
+/// schema seeds the result.
+///
+/// Partitions that [`get_partitions`] marks for sampling (collections of 1 GiB or more) instead
+/// derive their schema from a single `$sample` of 1000 documents, unioned with
+/// `initial_schema_doc`. If that sample fails to open or returns no documents, the partition is
+/// scanned over its full bounds instead.
+///
+/// # Errors
+///
+/// Returns an error if a range-scan query fails, or if the schema cannot be converted to a
+/// `$jsonSchema` document for the scan's filter.
 #[instrument(level = "trace", skip_all)]
 pub async fn derive_schema_for_partition<S: LocalDataService>(
     service: &S,
@@ -105,10 +119,11 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     let mut partition = single_partition.partition;
 
     if partition.strategy == ScanStrategy::Sample {
-        if let Some(schema) =
-            sample_schema_for_collection(service, db, collection, initial_schema_doc.clone()).await
-        {
-            return Ok(schema);
+        if let Some(sampled) = sample_schema_for_collection(service, db, collection).await {
+            return Ok(match &initial_schema_doc {
+                Some(initial) => Schema::simplify(initial).union(&sampled),
+                None => sampled,
+            });
         }
         // The partition still spans the collection's full bounds, so the range scan below is the
         // single-partition last resort.
@@ -217,21 +232,17 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
 /// Derive a schema for a collection by sampling a bounded number of documents.
 ///
 /// Issues a single `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents and unions the inferred
-/// schemas. When `initial_schema_doc` is supplied, its simplified schema seeds the union, so the
-/// result is the initial schema unioned with the sampled schemas. This is used for collections
-/// too large to partition cheaply.
+/// schemas, mirroring [`derive_schema_for_view`]. This is used for collections too large to
+/// partition cheaply.
 ///
-/// Returns `None` if the query fails to open, or if it returns no documents and no
-/// `initial_schema_doc` was supplied, so the caller can choose a fallback. When
-/// `initial_schema_doc` is supplied, its simplified schema is returned even if the sample yields
-/// no documents. If the cursor errors mid-stream, the error is logged and the schema built from
-/// the documents read so far is returned, which may be incomplete.
+/// Returns `None` if the query fails to open or returns no documents, so the caller can choose a
+/// fallback. If the cursor errors mid-stream, the error is logged and the schema built from the
+/// documents read so far is returned, which may be incomplete.
 #[instrument(level = "trace", skip_all)]
 pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
-    initial_schema_doc: Option<Arc<Schema>>,
 ) -> Option<Schema> {
     let pipeline = vec![doc! { "$sample": { "size": SAMPLE_FALLBACK_SIZE } }];
 
@@ -240,13 +251,16 @@ pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
         .await
         .inspect_err(|e| {
             warn!(
+                name: "schema.sampling.open_failed",
                 db,
-                collection, "collection sampling encountered an error: {e}"
+                collection,
+                error.message = %e,
+                "collection sampling failed to open"
             );
         })
         .ok()?;
 
-    let mut schema = initial_schema_doc.map(|s| Schema::simplify(&s));
+    let mut schema = None;
     let mut iterations = 0u64;
     let mut cursor = Box::pin(cursor);
     while let Some(Ok(doc)) = cursor
@@ -254,27 +268,29 @@ pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
         .await
         .inspect_err(|e| {
             warn!(
+                name: "schema.sampling.stream_failed",
                 db,
                 collection,
                 iteration = iterations,
-                "collection sampling encountered an error: {e}"
+                error.message = %e,
+                "collection sampling failed mid-stream; the sampled schema may be incomplete"
             );
         })
         .transpose()
     {
         if iterations.is_multiple_of(SAMPLE_PROGRESS_LOG_INTERVAL) {
             info!(
+                name: "schema.sampling.progress",
                 db,
                 collection,
                 iteration = iterations,
-                "Calculating schema for sampled collection"
+                "calculating schema for sampled collection"
             );
         }
 
-        schema = Some(schema.map_or_else(
-            || schema_for_document(&doc),
-            |s: Schema| s.union(&schema_for_document(&doc)),
-        ));
+        schema = schema.map_or(Some(schema_for_document(&doc)), |s: Schema| {
+            Some(s.union(&schema_for_document(&doc)))
+        });
 
         iterations += 1;
     }
@@ -284,7 +300,7 @@ pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
         db,
         collection,
         sampled_documents = iterations,
-        "derived schema from {iterations} sampled documents"
+        "derived schema from sampled documents"
     );
 
     schema
@@ -359,7 +375,6 @@ pub async fn derive_schema_for_view<S: LocalDataService>(
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::sync::Arc;
 
     use bson::{Document, doc};
 
@@ -377,54 +392,43 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sample_unions_initial_schema_with_sampled_documents() {
+    async fn sample_unions_sampled_documents() {
         let service = mock_service(
             "db",
             "coll",
             vec![doc! { "a": 1 }, doc! { "a": 2, "b": "x" }],
         );
-        let initial = Arc::new(schema_for_document(&doc! { "seed": true }));
 
-        let result =
-            sample_schema_for_collection(&service, "db", "coll", Some(Arc::clone(&initial)))
-                .await
-                .expect("a non-empty sample returns Some");
+        let result = sample_schema_for_collection(&service, "db", "coll")
+            .await
+            .expect("a non-empty sample returns Some");
 
-        let expected = Schema::simplify(&initial)
-            .union(&schema_for_document(&doc! { "a": 1 }))
+        let expected = schema_for_document(&doc! { "a": 1 })
             .union(&schema_for_document(&doc! { "a": 2, "b": "x" }));
         assert_eq!(result, expected);
     }
 
     #[tokio::test]
-    async fn sample_returns_initial_schema_when_empty() {
-        let service = mock_service("db", "coll", Vec::new());
-        let initial = Arc::new(schema_for_document(&doc! { "seed": true }));
-
-        let result =
-            sample_schema_for_collection(&service, "db", "coll", Some(Arc::clone(&initial))).await;
-
-        assert_eq!(result, Some(Schema::simplify(&initial)));
-    }
-
-    #[tokio::test]
-    async fn sample_returns_none_when_empty_and_no_initial_schema() {
+    async fn sample_returns_none_when_empty() {
         let service = mock_service("db", "coll", Vec::new());
 
-        let result = sample_schema_for_collection(&service, "db", "coll", None).await;
+        let result = sample_schema_for_collection(&service, "db", "coll").await;
 
         assert_eq!(result, None);
     }
 
     mod sampling_fallback {
+        use std::sync::Arc;
+
         use bson::{Bson, Document, doc};
+        use mongosql::schema::Schema;
         use schema_derivation::schema_for_document;
 
         use crate::{
-            CollectionInfo, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, SinglePartition,
+            CollectionInfo, SinglePartition,
             data_service::test::{PipelineKind, Scripted, ScriptedDataService},
             derive_schema_for_partition, get_partitions,
-            partitioning::{Partition, ScanStrategy},
+            partitioning::{Partition, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, ScanStrategy},
         };
 
         /// Smallest `_id` the scripted bounds query reports.
@@ -450,11 +454,11 @@ mod tests {
             vec![doc! { "_id": 2, "c": true }, doc! { "_id": 3, "d": 1.5 }]
         }
 
-        fn schema_of(docs: &[Document]) -> mongosql::schema::Schema {
+        fn schema_of(docs: &[Document]) -> Schema {
             docs.iter()
                 .map(schema_for_document)
                 .reduce(|acc, s| acc.union(&s))
-                .unwrap_or(mongosql::schema::Schema::Unsat)
+                .unwrap_or(Schema::Unsat)
         }
 
         /// Script a collection of `size` bytes. `partitioning`, `sample` and `range` decide the
@@ -499,13 +503,14 @@ mod tests {
 
         async fn derive(
             service: &ScriptedDataService,
+            initial_schema_doc: Option<Arc<Schema>>,
             partition: Partition,
-        ) -> mongosql::schema::Schema {
+        ) -> Schema {
             derive_schema_for_partition(
                 service,
                 "db",
                 "coll",
-                None,
+                initial_schema_doc,
                 SinglePartition {
                     partition,
                     partition_key: "_id".to_string(),
@@ -532,7 +537,7 @@ mod tests {
                 .expect("large collection yields a sample partition");
             assert_eq!(partitioned.partitions, full_range(ScanStrategy::Sample));
 
-            let schema = derive(&service, partitioned.partitions[0].clone()).await;
+            let schema = derive(&service, None, partitioned.partitions[0].clone()).await;
 
             assert_eq!(schema, schema_of(&sampled_docs()));
             let calls = service.calls();
@@ -555,7 +560,7 @@ mod tests {
                 .expect("partitioning failure falls back to a single partition");
             assert_eq!(partitioned.partitions, full_range(ScanStrategy::Range));
 
-            let schema = derive(&service, partitioned.partitions[0].clone()).await;
+            let schema = derive(&service, None, partitioned.partitions[0].clone()).await;
 
             assert_eq!(schema, schema_of(&range_docs()));
             assert!(!service.calls().contains(&PipelineKind::Sample));
@@ -573,7 +578,7 @@ mod tests {
             let partitioned = get_partitions(&service, "db", collection_info())
                 .await
                 .expect("large collection yields a sample partition");
-            let schema = derive(&service, partitioned.partitions[0].clone()).await;
+            let schema = derive(&service, None, partitioned.partitions[0].clone()).await;
 
             assert_eq!(schema, schema_of(&range_docs()));
             let calls = service.calls();
@@ -590,9 +595,66 @@ mod tests {
                 Scripted::Docs(Vec::new()),
             );
 
-            let schema = derive(&service, full_range(ScanStrategy::Sample).remove(0)).await;
+            let schema = derive(&service, None, full_range(ScanStrategy::Sample).remove(0)).await;
 
             assert_eq!(schema, schema_of(&range_docs()));
+        }
+
+        #[tokio::test]
+        async fn sample_partition_unions_initial_schema_with_sampled_documents() {
+            let service = service(
+                SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
+                Some(1_000_000),
+                Scripted::FailOpen,
+                Scripted::Docs(sampled_docs()),
+            );
+            let initial = Arc::new(schema_for_document(&doc! { "_id": 1, "seed": true }));
+
+            let schema = derive(
+                &service,
+                Some(Arc::clone(&initial)),
+                full_range(ScanStrategy::Sample).remove(0),
+            )
+            .await;
+
+            assert_eq!(
+                schema,
+                Schema::simplify(&initial).union(&schema_of(&sampled_docs()))
+            );
+            assert!(!service.calls().contains(&PipelineKind::RangeScan));
+        }
+
+        #[tokio::test]
+        async fn empty_sample_with_initial_schema_falls_back_to_full_range_scan() {
+            // A stored schema must not mask an empty sample; the full scan still runs.
+            let service = service(
+                SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
+                Some(1_000_000),
+                Scripted::FailOpen,
+                Scripted::Docs(Vec::new()),
+            );
+            let initial = Arc::new(schema_for_document(&doc! { "_id": 1, "seed": true }));
+
+            let schema = derive(
+                &service,
+                Some(Arc::clone(&initial)),
+                full_range(ScanStrategy::Sample).remove(0),
+            )
+            .await;
+
+            assert_eq!(
+                schema,
+                Schema::simplify(&initial).union(&schema_of(&range_docs()))
+            );
+            assert_eq!(
+                service
+                    .calls()
+                    .iter()
+                    .filter(|k| **k != PipelineKind::RangeScan)
+                    .last(),
+                Some(&PipelineKind::Sample)
+            );
+            assert!(service.calls().contains(&PipelineKind::RangeScan));
         }
     }
 }

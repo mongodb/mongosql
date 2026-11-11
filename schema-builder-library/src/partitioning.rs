@@ -1,6 +1,6 @@
-pub(crate) use crate::partitioning::partition::ScanStrategy;
-pub use crate::partitioning::partition::{
+pub(crate) use crate::partitioning::partition::{
     PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
+    ScanStrategy,
 };
 use crate::{
     Error, LocalDataService,
@@ -8,7 +8,7 @@ use crate::{
 };
 use bson::{Bson, Document, doc};
 use futures::{StreamExt as _, TryStreamExt as _};
-use tracing::{info, instrument, trace, warn};
+use tracing::{debug, instrument, trace, warn};
 
 mod partition;
 mod test;
@@ -29,17 +29,18 @@ pub struct PartitionedCollection {
 /// `$sampleRate` subset of the keys. Each kept key becomes the exclusive upper bound of one
 /// partition and the inclusive lower bound of the next.
 ///
-/// Collections at or above [`SAMPLE_FALLBACK_THRESHOLD_IN_BYTES`] skip partitioning entirely and
-/// return a single partition marked for sampling: [`crate::derive_schema_for_partition`] derives
-/// its schema from a `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents, and only scans the full
+/// Collections of 1 GiB or more skip partitioning entirely and return a single partition marked
+/// for sampling: [`crate::derive_schema_for_partition`] derives its schema from a `$sample` of
+/// 1000 documents, and only scans the full
 /// bounds if that sample fails. The partitioning pipeline sorts the whole collection, which on
 /// large sharded clusters can run for hours before the cursor is killed.
 ///
 /// If the partitioning query fails to open, the collection is returned as a single partition
 /// covering its full bounds.
 ///
-/// Note that the 100MB limit comes from the server, as noted in
-/// [$bucketAuto docs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions).
+/// Note that the 100MB partition size matches the server's memory limit for blocking aggregation
+/// stages, as noted in the
+/// [aggregation pipeline limits](https://www.mongodb.com/docs/manual/core/aggregation-pipeline-limits/#memory-restrictions).
 ///
 /// # Errors
 ///
@@ -143,11 +144,11 @@ pub async fn get_partitions<S: LocalDataService>(
         )
         .await
         .inspect_err(|e| {
-            tracing::warn!(
+            warn!(
                 db,
                 collection = %collection_info.name,
                 "partition sampling failed; falling back to a single partition: {e}"
-            )
+            );
         })
     else {
         return Ok(PartitionedCollection {
@@ -203,32 +204,36 @@ fn warn_sampling_selected(db: &str, collection: &str, size_in_bytes: i64) {
         db,
         collection,
         size_in_bytes,
+        size_readable = %format_size(size_in_bytes),
         threshold_in_bytes = SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
+        threshold_readable = %format_size(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES),
         sample_size = SAMPLE_FALLBACK_SIZE,
-        "collection size {} exceeds the {} sampling threshold; skipping partitioning and \
-         deriving the schema from a $sample of {} documents. The schema may not reflect every \
-         document in the collection.",
-        format_size(size_in_bytes),
-        format_size(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES),
-        SAMPLE_FALLBACK_SIZE,
+        "collection size exceeds the sampling threshold; skipping partitioning and deriving the \
+         schema from a $sample. The schema may not reflect every document in the collection."
     );
 }
 
 /// Utility struct for collection size and count information.
 #[derive(Debug, PartialEq)]
-pub struct CollectionSizes {
+pub(crate) struct CollectionSizes {
     pub size: i64,
     pub count: Option<i64>,
 }
 
-/// get_size_counts uses the $collStats aggregation stage to get size and count information for the
-/// argued collection.  Sharded collections return one `$collStats` document per shard:
-/// https://www.mongodb.com/docs/manual/reference/operator/aggregation/collstats/#mongodb-pipeline-pipe.-collStats
-/// To ensure accurate calculation, we sum sizes and counts across every document.
-/// A shard that does not report `count` (e.g. timeseries) is skipped rather than discarding the counts reported by other shards; the count is
-/// `None` when no shard reports one.
+/// Reads a collection's size and document count from `$collStats`.
+///
+/// Sharded collections return one
+/// [`$collStats`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/collStats/)
+/// document per shard, so sizes and counts are summed across every document. A shard that does
+/// not report `count` (e.g. timeseries) is skipped rather than discarding the counts reported by
+/// other shards; the count is `None` when no shard reports one.
+///
+/// # Errors
+///
+/// Returns an error if the query fails, if a stats document is malformed, if no stats are
+/// returned, or if the collection is empty.
 #[instrument(level = "trace", skip(service))]
-pub async fn get_size_counts<S: LocalDataService>(
+pub(crate) async fn get_size_counts<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
@@ -286,7 +291,8 @@ pub async fn get_size_counts<S: LocalDataService>(
             size: size_sum,
             count: count_sum,
         };
-        info!(
+        debug!(
+            name: "schema.collection.stats",
             db,
             collection,
             size_in_bytes = sizes.size,

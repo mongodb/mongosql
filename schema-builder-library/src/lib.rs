@@ -20,10 +20,7 @@ pub use data_service::{JsDataService, WasmDataService};
 pub mod client_util;
 
 mod partitioning;
-pub use partitioning::{
-    CollectionSizes, PartitionedCollection, SAMPLE_FALLBACK_SIZE,
-    SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, get_partitions, get_size_counts,
-};
+pub use partitioning::{PartitionedCollection, get_partitions};
 mod errors;
 mod schema;
 pub use errors::Error;

@@ -3,12 +3,22 @@ use tracing::instrument;
 
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 
-/// Collection size above which we use sampling via $sample instead of reading all partitions of a collection.
-/// Above this size, the schema is derived from [`SAMPLE_FALLBACK_SIZE`] sampled documents
-/// instead.
+/// Collection size at or above which the schema is sampled instead of partitioned.
+///
+/// At or above this size, `get_partitions` skips the partitioning pipeline and the schema is
+/// derived from a `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents. The partitioning pipeline
+/// sorts the entire collection, which on large sharded clusters can run for hours. 1 GiB is about
+/// ten [`PARTITION_SIZE_IN_BYTES`] partitions.
+///
+/// Raising this sends more collections through that full-collection sort. Lowering it makes more
+/// schemas sample-based, and those may miss fields that only appear in unsampled documents. The
+/// size is compared against the `$collStats` size summed across all shards.
 pub const SAMPLE_FALLBACK_THRESHOLD_IN_BYTES: i64 = 1024 * 1024 * 1024; // 1 GiB
 
-/// Number of documents sampled when a collection exceeds [`SAMPLE_FALLBACK_THRESHOLD_IN_BYTES`].
+/// Number of documents sampled for collections at or above [`SAMPLE_FALLBACK_THRESHOLD_IN_BYTES`].
+///
+/// Matches the sample size used for views (`VIEW_SAMPLE_SIZE`). A larger sample finds more rare
+/// fields but takes longer on the server.
 pub const SAMPLE_FALLBACK_SIZE: i64 = 1000;
 
 /// Returns true when `min` and `max` can be compared using match-language range operators.
@@ -27,11 +37,10 @@ fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
 }
 
 /// How [`crate::derive_schema_for_partition`] reads the documents of a [`Partition`].
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub(crate) enum ScanStrategy {
     /// Walk every document between `min` and `max`, skipping the documents that already match
     /// the schema built so far.
-    #[default]
     Range,
     /// Derive the schema from a `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents. If sampling
     /// fails, fall back to [`ScanStrategy::Range`] over the same bounds.

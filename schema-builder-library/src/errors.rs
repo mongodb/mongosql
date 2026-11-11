@@ -22,8 +22,6 @@ pub enum Error<ServiceError: core::error::Error> {
     SchemaError(mongosql::schema::Error),
     #[error("NoCollection {0}")]
     NoCollection(String),
-    #[error("Collection Size Error {0}")]
-    CollectionSizeTooLargeForPartitioning(String),
 }
 
 impl<S: core::error::Error> From<mongosql::schema::Error> for Error<S> {
