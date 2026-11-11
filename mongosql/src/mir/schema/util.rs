@@ -2,6 +2,8 @@ use crate::{
     mir::*,
     schema::{Document, NULLISH, Satisfaction, Schema},
 };
+use mongosql_datastructures::binding_tuple::Key;
+use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
 impl FieldAccess {
     /// If this FieldAccess is "pure", then return the scope of its root
@@ -11,6 +13,33 @@ impl FieldAccess {
         match &*self.expr {
             Expression::Reference(r) => Some(r.key.scope),
             Expression::FieldAccess(fa) => fa.scope_if_pure(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn key_if_pure(&self) -> Option<&Key> {
+        match &*self.expr {
+            Expression::Reference(r) => Some(&r.key),
+            Expression::FieldAccess(fa) => fa.key_if_pure(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn ref_if_pure(&self) -> Option<&ReferenceExpr> {
+        match &*self.expr {
+            Expression::Reference(r) => Some(r),
+            Expression::FieldAccess(fa) => fa.ref_if_pure(),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn path_if_pure(&self) -> Option<Vec<String>> {
+        match &*self.expr {
+            Expression::Reference(_) => Some(vec![self.field.clone()]),
+            Expression::FieldAccess(fa) => fa.path_if_pure().map(|mut v| {
+                v.push(self.field.clone());
+                v
+            }),
             _ => None,
         }
     }
@@ -142,5 +171,139 @@ pub fn set_field_schema(
                 ..Default::default()
             })
         }
+    }
+}
+
+impl DocumentExpr {
+    pub(crate) fn retain_path(&self, path: &[String]) -> Option<DocumentExpr> {
+        let mut document = UniqueLinkedHashMap::new();
+
+        match self.document.get(&path[0]) {
+            Some(Expression::Document(d)) => {
+                let sub_doc = d.retain_path(&path[1..])?;
+                let _ = document.insert(path[0].clone(), Expression::Document(sub_doc));
+                Some(document.into())
+            }
+            Some(e) => {
+                let _ = document.insert(path[0].clone(), e.clone());
+                Some(document.into())
+            }
+            None => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::unchecked_unique_linked_hash_map;
+    #[test]
+    fn path_if_pure_singleton() {
+        let fa = FieldAccess {
+            expr: Box::new(Expression::Reference(ReferenceExpr {
+                key: ("root", 0u16).into(),
+            })),
+            field: "b".to_string(),
+            is_nullable: true,
+        };
+        assert_eq!(fa.path_if_pure(), Some(vec!["b".to_string()]));
+    }
+
+    #[test]
+    fn path_if_pure_multipart() {
+        let fa = FieldAccess {
+            expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: ("root", 0u16).into(),
+                    })),
+                    field: "a".to_string(),
+                    is_nullable: true,
+                })),
+                field: "b".to_string(),
+                is_nullable: true,
+            })),
+            field: "c".to_string(),
+            is_nullable: true,
+        };
+        assert_eq!(
+            fa.path_if_pure(),
+            Some(vec!["a".to_string(), "b".to_string(), "c".to_string()])
+        );
+    }
+
+    #[test]
+    fn retain_path_empty_doc() {
+        let doc = DocumentExpr {
+            document: UniqueLinkedHashMap::new(),
+        };
+        assert_eq!(doc.retain_path(&["a".to_string()]), None);
+    }
+
+    #[test]
+    fn retain_path_singleton_field() {
+        let doc = DocumentExpr {
+            document: unchecked_unique_linked_hash_map! {
+                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+            },
+        };
+        assert_eq!(doc.retain_path(&["a".to_string()]), Some(doc));
+    }
+
+    #[test]
+    fn retain_path_multiple_top_level_fields() {
+        let doc = DocumentExpr {
+            document: unchecked_unique_linked_hash_map! {
+                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "b".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "c".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+            },
+        };
+        let expected = DocumentExpr {
+            document: unchecked_unique_linked_hash_map! {
+                "b".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+            },
+        };
+        assert_eq!(doc.retain_path(&["b".to_string()]), Some(expected));
+    }
+
+    #[test]
+    fn retain_path_field_not_present() {
+        let doc = DocumentExpr {
+            document: unchecked_unique_linked_hash_map! {
+                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "b".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "c".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+            },
+        };
+        assert_eq!(doc.retain_path(&["x".to_string()]), None);
+    }
+
+    #[test]
+    fn retain_path_nested_fields() {
+        let doc = DocumentExpr {
+            document: unchecked_unique_linked_hash_map! {
+                "a".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "b".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                "c".to_string() => Expression::Document(unchecked_unique_linked_hash_map! {
+                    "d".to_string() => Expression::Document(unchecked_unique_linked_hash_map! {
+                        "e".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                    }.into()),
+                }.into()),
+            },
+        };
+        let expected = DocumentExpr {
+            document: unchecked_unique_linked_hash_map! {
+                "c".to_string() => Expression::Document(unchecked_unique_linked_hash_map! {
+                    "d".to_string() => Expression::Document(unchecked_unique_linked_hash_map! {
+                        "e".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                    }.into()),
+                }.into()),
+            },
+        };
+        assert_eq!(
+            doc.retain_path(&["c".to_string(), "d".to_string(), "e".to_string()]),
+            Some(expected)
+        );
     }
 }

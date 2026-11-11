@@ -243,6 +243,243 @@ mod union_schemata {
     );
 }
 
+mod merge {
+    use crate::{
+        map,
+        schema::{Atomic::*, Document, Schema::*},
+        set,
+    };
+
+    macro_rules! test_merge_schema {
+        ($func_name:ident, expected = $expected:expr, left = $left:expr, right = $right:expr,) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, $left.merge(&$right));
+            }
+        };
+    }
+
+    test_merge_schema!(
+        x_and_x_is_x,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        left = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        right = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+    );
+
+    test_merge_schema!(
+        unsat_and_x_is_x,
+        expected = Atomic(Double),
+        left = Unsat,
+        right = Atomic(Double),
+    );
+
+    test_merge_schema!(
+        x_and_unsat_is_x,
+        expected = Atomic(Double),
+        left = Atomic(Double),
+        right = Unsat,
+    );
+
+    test_merge_schema!(
+        any_and_x_is_any,
+        expected = Any,
+        left = Any,
+        right = Atomic(Double),
+    );
+
+    test_merge_schema!(
+        x_and_any_is_any,
+        expected = Any,
+        left = Atomic(Double),
+        right = Any,
+    );
+
+    test_merge_schema!(
+        divergent_scalar_schemas_become_any_of,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double)}),
+        left = Atomic(Integer),
+        right = Atomic(Double),
+    );
+
+    test_merge_schema!(
+        scalar_schema_and_any_of_adds_scalar_to_any_of,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double)}),
+        left = Atomic(Integer),
+        right = AnyOf(set! {Atomic(Double)}),
+    );
+
+    test_merge_schema!(
+        any_of_and_any_of_are_combined,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        left = AnyOf(set! {Atomic(Integer), Atomic(Double)}),
+        right = AnyOf(set! {Atomic(Integer), Atomic(Decimal)}),
+    );
+
+    test_merge_schema!(
+        array_and_array_combine_inner_schema,
+        expected = Array(Box::new(AnyOf(set! {Atomic(Integer), Atomic(Double)}))),
+        left = Array(Box::new(Atomic(Integer))),
+        right = Array(Box::new(Atomic(Double))),
+    );
+
+    test_merge_schema!(
+        array_and_any_of_without_arrays_adds_array_to_any_of,
+        expected = AnyOf(set! {Array(Box::new(Atomic(Integer))), Atomic(Double)}),
+        left = Array(Box::new(Atomic(Integer))),
+        right = AnyOf(set! {Atomic(Double)}),
+    );
+
+    test_merge_schema!(
+        array_and_any_of_with_one_array_combines_inner_schema_of_arrays,
+        expected = AnyOf(
+            set! {Array(Box::new(AnyOf(set! {Atomic(Integer), Atomic(Double)}))), Atomic(String)}
+        ),
+        left = Array(Box::new(Atomic(Integer))),
+        right = AnyOf(set! {Array(Box::new(Atomic(Double))), Atomic(String)}),
+    );
+
+    test_merge_schema!(
+        array_and_any_of_with_multiple_arrays_becomes_any_of_with_array_of_any,
+        expected = AnyOf(set! {Array(Box::new(Any)), Atomic(String)}),
+        left = Array(Box::new(Atomic(Long))),
+        right = AnyOf(
+            set! {Array(Box::new(Atomic(Integer))), Array(Box::new(Atomic(Double))), Atomic(String)}
+        ),
+    );
+
+    test_merge_schema!(
+        document_and_document_merge_keys_and_required,
+        expected = Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+                "b".to_string() => Atomic(String),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right = Document(Document {
+            keys: map! {
+                "b".to_string() => Atomic(String),
+            },
+            required: set! {"b".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+    );
+
+    test_merge_schema!(
+        nested_documents_merge_keys_and_required,
+        expected = Document(Document {
+            keys: map! {
+                "a".to_string() => Document(Document {
+                    keys: map! {
+                        "b".to_string() => Atomic(Integer),
+                        "c".to_string() => Atomic(String),
+                    },
+                    required: set! {"b".to_string(), "c".to_string()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Document(Document {
+                    keys: map! {
+                        "b".to_string() => Atomic(Integer),
+                    },
+                    required: set! {"b".to_string()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right = Document(Document {
+            keys: map! {
+                "a".to_string() => Document(Document {
+                    keys: map! {
+                        "c".to_string() => Atomic(String),
+                    },
+                    required: set! {"c".to_string()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+    );
+
+    test_merge_schema!(
+        document_and_any_of_without_documents_adds_document_to_any_of,
+        expected = AnyOf(set! {Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }), Atomic(Double)}),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right = AnyOf(set! {Atomic(Double)}),
+    );
+
+    test_merge_schema!(
+        document_and_any_of_with_documents_merges_documents,
+        expected = AnyOf(set! {Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+                "b".to_string() => Atomic(String),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }), Atomic(Double)}),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }),
+        right = AnyOf(set! {Document(Document {
+            keys: map! {
+                "b".to_string() => Atomic(String),
+            },
+            required: set! {"b".to_string()},
+            additional_properties: false,
+            ..Default::default()
+        }), Atomic(Double)}),
+    );
+
+    // todo:
+    //  - doc - anyof w/ docs
+}
+
 mod to_bson {
     use crate::{
         map,
@@ -2778,16 +3015,6 @@ mod get_single_field_name_and_schema {
         })
     );
     test_get_single_field_name_and_schema!(
-        single_doc_empty,
-        expected = None,
-        schema = &Document(Document {
-            keys: map![],
-            required: set![],
-            additional_properties: false,
-            ..Default::default()
-        })
-    );
-    test_get_single_field_name_and_schema!(
         single_doc_multiple_required_keys,
         expected = None,
         schema = &Document(Document {
@@ -3011,12 +3238,14 @@ mod enumerate_field_paths {
 
     lazy_static! {
         static ref A_B_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
-            keys: map! {"a".to_string() => Document(Document {
-            keys: map! {"b".to_string() => Atomic(Integer)},
-            required: BTreeSet::new(),
-            additional_properties: false,
-            ..Default::default()
-            })},
+            keys: map! {
+                "a".to_string() => Document(Document {
+                    keys: map! {"b".to_string() => Atomic(Integer)},
+                    required: BTreeSet::new(),
+                    additional_properties: false,
+                    ..Default::default()
+                })
+            },
             required: BTreeSet::new(),
             additional_properties: false,
             ..Default::default()
@@ -3068,12 +3297,16 @@ mod enumerate_field_paths {
         schema = Schema::AnyOf(set![
             A_B_DOCUMENT_SCHEMA.clone(),
             Document(Document {
-                keys: map! {"x".to_string() => Document(Document {
-                keys: map! {"y".to_string() => Atomic(Integer)},
-                required: BTreeSet::new(),
-                additional_properties: false,
-                ..Default::default()
-                })},
+                keys: map! {
+                    "x".to_string() => Document(Document {
+                        keys: map! {
+                            "y".to_string() => Atomic(Integer)
+                        },
+                        required: BTreeSet::new(),
+                        additional_properties: false,
+                        ..Default::default()
+                        })
+                },
                 required: BTreeSet::new(),
                 additional_properties: false,
                 ..Default::default()
@@ -4066,5 +4299,91 @@ mod get_array_item_schema {
                 Schema::Atomic(Atomic::Long)
             ])))
         ]),
+    );
+}
+
+mod schema_predicate_meet {
+    use crate::{
+        schema::{Atomic, Satisfaction, Schema},
+        set,
+    };
+
+    macro_rules! test_schema_predicate_meet {
+        ($func_name:ident, expected = $expected:expr, input_schemas = $input_schemas:expr, input_predicate = $input_predicate:expr,) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!(
+                    $expected,
+                    Schema::schema_predicate_meet($input_schemas, $input_predicate)
+                );
+            }
+        };
+    }
+
+    test_schema_predicate_meet!(
+        empty_set_returns_must,
+        expected = Satisfaction::Must,
+        input_schemas = &set![],
+        input_predicate = &|_| Satisfaction::Not,
+    );
+
+    test_schema_predicate_meet!(
+        all_must_returns_must,
+        expected = Satisfaction::Must,
+        input_schemas = &set![Schema::Any, Schema::Any],
+        input_predicate = &|_| Satisfaction::Must,
+    );
+
+    test_schema_predicate_meet!(
+        all_may_returns_may,
+        expected = Satisfaction::May,
+        input_schemas = &set![Schema::Any, Schema::Any],
+        input_predicate = &|_| Satisfaction::May,
+    );
+
+    test_schema_predicate_meet!(
+        all_not_returns_not,
+        expected = Satisfaction::Not,
+        input_schemas = &set![Schema::Any, Schema::Any],
+        input_predicate = &|_| Satisfaction::Not,
+    );
+
+    test_schema_predicate_meet!(
+        must_and_not_returns_may,
+        expected = Satisfaction::May,
+        input_schemas = &set![Schema::Any, Schema::Atomic(Atomic::Integer), Schema::Any],
+        input_predicate = &|s| {
+            if s == &Schema::Any {
+                Satisfaction::Must
+            } else {
+                Satisfaction::Not
+            }
+        },
+    );
+
+    test_schema_predicate_meet!(
+        must_and_may_returns_may,
+        expected = Satisfaction::May,
+        input_schemas = &set![Schema::Any, Schema::Atomic(Atomic::Integer), Schema::Any],
+        input_predicate = &|s| {
+            if s == &Schema::Any {
+                Satisfaction::Must
+            } else {
+                Satisfaction::May
+            }
+        },
+    );
+
+    test_schema_predicate_meet!(
+        not_and_may_returns_may,
+        expected = Satisfaction::May,
+        input_schemas = &set![Schema::Any, Schema::Atomic(Atomic::Integer), Schema::Any],
+        input_predicate = &|s| {
+            if s == &Schema::Any {
+                Satisfaction::May
+            } else {
+                Satisfaction::Not
+            }
+        },
     );
 }

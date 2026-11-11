@@ -1094,27 +1094,29 @@ impl Schema {
     ///
     /// Must if the predicate returns Must for all Schemata.
     /// Not if the predicate returns Not for all Schemata.
-    /// May if the predcate is not Must or Not for all Schemata.
+    /// May if the predicate is not Must or Not for all Schemata.
     ///
     /// If looked at as a binary operator we get:
     /// meet(X, Y) = May
     /// meet(X, X) = X
     /// where X != Y; X, Y in {May, Must, Not}
     ///
-    fn schema_predicate_meet(
+    pub(crate) fn schema_predicate_meet(
         vs: &BTreeSet<Schema>,
         predicate: &dyn Fn(&Schema) -> Satisfaction,
     ) -> Satisfaction {
-        vs.iter()
-            .fold(None, |so_far, schema| {
-                let satisfaction = predicate(schema);
-                match (so_far, satisfaction) {
-                    (None, s) => Some(s),
-                    (Some(s1), s2) if s1 == s2 => Some(s1),
-                    _ => Some(Satisfaction::May),
-                }
-            })
-            .unwrap_or(Satisfaction::Must)
+        let mut ret = None;
+
+        for v in vs.iter() {
+            let satisfaction = predicate(v);
+            match (ret, satisfaction) {
+                (None, s) => ret = Some(s),
+                (Some(s1), s2) if s1 == s2 => (),
+                _ => return Satisfaction::May,
+            }
+        }
+
+        ret.unwrap_or(Satisfaction::Must)
     }
 
     /// Satisfies AnyOf the passed set of Schemata.
@@ -1326,34 +1328,50 @@ impl Schema {
 
     /// get_single_field_name_and_schema returns `Some((fieldName, fieldSchema))` if every value
     /// matched by `self` which is not the empty document is a document containing a single field
-    /// called `fieldName`.
+    /// referred to as `fieldName`.
     /// If this is not the case, or `self` doesn't match any values, it returns `None`.
     pub fn get_single_field_name_and_schema(&self) -> Option<(&str, Schema)> {
         match self {
-            AnyOf(any_of) => {
-                let mut fields = BTreeMap::<&str, Schema>::new();
-                let found_schema_without_single_field = any_of
+            AnyOf(ao) => {
+                let mut output_single_field = None;
+
+                // Note: if the AnyOf is empty or only contains Unsat, then we will return None
+                // since the loop will never run.
+                for maybe_single_field_name_and_schema in ao
                     .iter()
                     .filter(|schema| !matches!(schema, Unsat))
                     .map(|schema| schema.get_single_field_name_and_schema())
-                    .fold(false, |acc, field_info| match field_info {
+                {
+                    match maybe_single_field_name_and_schema {
+                        // If any schema in the AnyOf doesn't have a single field, return None.
+                        None => return None,
+
+                        // Otherwise, if this schema has a single field, track it.
                         Some((field_name, field_schema)) => {
-                            let sch = fields
-                                .get(field_name)
-                                .map(|s| s.union(&field_schema))
-                                .unwrap_or(field_schema);
-                            fields.insert(field_name, sch);
-                            acc
+                            match output_single_field {
+                                // If we have not yet found a single field, store this one.
+                                None => output_single_field = Some((field_name, field_schema)),
+                                Some((existing_field_name, existing_field_schema)) => {
+                                    if existing_field_name != field_name {
+                                        // If we have already found a single field and this one has
+                                        // a different name, then we return None since that means
+                                        // there are multiple fields.
+                                        return None;
+                                    } else {
+                                        // If we have already found a single field and this one has
+                                        // the same name, then we union the schemas.
+                                        output_single_field = Some((
+                                            existing_field_name,
+                                            existing_field_schema.union(&field_schema),
+                                        ));
+                                    }
+                                }
+                            }
                         }
-                        None => true,
-                    });
-                if found_schema_without_single_field {
-                    return None;
+                    }
                 }
-                match fields.len() {
-                    1 => fields.into_iter().next(),
-                    _ => None,
-                }
+
+                output_single_field
             }
             Schema::Document(d) => match d.num_keys() {
                 (num_required, Some(1)) if num_required <= 1 => {
@@ -1434,7 +1452,6 @@ impl Schema {
     ///
     /// If `self` is a schema AnyOf([Int, Double]) and `inside_document` is true, then
     /// enumerate_field_paths_aux returns the set containing an empty vector `set![vec![]]``.
-    #[allow(clippy::manual_try_fold)]
     fn enumerate_field_paths_aux(
         &self,
         max_length: Option<u32>,
@@ -1446,84 +1463,84 @@ impl Schema {
                 if d.additional_properties {
                     return Err(Error::CannotEnumerateAllFieldPaths(self.clone()));
                 }
-                d.keys.clone().into_iter().fold(
-                    Ok((BTreeSet::new(), true)),
-                    |acc, (key, schema)| match max_length {
-                        Some(0) => acc,
-                        _ => {
-                            let (mut new_paths, has_only_nullable_polymorphism) = schema
-                                .enumerate_field_paths_aux(max_length.map(|l| l - 1), true)?;
-                            if new_paths.is_empty() {
-                                new_paths = set![vec![]];
-                            }
-                            let mut acc = acc?;
-                            acc.0.extend(
-                                new_paths
-                                    .into_iter()
-                                    .map(|path| {
-                                        vec![key.clone()].into_iter().chain(path).collect_vec()
-                                    })
-                                    .collect::<BTreeSet<Vec<String>>>(),
-                            );
-                            Ok((acc.0, acc.1 && has_only_nullable_polymorphism))
-                        }
-                    },
-                )
+                // If we're already at the depth limit there are no further paths to enumerate.
+                if max_length == Some(0) {
+                    return Ok((BTreeSet::new(), true));
+                }
+                let mut paths = BTreeSet::new();
+                let mut only_nullable = true;
+                for (key, schema) in d.keys.iter() {
+                    let (mut new_paths, has_only_nullable_polymorphism) =
+                        schema.enumerate_field_paths_aux(max_length.map(|l| l - 1), true)?;
+
+                    // If we are in the context of a document, propagate an empty vector to
+                    // recursively build document field paths.
+                    if new_paths.is_empty() {
+                        new_paths = set![vec![]];
+                    }
+                    paths.extend(
+                        new_paths
+                            .into_iter()
+                            .map(|path| std::iter::once(key.clone()).chain(path).collect_vec()),
+                    );
+                    only_nullable = only_nullable && has_only_nullable_polymorphism;
+                }
+                Ok((paths, only_nullable))
             }
             AnyOf(a) => {
-                let mut mut_copy_of_a = a.clone();
-                let mut object_found = false;
+                // Partition into documents and everything else, avoiding a full clone of `a`.
+                let (docs, non_docs): (Vec<&Schema>, Vec<&Schema>) =
+                    a.iter().partition(|s| matches!(s, Schema::Document(_)));
 
-                let combined_doc = a.iter().fold(EMPTY_DOCUMENT.clone(), |acc, schema| {
-                    let acc = acc.document_union(schema.clone());
-                    if let Schema::Document(_) = schema {
-                        object_found = true;
-                        // After combining all the documents into one, it is no longer necessary to deal with each individual document,
-                        // so we can remove them after using them in the document_union above.
-                        mut_copy_of_a.remove(schema);
-                    }
-                    acc
-                });
+                let object_found = !docs.is_empty();
 
-                // We don't want to add a document unless there already is one in the AnyOf because we could potentially create a polymorphic object.
-                // If there already is a document in the AnyOf, adding another one will not create any new consequences.
+                // Combine all document schemas into one to avoid redundant per-document iteration.
+                let combined_doc = docs
+                    .into_iter()
+                    .cloned()
+                    .fold(EMPTY_DOCUMENT.clone(), Schema::document_union);
+
+                // Build the effective set of schemas to iterate: the merged document (if any)
+                // plus all non-document schemas.
+                let mut schemas_to_visit: Vec<&Schema> = non_docs;
+
                 if object_found {
-                    mut_copy_of_a.insert(combined_doc);
+                    // Importantly: we don't want to add a document unless there already is one in
+                    // the AnyOf. This is because we could potentially create a polymorphic object
+                    // by adding an empty document to the schemas_to_visit. If there already is a
+                    // document in the AnyOf, adding another one (the combined one) will not create
+                    // any new consequences.
+                    schemas_to_visit.push(&combined_doc);
                 }
 
+                let mut paths = BTreeSet::new();
+                let mut only_nullable = true;
                 let mut non_null_or_missing_found = false;
-                mut_copy_of_a.iter().fold(
-                    Ok((BTreeSet::new(), true)),
-                    |acc: Result<(BTreeSet<Vec<String>>, bool), Error>, schema| {
-                        let acc = acc?;
+                for schema in schemas_to_visit {
+                    // Only non-document, non-null, non-missing schemas indicate true polymorphism.
+                    if !matches!(
+                        schema,
+                        Schema::Missing | Schema::Atomic(Atomic::Null) | Schema::Document(_)
+                    ) {
+                        non_null_or_missing_found = true;
+                    }
+                    let (mut new_paths, has_only_nullable_polymorphism) =
+                        schema.enumerate_field_paths_aux(max_length, inside_document)?;
 
-                        if !matches!(
-                            schema,
-                            Schema::Missing | Schema::Atomic(Atomic::Null) | Schema::Document(_)
-                        ) {
-                            non_null_or_missing_found = true;
-                        }
+                    // If we are in the context of a document, propagate an empty vector to
+                    // recursively build document field paths
+                    if new_paths.is_empty() && inside_document {
+                        new_paths = set![vec![]];
+                    }
+                    paths.extend(new_paths);
 
-                        let (mut new_paths, has_only_nullable_polymorphism) =
-                            schema.enumerate_field_paths_aux(max_length, inside_document)?;
-                        // If we are in the context of a document, propagate an empty vector to
-                        // recursively build document field paths
-                        if new_paths.is_empty() && inside_document {
-                            new_paths = set![vec![]]
-                        }
-                        Ok((
-                            acc.0
-                                .union(&new_paths)
-                                .cloned()
-                                .collect::<BTreeSet<Vec<String>>>(),
-                            // If we encountered an object and any non-nullable schema in this AnyOf,
-                            // then we know the schema at this field path is polymorphic with non-null values.
-                            !(object_found && non_null_or_missing_found)
-                                && has_only_nullable_polymorphism
-                                && acc.1,
-                        ))
-                    },
-                )
+                    // If we encountered an object and any non-nullable schema in this AnyOf, then
+                    // we know the schema at this field path is polymorphic with non-null values.
+                    only_nullable = !(object_found && non_null_or_missing_found)
+                        && has_only_nullable_polymorphism
+                        && only_nullable;
+                }
+                Ok((paths, only_nullable))
             }
             Schema::Any => Err(Error::CannotEnumerateAllFieldPaths(Schema::Any)),
             Schema::Array(_) | Schema::Atomic(_) | Schema::Missing | Schema::Unsat => {
@@ -2119,15 +2136,16 @@ impl Document {
         ret
     }
 
-    /// union_keys constructs a key map where all the keys from both maps are kept.
-    /// Those keys that overlap have their Schemata merged.
-    fn union_keys(
+    /// combine_keys constructs a key map where all the keys from both maps are kept.
+    /// Those keys that overlap have their Schemata combined according to the combiner function.
+    fn combine_keys(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
+        schema_combine_fn: impl Fn(&Schema, &Schema) -> Schema,
     ) -> BTreeMap<String, Schema> {
         for (key2, schema2) in m2.into_iter() {
             if let Some(old_schema) = m1.remove(&key2) {
-                m1.insert(key2, old_schema.union(&schema2));
+                m1.insert(key2, schema_combine_fn(&old_schema, &schema2));
             } else {
                 m1.insert(key2, schema2);
             }
@@ -2325,7 +2343,7 @@ impl Document {
             }
         } else {
             Document {
-                keys: Document::union_keys(self.keys, other.keys),
+                keys: Document::combine_keys(self.keys, other.keys, Schema::union),
                 required: self
                     .required
                     .intersection(&other.required)
@@ -2440,7 +2458,7 @@ impl Document {
     pub fn merge(self, other: Document) -> Document {
         let jaccard_index = Document::get_jaccard_index(&self, &other);
         Document {
-            keys: Document::union_keys(self.keys, other.keys),
+            keys: Document::combine_keys(self.keys, other.keys, Schema::merge),
             required: self.required.into_iter().chain(other.required).collect(),
             additional_properties: self.additional_properties || other.additional_properties,
             jaccard_index,

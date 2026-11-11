@@ -689,3 +689,19 @@ tests:
     query: "SELECT * FROM FLATTEN(nested WITH SEPARATOR => '.')"
     result:
         - { "nested": { "_id": 0, "a0.x": 0, "a1.x": 1, "a10.x": 10, "a11.x": 11, "a12.x": 12, "a13.x": 13, "a14.x": 14, "a15.x": 15, "a16.x": 16, "a17.x": 17, "a18.x": 18, "a19.x": 19, "a2.x": 2, "a20.x": 20, "a21.x": 21, "a22.x": 22, "a23.x": 23, "a24.x": 24, "a25.x": 25, "a26.x": 26, "a27.x": 27, "a28.x": 28, "a29.x": 29, "a3.x": 3, "a30.x": 30, "a31.x": 31, "a32.x": 32, "a33.x": 33, "a34.x": 34, "a35.x": 35, "a36.x": 36, "a37.x": 37, "a38.x": 38, "a39.x": 39, "a4.x": 4, "a40.x": 40, "a41.x": 41, "a42.x": 42, "a43.x": 43, "a44.x": 44, "a45.x": 45, "a46.x": 46, "a47.x": 47, "a48.x": 48, "a49.x": 49, "a5.x": 5, "a50.x": 50, "a51.x": 51, "a52.x": 52, "a53.x": 53, "a54.x": 54, "a55.x": 55, "a56.x": 56, "a57.x": 57, "a58.x": 58, "a59.x": 59, "a6.x": 6, "a60.x": 60, "a61.x": 61, "a62.x": 62, "a63.x": 63, "a64.x": 64, "a65.x": 65, "a66.x": 66, "a67.x": 67, "a68.x": 68, "a69.x": 69, "a7.x": 7, "a70.x": 70, "a71.x": 71, "a72.x": 72, "a73.x": 73, "a74.x": 74, "a75.x": 75, "a76.x": 76, "a77.x": 77, "a78.x": 78, "a79.x": 79, "a8.x": 8, "a80.x": 80, "a81.x": 81, "a82.x": 82, "a83.x": 83, "a84.x": 84, "a85.x": 85, "a86.x": 86, "a87.x": 87, "a88.x": 88, "a89.x": 89, "a9.x": 9, "a90.x": 90, "a91.x": 91, "a92.x": 92, "a93.x": 93, "a94.x": 94, "a95.x": 95, "a96.x": 96, "a97.x": 97, "a98.x": 98, "a99.x": 99 } }
+
+  # Top-level fields from any datasource type can be used as unaliased group keys. FLATTEN emits binding tuples using
+  # the same keys as its input. This test asserts that unaliased group keys can be used from a FLATTEN datasource.
+  - description: Unaliased group key from FLATTEN datasource
+    current_db: test
+    query: "SELECT * FROM FLATTEN([{'a': {'b': 1}}, {'a': {'b': 2}}] bar) GROUP BY bar.a_b"
+    result:
+        - { "bar": { "a_b": 1 } }
+        - { "bar": { "a_b": 2 } }
+
+  - description: Multiple multipart unaliased group keys from FLATTEN datasource
+    current_db: test
+    query: "SELECT * FROM FLATTEN(FLATTEN([{'a': {'b': 1, 'c': 2, 'x': {'y': 30, 'z': 40}}}, {'a': {'b': 2, 'c': 3, 'x': {'y': 300, 'z': 400}}}, {'a': {'b': 3, 'c': 4, 'x': {'y': 30, 'z': 40}}}] bar WITH DEPTH => 1) WITH DEPTH => 1) GROUP BY bar.a_x_y, bar.a_x_z"
+    result:
+        - { "bar": { "a_x_y": 30, "a_x_z": 40 } }
+        - { "bar": { "a_x_y": 300, "a_x_z": 400 } }

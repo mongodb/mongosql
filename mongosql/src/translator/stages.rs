@@ -469,12 +469,13 @@ impl MqlTranslator {
     fn get_datasource_and_field_for_unaliased_group_key<'a>(
         &'a self,
         e: &'a mir::Expression,
-    ) -> Result<(&'a Key, &'a MqlMappingRegistryValue, &'a String)> {
+    ) -> Result<(&'a Key, &'a MqlMappingRegistryValue, String)> {
         let (key, field) = match e {
-            mir::Expression::FieldAccess(mir::FieldAccess { expr, field, .. }) => match **expr {
-                mir::Expression::Reference(mir::ReferenceExpr { ref key, .. }) => (key, field),
-                _ => return Err(Error::InvalidGroupKey),
-            },
+            mir::Expression::FieldAccess(fa) => {
+                let key = fa.key_if_pure().ok_or(Error::InvalidGroupKey)?;
+                let path = fa.path_if_pure().ok_or(Error::InvalidGroupKey)?;
+                (key, path.join("."))
+            }
             _ => return Err(Error::InvalidGroupKey),
         };
         Ok((

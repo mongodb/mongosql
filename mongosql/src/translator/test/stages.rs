@@ -434,6 +434,35 @@ mod group {
             scope: 0,
         })
     );
+
+    test_translate_stage!(
+        multipart_unaliased_group_keys,
+        expected = Ok(air::Stage::Project(air::Project {
+            source: air::Stage::Group(air::Group {
+                source: util::air_project_collection(None, "foo", None),
+                keys: vec![air::NameExprPair {
+                    name: "__unaliasedKey1".into(),
+                    expr: air::Expression::FieldRef("foo.a.b.c".to_string().into()),
+                },],
+                aggregations: vec![]
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {
+                "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
+                    "a.b.c".to_string() => air::Expression::FieldRef("_id.__unaliasedKey1".to_string().into()),
+                })),
+            }
+        })),
+        input = mir::Stage::Group(mir::Group {
+            source: util::mir_project_collection(None, "foo", None, None),
+            keys: vec![mir::OptionallyAliasedExpr::Unaliased(
+                *util::mir_field_access_multi_part("foo", vec!["a", "b", "c"], true)
+            ),],
+            aggregations: vec![],
+            cache: mir::schema::SchemaCache::new(),
+            scope: 0,
+        })
+    );
 }
 
 mod limit {
