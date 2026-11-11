@@ -220,17 +220,17 @@ pub(crate) struct CollectionSizes {
     pub count: Option<i64>,
 }
 
-/// Reads a collection's size and document count from `$collStats`.
+/// Reads a collection's size and document count with `$collStats`.
 ///
 /// Sharded collections return one
 /// [`$collStats`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/collStats/)
-/// document per shard, so sizes and counts are summed across every document. A shard that does
-/// not report `count` (e.g. timeseries) is skipped rather than discarding the counts reported by
-/// other shards; the count is `None` when no shard reports one.
+/// document per shard, so the server sums them with `$group` and returns a single document. A
+/// shard that does not report `count` (e.g. timeseries) contributes nothing to the sum and is
+/// counted in `shardsWithCount` instead, so the count is `None` when no shard reports one.
 ///
 /// # Errors
 ///
-/// Returns an error if the query fails, if a stats document is malformed, if no stats are
+/// Returns an error if the query fails, if the returned document is malformed, if no document is
 /// returned, or if the collection is empty.
 #[instrument(level = "trace", skip(service))]
 pub(crate) async fn get_size_counts<S: LocalDataService>(
@@ -238,70 +238,69 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
     db: &str,
     collection: &str,
 ) -> Result<CollectionSizes, Error<S::Error>> {
+
+    let pipeline = vec![
+        // Run $collStats to get storage stats.
+        // On sharded collections, returns document per shard.
+        doc! {"$collStats": {"storageStats": {}}},
+        // Group the totalSize, totalDocuments, and # of shards
+        doc! {"$group": {
+            "_id": null,
+            "totalSizeBytes": {"$sum": "$storageStats.size"},
+            "totalDocumentCount": {"$sum": "$storageStats.count"},
+            "shardsWithCount": {"$sum": {
+                "$cond": [{"$eq": [{"$type": "$storageStats.count"}, "missing"]}, 0, 1]
+            }},
+        }},
+        // Convert size and doc counts to long, so we can translate to i64
+        doc! {"$project": {
+            "_id": 0,
+            "totalSizeBytes": {"$toLong": "$totalSizeBytes"},
+            "totalDocumentCount": {"$toLong": "$totalDocumentCount"},
+            "shardsWithCount": {"$toLong": "$shardsWithCount"},
+        }},
+    ];
+
     let cursor = service
-        .aggregate(
-            db,
-            collection,
-            vec![doc! {"$collStats": {"storageStats": {}}}],
-            AggregateOptions::default(),
-        )
+        .aggregate(db, collection, pipeline, AggregateOptions::default())
         .await
         .map_err(Error::DataServiceError)?;
     let mut cursor = Box::pin(cursor);
 
-    let mut size_sum: i64 = 0;
-    let mut count_sum: Option<i64> = None;
-    let mut has_coll_stats = false;
+    // `$group` yields no document at all when its input is empty, so a missing document means
+    // there were no stats to report.
+    let totals = cursor
+        .try_next()
+        .await
+        .map_err(Error::DataServiceError)?
+        .ok_or_else(|| Error::NoCollectionStats(collection.to_string()))?;
 
-    while let Some(document) = cursor.try_next().await.map_err(Error::DataServiceError)? {
-        has_coll_stats = true;
+    let size = totals
+        .get_i64("totalSizeBytes")
+        .map_err(|_| Error::BsonFailure)?;
+    let count = totals
+        .get_i64("totalDocumentCount")
+        .map_err(|_| Error::BsonFailure)?;
+    let shards_with_count = totals
+        .get_i64("shardsWithCount")
+        .map_err(|_| Error::BsonFailure)?;
+    let count = (shards_with_count > 0).then_some(count);
 
-        let storage_stats = document
-            .get_document("storageStats")
-            .map_err(|_| Error::BsonFailure)?;
-
-        let shard_size = match storage_stats.get("size") {
-            Some(Bson::Int32(size)) => i64::from(*size),
-            Some(Bson::Int64(size)) => *size,
-            _ => return Err(Error::BsonFailure),
-        };
-
-        let shard_count = match storage_stats.get("count") {
-            Some(Bson::Int32(count)) => Some(i64::from(*count)),
-            Some(Bson::Int64(count)) => Some(*count),
-            None => None,
-            _ => return Err(Error::BsonFailure),
-        };
-
-        size_sum += shard_size;
-        // Keep every count we do find; a shard without a count is skipped.
-        if let Some(count) = shard_count {
-            count_sum = Some(count_sum.unwrap_or(0) + count);
-        }
+    if size == 0 || count.is_some_and(|c| c == 0) {
+        return Err(Error::EmptyCollection(collection.to_string()));
     }
 
-    if !has_coll_stats {
-        return Err(Error::NoCollectionStats(collection.to_string()));
-    }
-
-    if size_sum == 0 || count_sum.is_some_and(|c| c == 0) {
-        Err(Error::EmptyCollection(collection.to_string()))
-    } else {
-        let sizes = CollectionSizes {
-            size: size_sum,
-            count: count_sum,
-        };
-        debug!(
-            name: "schema.collection.stats",
-            db,
-            collection,
-            size_in_bytes = sizes.size,
-            size_readable = %format_size(sizes.size),
-            count = ?sizes.count,
-            "collection size and count"
-        );
-        Ok(sizes)
-    }
+    let sizes = CollectionSizes { size, count };
+    debug!(
+        name: "schema.collection.stats",
+        db,
+        collection,
+        size_in_bytes = sizes.size,
+        size_readable = %format_size(sizes.size),
+        count = ?sizes.count,
+        "collection size and count"
+    );
+    Ok(sizes)
 }
 
 /// Formats a byte count into a human-readable string, e.g. `1.3 GiB`.
