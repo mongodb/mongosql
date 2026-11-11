@@ -4,7 +4,7 @@ mod test {
     use bson::{Bson, Document, doc, oid::ObjectId};
     use mongosql::json_schema;
 
-    use crate::partitioning::{Partition, format_size, get_num_partitions};
+    use crate::partitioning::{Partition, ScanStrategy, format_size, get_num_partitions};
     use schema_derivation::schema_for_document;
     use std::sync::LazyLock;
 
@@ -17,6 +17,7 @@ mod test {
             min: Bson::String("my_user_id".to_string()),
             max: Bson::Int64(5000),
             is_max_bound_inclusive: true,
+            strategy: ScanStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::Int64(100), Bson::Int64(200)];
@@ -43,6 +44,7 @@ mod test {
             min: Bson::Int64(0),
             max: Bson::String("my_user_id".to_string()),
             is_max_bound_inclusive: true,
+            strategy: ScanStrategy::Range,
         };
 
         let schema = schema_for_document(&doc! {
@@ -87,6 +89,7 @@ mod test {
             min: Bson::Int64(1),
             max: Bson::Double(5000.0),
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::Int64(100)];
@@ -111,6 +114,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::String("my_user_id".to_string()),
             is_max_bound_inclusive: true,
+            strategy: ScanStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
@@ -137,6 +141,7 @@ mod test {
             min: Bson::String("my_user_id".to_string()),
             max: Bson::MaxKey,
             is_max_bound_inclusive: true,
+            strategy: ScanStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
@@ -163,6 +168,7 @@ mod test {
             min: Bson::String("my_user_id".to_string()),
             max: Bson::Int64(5000),
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::Int64(100)];
@@ -189,6 +195,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::MaxKey,
             is_max_bound_inclusive: true,
+            strategy: ScanStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
@@ -213,6 +220,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::MaxKey,
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
@@ -238,6 +246,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::MaxKey,
             is_max_bound_inclusive: true,
+            strategy: ScanStrategy::Range,
         };
 
         let schema = schema_for_document(&doc! {
@@ -279,6 +288,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::MaxKey,
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         };
 
         let schema = schema_for_document(&doc! {
@@ -320,6 +330,7 @@ mod test {
             min: Bson::Int64(0),
             max: Bson::String("my_user_id".to_string()),
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         };
 
         let schema = schema_for_document(&doc! {

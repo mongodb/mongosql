@@ -3,7 +3,7 @@ use futures::{Stream, TryStreamExt};
 use mongodb::{
     Client, bson::Document, options::Hint, results::CollectionType as DriverCollectionType,
 };
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::{client_util::DatabaseExt as _, data_service::AggregateOptions};
 
@@ -82,6 +82,15 @@ impl DataService for MongoDbDataService {
             .client
             .database(db_name)
             .collection::<Document>(coll_name);
+
+        debug!(
+            name: "data_service.aggregate.start",
+            db = db_name,
+            collection = coll_name,
+            pipeline = %bson::Bson::from(pipeline.clone()).into_relaxed_extjson(),
+            hint = ?options.key_hint,
+            "running aggregation"
+        );
 
         // Create a native cursor over the specified aggregate, adding a key hint
         // if supplied.

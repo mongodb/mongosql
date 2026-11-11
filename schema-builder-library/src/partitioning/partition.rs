@@ -12,7 +12,7 @@ pub const SAMPLE_FALLBACK_THRESHOLD_IN_BYTES: i64 = 1024 * 1024 * 1024; // 1 GiB
 pub const SAMPLE_FALLBACK_SIZE: i64 = 1000;
 
 /// Returns true when `min` and `max` can be compared using match-language range operators.
-/// They can be compared if they are both numeric types, if they are the same type, or if one is MinKey and the other is MaxKey
+/// They can be compared if they are both numeric types, if they are the same type, or if one is `MinKey` and the other is `MaxKey`
 fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
     fn is_numeric(bound: &Bson) -> bool {
         matches!(
@@ -26,11 +26,27 @@ fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
         || matches!((min, max), (Bson::MinKey, Bson::MaxKey))
 }
 
+/// How [`crate::derive_schema_for_partition`] reads the documents of a [`Partition`].
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+pub(crate) enum ScanStrategy {
+    /// Walk every document between `min` and `max`, skipping the documents that already match
+    /// the schema built so far.
+    #[default]
+    Range,
+    /// Derive the schema from a `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents. If sampling
+    /// fails, fall back to [`ScanStrategy::Range`] over the same bounds.
+    Sample,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Partition {
     pub min: Bson,
     pub max: Bson,
     pub is_max_bound_inclusive: bool,
+    /// Crate-private so that callers outside the crate treat the strategy as an internal detail.
+    /// They only pass a `Partition` from [`crate::get_partitions`] to
+    /// [`crate::derive_schema_for_partition`].
+    pub(crate) strategy: ScanStrategy,
 }
 
 impl Partition {

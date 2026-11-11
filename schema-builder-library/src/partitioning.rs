@@ -1,3 +1,4 @@
+pub(crate) use crate::partitioning::partition::ScanStrategy;
 pub use crate::partitioning::partition::{
     PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
 };
@@ -7,8 +8,7 @@ use crate::{
 };
 use bson::{Bson, Document, doc};
 use futures::{StreamExt as _, TryStreamExt as _};
-use tokio::count;
-use tracing::{info, instrument, trace};
+use tracing::{info, instrument, trace, warn};
 
 mod partition;
 mod test;
@@ -20,48 +20,6 @@ pub struct PartitionedCollection {
     pub hint: Option<Document>,
 }
 
-/// A utility function for getting a single partition for a collection
-/// This is used as a fallback if we are unable to derive a schema from an entire colleciton
-/// A single partition gives us some coverage.
-#[instrument(level = "trace", skip(service))]
-pub async fn get_single_partition<S: LocalDataService>(
-    service: &S,
-    db: &str,
-    collection_info: CollectionInfo,
-) -> Result<PartitionedCollection, Error<S::Error>> {
-    let (partition_key, hint) = match collection_info.collection_type {
-        CollectionType::Timeseries => {
-            let timeseries_options = collection_info
-                .options
-                .timeseries
-                .ok_or_else(|| Error::NoTimeFieldSpecified(collection_info.name.clone()))?;
-
-            let partition_key = timeseries_options.time_field;
-            let hint = timeseries_options.meta_field.map(|meta_field| {
-                doc! { meta_field: 1, partition_key.as_str(): 1 }
-            });
-            (partition_key, hint)
-        }
-        CollectionType::Collection | CollectionType::View => {
-            ("_id".to_string(), Some(doc! {"_id": 1}))
-        }
-    };
-
-    let (mut min_bound, max_bound) =
-        get_bounds(service, db, &collection_info.name, partition_key.as_str()).await?;
-    let partitions = vec![Partition {
-        min: min_bound,
-        max: max_bound,
-        is_max_bound_inclusive: true,
-    }];
-
-    Ok(PartitionedCollection {
-        partitions,
-        partition_key,
-        hint,
-    })
-}
-
 /// A utility function for determining the partitions of a collection.
 ///
 /// If a collection is greater than 100MB and has 101 or more documents, it is partitioned into 100MB chunks.
@@ -70,8 +28,22 @@ pub async fn get_single_partition<S: LocalDataService>(
 /// The minimum bound within each chunk is found
 /// by using a $bucketAuto stage that groups on the _id field.
 ///
+/// Collections at or above [`SAMPLE_FALLBACK_THRESHOLD_IN_BYTES`] skip partitioning entirely and
+/// return a single partition marked for sampling: [`crate::derive_schema_for_partition`] derives
+/// its schema from a `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents, and only scans the full
+/// bounds if that sample fails. The partitioning pipeline sorts the whole collection, which on
+/// large sharded clusters can run for hours before the cursor is killed.
+///
+/// If the partitioning query fails, either when it is opened or mid-stream, the collection is
+/// returned as a single partition covering its full bounds.
+///
 /// Note that the 100MB limit comes from the server, as noted in
 /// [$bucketAuto docs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions).
+///
+/// # Errors
+///
+/// Returns an error if the collection's size or bounds cannot be read, if a timeseries collection
+/// has no `timeField`, or if a collection below the sampling threshold reports no `count`.
 #[instrument(level = "trace", skip(service))]
 pub async fn get_partitions<S: LocalDataService>(
     service: &S,
@@ -81,56 +53,45 @@ pub async fn get_partitions<S: LocalDataService>(
     let size_info = get_size_counts(service, db, &collection_info.name).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
 
-    // For timeseries collections, there is no `count` field reported, so we sample at a rate of
-    // 1 per # of partitions. This is likely a much higher sample rate than for non-timeseries
-    // collections, but it is our best effort for now to avoid running a full collection count.
-    let (sample_rate, partition_key, hint) = match collection_info.collection_type {
-        CollectionType::Timeseries => {
-            let sample_rate = 1f64 / num_partitions as f64;
-
-            let timeseries_options = collection_info
-                .options
-                .timeseries
-                .ok_or_else(|| Error::NoTimeFieldSpecified(collection_info.name.clone()))?;
-
-            let partition_key = timeseries_options.time_field;
-
-            let hint = timeseries_options.meta_field.map(|meta_field| {
-                doc! { meta_field: 1, partition_key.as_str(): 1 }
-            });
-
-            (sample_rate, partition_key, hint)
-        }
-        CollectionType::Collection | CollectionType::View => {
-            let count = size_info.count.ok_or_else(|| {
-                Error::MissingCountFieldForCollection(collection_info.name.clone())
-            })?;
-            (
-                num_partitions as f64 / count as f64 * 2.0,
-                "_id".to_string(),
-                Some(doc! {"_id": 1}),
-            )
-        }
-    };
+    let (partition_key, hint) = partition_key_and_hint(&collection_info)?;
 
     let (mut min_bound, max_bound) =
         get_bounds(service, db, &collection_info.name, partition_key.as_str()).await?;
 
+    let single_partition = |min: Bson, max: Bson, strategy: ScanStrategy| PartitionedCollection {
+        partitions: vec![Partition {
+            min,
+            max,
+            is_max_bound_inclusive: true,
+            strategy,
+        }],
+        partition_key: partition_key.clone(),
+        hint: hint.clone(),
+    };
+
+    if size_info.size >= SAMPLE_FALLBACK_THRESHOLD_IN_BYTES {
+        warn_sampling_selected(db, &collection_info.name, size_info.size);
+        return Ok(single_partition(min_bound, max_bound, ScanStrategy::Sample));
+    }
+
     // If the number of partitions is 1, no need to sample to determine partition boundaries. This
     // usually happens for very small collections.
     if num_partitions == 1 {
-        return Ok(PartitionedCollection {
-            partitions: vec![Partition {
-                min: min_bound,
-                max: max_bound,
-                is_max_bound_inclusive: true,
-            }],
-            partition_key,
-            hint,
-        });
+        return Ok(single_partition(min_bound, max_bound, ScanStrategy::Range));
     }
 
-    let mut partitions = Vec::with_capacity(num_partitions);
+    // For timeseries collections, there is no `count` field reported, so we sample at a rate of
+    // 1 per # of partitions. This is likely a much higher sample rate than for non-timeseries
+    // collections, but it is our best effort for now to avoid running a full collection count.
+    let sample_rate = match collection_info.collection_type {
+        CollectionType::Timeseries => 1f64 / num_partitions as f64,
+        CollectionType::Collection | CollectionType::View => {
+            let count = size_info.count.ok_or_else(|| {
+                Error::MissingCountFieldForCollection(collection_info.name.clone())
+            })?;
+            num_partitions as f64 / count as f64 * 2.0
+        }
+    };
 
     let sample_pipeline = vec![
         doc! { "$sort": {partition_key.as_str(): 1} },
@@ -138,39 +99,41 @@ pub async fn get_partitions<S: LocalDataService>(
         doc! { "$match": { "$sampleRate": sample_rate } },
     ];
 
+    // The boundary documents are only ~2 per partition, so collect them before building
+    // partitions. A cursor can also be killed after it opens (e.g. CursorKilled or EOF on a long
+    // getMore), so a failure at either point falls back the same way.
+    let boundaries = async {
+        service
+            .aggregate(
+                db,
+                &collection_info.name,
+                sample_pipeline,
+                AggregateOptions {
+                    key_hint: hint.clone(),
+                },
+            )
+            .await?
+            .try_collect::<Vec<Document>>()
+            .await
+    }
+    .await;
+
     // If the partitioning query fails, check the entire collection. This is safer than missing a
     // namespace.
-    let Ok(cursor) = service
-        .aggregate(
-            db,
-            &collection_info.name,
-            sample_pipeline,
-            AggregateOptions {
-                key_hint: hint.clone(),
-            },
-        )
-        .await
-        .inspect_err(|e| {
-            tracing::warn!(
+    let boundaries = match boundaries {
+        Ok(boundaries) => boundaries,
+        Err(e) => {
+            warn!(
                 db,
                 collection = %collection_info.name,
                 "partition sampling failed; falling back to a single partition: {e}"
-            )
-        })
-    else {
-        return Ok(PartitionedCollection {
-            partitions: vec![Partition {
-                min: min_bound,
-                max: max_bound,
-                is_max_bound_inclusive: true,
-            }],
-            partition_key,
-            hint,
-        });
+            );
+            return Ok(single_partition(min_bound, max_bound, ScanStrategy::Range));
+        }
     };
 
-    let mut cursor = Box::pin(cursor);
-    while let Some(doc) = cursor.try_next().await.map_err(Error::DataServiceError)? {
+    let mut partitions = Vec::with_capacity(num_partitions);
+    for doc in boundaries {
         let local_max = doc
             .get(partition_key.as_str())
             .unwrap_or(&Bson::MaxKey)
@@ -179,6 +142,7 @@ pub async fn get_partitions<S: LocalDataService>(
             min: min_bound.clone(),
             max: local_max.clone(),
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         });
         min_bound = local_max;
     }
@@ -187,6 +151,7 @@ pub async fn get_partitions<S: LocalDataService>(
         min: min_bound,
         max: max_bound,
         is_max_bound_inclusive: true,
+        strategy: ScanStrategy::Range,
     });
 
     trace!("partitions: {:?}", partitions);
@@ -196,6 +161,54 @@ pub async fn get_partitions<S: LocalDataService>(
         partition_key,
         hint,
     })
+}
+
+/// Returns the field a collection is partitioned on, and the index hint for range queries on it.
+///
+/// Timeseries collections partition on their `timeField`; everything else uses `_id`.
+fn partition_key_and_hint<E: core::error::Error>(
+    collection_info: &CollectionInfo,
+) -> Result<(String, Option<Document>), Error<E>> {
+    match collection_info.collection_type {
+        CollectionType::Timeseries => {
+            let timeseries_options = collection_info
+                .options
+                .timeseries
+                .as_ref()
+                .ok_or_else(|| Error::NoTimeFieldSpecified(collection_info.name.clone()))?;
+
+            let partition_key = timeseries_options.time_field.clone();
+            let hint = timeseries_options.meta_field.as_ref().map(|meta_field| {
+                doc! { meta_field: 1, partition_key.as_str(): 1 }
+            });
+
+            Ok((partition_key, hint))
+        }
+        CollectionType::Collection | CollectionType::View => {
+            Ok(("_id".to_string(), Some(doc! {"_id": 1})))
+        }
+    }
+}
+
+/// Warns that a collection is too large to partition and its schema will come from a sample.
+///
+/// Logged at `warn` so it shows up at the schema manager's default log verbosity: a sampled
+/// schema may be missing fields that only appear in documents outside the sample.
+fn warn_sampling_selected(db: &str, collection: &str, size_in_bytes: i64) {
+    warn!(
+        name: "schema.sampling.selected",
+        db,
+        collection,
+        size_in_bytes,
+        threshold_in_bytes = SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
+        sample_size = SAMPLE_FALLBACK_SIZE,
+        "collection size {} exceeds the {} sampling threshold; skipping partitioning and \
+         deriving the schema from a $sample of {} documents. The schema may not reflect every \
+         document in the collection.",
+        format_size(size_in_bytes),
+        format_size(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES),
+        SAMPLE_FALLBACK_SIZE,
+    );
 }
 
 /// Utility struct for collection size and count information.

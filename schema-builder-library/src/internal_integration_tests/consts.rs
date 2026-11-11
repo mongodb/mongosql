@@ -1,4 +1,4 @@
-use crate::partitioning::Partition;
+use crate::partitioning::{Partition, ScanStrategy};
 use crate::{CollectionInfo, data_service::CollectionType};
 use std::sync::Arc;
 
@@ -86,21 +86,25 @@ lazy_static! {
             min: Bson::Int64(LARGE_ID_MIN),
             max: Bson::Int64(LARGE_ID_MIN + *NUM_DOCS_PER_LARGE_PARTITION),
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         },
         Partition {
             min: Bson::Int64(LARGE_ID_MIN + *NUM_DOCS_PER_LARGE_PARTITION),
             max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 2)),
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         },
         Partition {
             min: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 2)),
             max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 3)),
             is_max_bound_inclusive: false,
+            strategy: ScanStrategy::Range,
         },
         Partition {
             min: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 3)),
             max: Bson::Int64(LARGE_ID_MIN + (*NUM_DOCS_PER_LARGE_PARTITION * 4) - 1),
             is_max_bound_inclusive: true,
+            strategy: ScanStrategy::Range,
         },
     ];
 
@@ -108,12 +112,14 @@ lazy_static! {
         min: Bson::Int64(SMALL_ID_MIN),
         max: Bson::Int64(SMALL_ID_MIN + *NUM_DOCS_IN_SMALL_COLLECTION - 1),
         is_max_bound_inclusive: true,
+        strategy: ScanStrategy::Range,
     },];
 
     pub static ref MISMATCHED_ID_TYPES_PARTITIONS: Vec<Partition> = vec![Partition {
         min: Bson::Int64(1),
         max: Bson::String("Z".to_string()),
         is_max_bound_inclusive: true,
+        strategy: ScanStrategy::Range,
     },];
 
 
