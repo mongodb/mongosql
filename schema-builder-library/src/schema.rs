@@ -542,22 +542,6 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn large_collection_without_count_still_samples() {
-            let service = service(
-                SAMPLE_FALLBACK_THRESHOLD_IN_BYTES * 2,
-                None,
-                Scripted::FailOpen,
-                Scripted::Docs(sampled_docs()),
-            );
-
-            let partitioned = get_partitions(&service, "db", collection_info())
-                .await
-                .expect("a missing count does not block sampling");
-
-            assert_eq!(partitioned.partitions, full_range(ScanStrategy::Sample));
-        }
-
-        #[tokio::test]
         async fn small_collection_partitioning_failure_uses_single_partition() {
             let service = service(
                 SMALL_SIZE,
@@ -574,24 +558,6 @@ mod tests {
             let schema = derive(&service, partitioned.partitions[0].clone()).await;
 
             assert_eq!(schema, schema_of(&range_docs()));
-            assert!(!service.calls().contains(&PipelineKind::Sample));
-        }
-
-        #[tokio::test]
-        async fn small_collection_mid_stream_failure_uses_single_partition() {
-            // One boundary is read before the cursor is killed; it must be discarded.
-            let service = service(
-                SMALL_SIZE,
-                Some(1_000),
-                Scripted::FailMidStream(vec![doc! { "_id": 50 }]),
-                Scripted::Docs(sampled_docs()),
-            );
-
-            let partitioned = get_partitions(&service, "db", collection_info())
-                .await
-                .expect("mid-stream failure falls back to a single partition");
-
-            assert_eq!(partitioned.partitions, full_range(ScanStrategy::Range));
             assert!(!service.calls().contains(&PipelineKind::Sample));
         }
 

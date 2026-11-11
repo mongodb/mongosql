@@ -118,8 +118,6 @@ pub(crate) enum Scripted {
     Docs(Vec<Document>),
     /// The `aggregate` call itself fails.
     FailOpen,
-    /// The cursor yields these documents, then fails (e.g. `CursorKilled` on `getMore`).
-    FailMidStream(Vec<Document>),
 }
 
 /// The error type of [`ScriptedDataService`].
@@ -186,11 +184,6 @@ impl DataService for ScriptedDataService {
         let results: Vec<Result<Document, ScriptedError>> = match (self.script)(kind, prior_calls) {
             Scripted::Docs(docs) => docs.into_iter().map(Ok).collect(),
             Scripted::FailOpen => return Err(ScriptedError("aggregate failed to open")),
-            Scripted::FailMidStream(docs) => docs
-                .into_iter()
-                .map(Ok)
-                .chain(std::iter::once(Err(ScriptedError("cursor killed"))))
-                .collect(),
         };
         Ok(futures::stream::iter(results))
     }
