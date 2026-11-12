@@ -84,14 +84,7 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
 
 /// Derives the schema for a single partition of a collection.
 ///
-/// A partition is normally scanned in batches between its bounds, skipping documents that
-/// already match the schema built so far. When `initial_schema_doc` is supplied, its simplified
-/// schema seeds the result.
-///
-/// Partitions that [`get_partitions`] marks for sampling (collections of 1 GiB or more) instead
-/// derive their schema from a single `$sample` of 1000 documents, unioned with
-/// `initial_schema_doc`. If that sample fails to open or returns no documents, the partition is
-/// scanned over its full bounds instead.
+/// If the partition has ScanStrategy::Sample, the schema is generated via sampling.
 ///
 /// # Errors
 ///
@@ -131,8 +124,8 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             name: "schema.sampling.failed",
             db,
             collection,
-            "sampling returned no schema; falling back to scanning the entire collection as a \
-             single partition, which may take a long time for large collections"
+            "Sampling returned no schema; falling back to scanning the entire collection as a \
+             single partition."
         );
         partition.strategy = ScanStrategy::Range;
     }

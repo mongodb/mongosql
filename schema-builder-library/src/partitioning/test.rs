@@ -435,21 +435,13 @@ mod test {
         }
 
         /// Three shards whose sizes sum to `total_size`, each reporting `count_per_shard`.
-        fn three_shards(total_size: i64, count_per_shard: i64) -> Vec<Document> {
+        fn coll_stats_documents(total_size: i64, count_per_shard: i64) -> Vec<Document> {
             let quarter = total_size / 4;
             vec![
                 coll_stats(1, total_size - 2 * quarter, count_per_shard),
                 coll_stats(2, quarter, count_per_shard),
                 coll_stats(3, quarter, count_per_shard),
             ]
-        }
-
-        fn mock(documents: Vec<Document>) -> MockDataService {
-            MockDataService {
-                databases: Vec::new(),
-                collections: HashMap::new(),
-                documents: HashMap::from([("db.coll".to_string(), documents)]),
-            }
         }
 
         fn collection_info() -> CollectionInfo {
@@ -462,7 +454,14 @@ mod test {
         #[tokio::test]
         async fn large_collection_returns_single_sample_partition() {
             // No shard reaches the threshold on its own; only their sum does.
-            let service = mock(three_shards(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, 1_000_000));
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([(
+                    "db.coll".to_string(),
+                    coll_stats_documents(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, 1_000_000),
+                )]),
+            };
 
             let partitioned = get_partitions(&service, "db", collection_info())
                 .await
@@ -483,10 +482,14 @@ mod test {
 
         #[tokio::test]
         async fn collection_below_threshold_is_not_sampled() {
-            let service = mock(three_shards(
-                SAMPLE_FALLBACK_THRESHOLD_IN_BYTES - 1,
-                1_000_000,
-            ));
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([(
+                    "db.coll".to_string(),
+                    coll_stats_documents(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES - 1, 1_000_000),
+                )]),
+            };
 
             let partitioned = get_partitions(&service, "db", collection_info())
                 .await
@@ -502,7 +505,11 @@ mod test {
 
         #[tokio::test]
         async fn missing_coll_stats_is_an_error() {
-            let service = mock(Vec::new());
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([("db.coll".to_string(), Vec::new())]),
+            };
 
             let result = get_partitions(&service, "db", collection_info()).await;
 
@@ -511,7 +518,14 @@ mod test {
 
         #[tokio::test]
         async fn empty_collection_is_an_error() {
-            let service = mock(three_shards(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, 0));
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([(
+                    "db.coll".to_string(),
+                    coll_stats_documents(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES, 0),
+                )]),
+            };
 
             let result = get_partitions(&service, "db", collection_info()).await;
 

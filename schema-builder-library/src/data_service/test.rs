@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::Infallible};
 
-use bson::{Bson, Document, doc};
+use bson::{Document, doc};
 use futures::Stream;
 
 use crate::data_service::{
@@ -78,29 +78,21 @@ impl DataService for MockDataService {
 }
 
 /// Folds `$collStats`-shaped documents into the single document `get_size_counts` reads.
-///
-/// Mirrors the `$group` and `$toLong` stages of the `get_size_counts` pipeline, which the mock
-/// cannot run: sums `storageStats.size` and `storageStats.count` across the per-shard documents
-/// and counts the shards that report a `count`. Returns `None` for no documents, matching
-/// `$group`, which emits nothing for empty input.
 fn coll_stats_totals(shards: &[Document]) -> Option<Document> {
-    fn read_i64(stats: Option<&Document>, key: &str) -> Option<i64> {
-        match stats?.get(key)? {
-            Bson::Int32(n) => Some(i64::from(*n)),
-            Bson::Int64(n) => Some(*n),
-            _ => None,
-        }
-    }
-
     if shards.is_empty() {
         return None;
     }
 
-    let (mut size, mut count, mut shards_with_count) = (0i64, 0i64, 0i64);
+    let mut size = 0;
+    let mut count = 0;
+    let mut shards_with_count = 0i64;
+
     for shard in shards {
-        let stats = shard.get_document("storageStats").ok();
-        size += read_i64(stats, "size").unwrap_or(0);
-        if let Some(shard_count) = read_i64(stats, "count") {
+        let Ok(stats) = shard.get_document("storageStats") else {
+            continue;
+        };
+        size += stats.get_i64("size").unwrap_or(0);
+        if let Ok(shard_count) = stats.get_i64("count") {
             count += shard_count;
             shards_with_count += 1;
         }
