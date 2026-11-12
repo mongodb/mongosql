@@ -421,10 +421,6 @@ mod test {
         };
 
         /// One shard's `$collStats` document, as the server returns it for a sharded collection.
-        ///
-        /// The mock answers every query on the collection with the same documents, so the bound
-        /// queries read their `_id` from the first of these too; real `$collStats` output has no
-        /// `_id`.
         fn coll_stats(id: i32, size: i64, count: i64) -> Document {
             doc! {
                 "_id": id,

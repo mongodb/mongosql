@@ -15,9 +15,6 @@ use crate::{PartitionedCollection, get_partitions};
 const VIEW_SAMPLE_SIZE: i64 = 1000;
 
 /// How many sampled documents to process between progress log lines.
-///
-/// Frequent enough to show progress through a sample, sparse enough that a
-/// full sample only emits a handful of `info!` events.
 const SAMPLE_PROGRESS_LOG_INTERVAL: u64 = 100;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -224,13 +221,8 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
 
 /// Derive a schema for a collection by sampling a bounded number of documents.
 ///
-/// Issues a single `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents and unions the inferred
-/// schemas, mirroring [`derive_schema_for_view`]. This is used for collections too large to
-/// partition cheaply.
-///
 /// Returns `None` if the query fails to open or returns no documents, so the caller can choose a
-/// fallback. If the cursor errors mid-stream, the error is logged and the schema built from the
-/// documents read so far is returned, which may be incomplete.
+/// fallback.
 #[instrument(level = "trace", skip_all)]
 pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
     service: &S,

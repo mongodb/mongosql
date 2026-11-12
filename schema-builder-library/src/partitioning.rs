@@ -25,22 +25,13 @@ pub struct PartitionedCollection {
 /// If a collection is greater than 100MB and has 101 or more documents, it is partitioned into 100MB chunks.
 /// Collections that do not meet this criteria are treated as a single partition.
 ///
-/// The partition boundaries are found by sorting on the partition key and keeping a random
-/// `$sampleRate` subset of the keys. Each kept key becomes the exclusive upper bound of one
-/// partition and the inclusive lower bound of the next.
-///
 /// Collections of 1 GiB or more skip partitioning entirely and return a single partition marked
 /// for sampling: [`crate::derive_schema_for_partition`] derives its schema from a `$sample` of
 /// 1000 documents, and only scans the full
-/// bounds if that sample fails. The partitioning pipeline sorts the whole collection, which on
-/// large sharded clusters can run for hours before the cursor is killed.
+/// bounds if that sample fails.
 ///
 /// If the partitioning query fails to open, the collection is returned as a single partition
 /// covering its full bounds.
-///
-/// Note that the 100MB partition size matches the server's memory limit for blocking aggregation
-/// stages, as noted in the
-/// [aggregation pipeline limits](https://www.mongodb.com/docs/manual/core/aggregation-pipeline-limits/#memory-restrictions).
 ///
 /// # Errors
 ///
@@ -49,7 +40,7 @@ pub struct PartitionedCollection {
 #[instrument(level = "trace", skip(service))]
 #[expect(
     clippy::too_many_lines,
-    reason = "kept as one linear function; each early return spells out its result explicitly"
+    reason = "Keeping all the cases explicit rather than extracting to helper functions."
 )]
 pub async fn get_partitions<S: LocalDataService>(
     service: &S,
@@ -194,10 +185,6 @@ pub async fn get_partitions<S: LocalDataService>(
     })
 }
 
-/// Warns that a collection is too large to partition and its schema will come from a sample.
-///
-/// Logged at `warn` so it shows up at the schema manager's default log verbosity: a sampled
-/// schema may be missing fields that only appear in documents outside the sample.
 fn warn_sampling_selected(db: &str, collection: &str, size_in_bytes: i64) {
     warn!(
         name: "schema.sampling.selected",
@@ -224,9 +211,7 @@ pub(crate) struct CollectionSizes {
 ///
 /// Sharded collections return one
 /// [`$collStats`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/collStats/)
-/// document per shard, so the server sums them with `$group` and returns a single document. A
-/// shard that does not report `count` (e.g. timeseries) contributes nothing to the sum and is
-/// counted in `shardsWithCount` instead, so the count is `None` when no shard reports one.
+/// document per shard, so the server sums them with `$group` and returns a single document.
 ///
 /// # Errors
 ///
