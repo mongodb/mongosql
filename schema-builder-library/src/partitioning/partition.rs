@@ -3,8 +3,11 @@ use tracing::instrument;
 
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 
+/// Number of documents sampled for collections at or above [`SAMPLE_FALLBACK_THRESHOLD_IN_BYTES`].
+pub const SAMPLE_FALLBACK_SIZE: i64 = 1000;
+
 /// Returns true when `min` and `max` can be compared using match-language range operators.
-/// They can be compared if they are both numeric types, if they are the same type, or if one is MinKey and the other is MaxKey
+/// They can be compared if they are both numeric types, if they are the same type, or if one is `MinKey` and the other is `MaxKey`
 fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
     fn is_numeric(bound: &Bson) -> bool {
         matches!(
@@ -18,11 +21,22 @@ fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
         || matches!((min, max), (Bson::MinKey, Bson::MaxKey))
 }
 
+/// How [`crate::derive_schema_for_partition`] reads the documents of a [`Partition`].
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SchemaDerivationStrategy {
+    /// Walk every document between `min` and `max`.
+    Range,
+    /// Derive the schema from a sample documents.
+    Sample,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Partition {
     pub min: Bson,
     pub max: Bson,
     pub is_max_bound_inclusive: bool,
+
+    pub strategy: SchemaDerivationStrategy,
 }
 
 impl Partition {

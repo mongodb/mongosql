@@ -4,7 +4,9 @@ mod test {
     use bson::{Bson, Document, doc, oid::ObjectId};
     use mongosql::json_schema;
 
-    use crate::partitioning::{Partition, get_num_partitions};
+    use crate::partitioning::{
+        Partition, SchemaDerivationStrategy, format_size, get_num_partitions,
+    };
     use schema_derivation::schema_for_document;
     use std::sync::LazyLock;
 
@@ -17,6 +19,7 @@ mod test {
             min: Bson::String("my_user_id".to_string()),
             max: Bson::Int64(5000),
             is_max_bound_inclusive: true,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::Int64(100), Bson::Int64(200)];
@@ -43,6 +46,7 @@ mod test {
             min: Bson::Int64(0),
             max: Bson::String("my_user_id".to_string()),
             is_max_bound_inclusive: true,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let schema = schema_for_document(&doc! {
@@ -87,6 +91,7 @@ mod test {
             min: Bson::Int64(1),
             max: Bson::Double(5000.0),
             is_max_bound_inclusive: false,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::Int64(100)];
@@ -111,6 +116,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::String("my_user_id".to_string()),
             is_max_bound_inclusive: true,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
@@ -137,6 +143,7 @@ mod test {
             min: Bson::String("my_user_id".to_string()),
             max: Bson::MaxKey,
             is_max_bound_inclusive: true,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
@@ -163,6 +170,7 @@ mod test {
             min: Bson::String("my_user_id".to_string()),
             max: Bson::Int64(5000),
             is_max_bound_inclusive: false,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::Int64(100)];
@@ -189,6 +197,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::MaxKey,
             is_max_bound_inclusive: true,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
@@ -213,6 +222,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::MaxKey,
             is_max_bound_inclusive: false,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let ignored_ids = vec![Bson::ObjectId(ObjectId::new())];
@@ -238,6 +248,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::MaxKey,
             is_max_bound_inclusive: true,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let schema = schema_for_document(&doc! {
@@ -279,6 +290,7 @@ mod test {
             min: Bson::MinKey,
             max: Bson::MaxKey,
             is_max_bound_inclusive: false,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let schema = schema_for_document(&doc! {
@@ -320,6 +332,7 @@ mod test {
             min: Bson::Int64(0),
             max: Bson::String("my_user_id".to_string()),
             is_max_bound_inclusive: false,
+            strategy: SchemaDerivationStrategy::Range,
         };
 
         let schema = schema_for_document(&doc! {
@@ -383,5 +396,166 @@ mod test {
             get_num_partitions(collection_size_one_gb, PARTITION_SIZE_IN_BYTES),
             11
         );
+    }
+
+    #[test]
+    fn format_size_renders_each_unit() {
+        assert_eq!(format_size(0), "0 B");
+        assert_eq!(format_size(500), "500 B");
+        assert_eq!(format_size(1024), "1.0 KiB");
+        assert_eq!(format_size(1536), "1.5 KiB");
+        assert_eq!(format_size(1024 * 1024), "1.0 MiB");
+        assert_eq!(format_size(1024 * 1024 * 1024), "1.0 GiB");
+        assert_eq!(format_size(1024 * 1024 * 1024 * 3 / 2), "1.5 GiB");
+    }
+
+    mod get_partitions {
+        use std::collections::HashMap;
+
+        use bson::{Bson, Document, doc};
+
+        use crate::{
+            Error,
+            data_service::{CollectionInfo, test::MockDataService},
+            partitioning::{Partition, SchemaDerivationStrategy, get_partitions},
+        };
+
+        pub const ONE_GB_COLLECTION_SIZE: i64 = 1024 * 1024 * 1024; // 1 GiB
+        /// One shard's `$collStats` document, as the server returns it for a sharded collection.
+        fn coll_stats(id: i32, size: i64, count: i64) -> Document {
+            doc! {
+                "_id": id,
+                "ns": "db.coll",
+                "shard": format!("shard{id}"),
+                "storageStats": { "size": size, "count": count, "storageSize": size },
+            }
+        }
+
+        /// Three shards whose sizes sum to `total_size`, each reporting `count_per_shard`.
+        fn coll_stats_documents(total_size: i64, count_per_shard: i64) -> Vec<Document> {
+            let quarter = total_size / 4;
+            vec![
+                coll_stats(1, total_size - 2 * quarter, count_per_shard),
+                coll_stats(2, quarter, count_per_shard),
+                coll_stats(3, quarter, count_per_shard),
+            ]
+        }
+
+        fn collection_info() -> CollectionInfo {
+            CollectionInfo {
+                name: "coll".to_string(),
+                ..Default::default()
+            }
+        }
+
+        #[tokio::test]
+        async fn large_collection_returns_single_sample_partition() {
+            // No shard reaches the threshold on its own; only their sum does.
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([(
+                    "db.coll".to_string(),
+                    coll_stats_documents(ONE_GB_COLLECTION_SIZE, 1_000_000),
+                )]),
+            };
+
+            let partitioned = get_partitions(&service, "db", collection_info())
+                .await
+                .expect("a large collection is partitioned");
+
+            assert_eq!(
+                partitioned.partitions,
+                vec![Partition {
+                    min: Bson::Int32(1),
+                    max: Bson::Int32(1),
+                    is_max_bound_inclusive: true,
+                    strategy: SchemaDerivationStrategy::Sample,
+                }]
+            );
+            assert_eq!(partitioned.partition_key, "_id");
+            assert_eq!(partitioned.hint, Some(doc! { "_id": 1 }));
+        }
+
+        #[tokio::test]
+        async fn sharded_collection_sampled() {
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([(
+                    "db.coll".to_string(),
+                    coll_stats_documents(ONE_GB_COLLECTION_SIZE - 1, 1_000_000),
+                )]),
+            };
+
+            let partitioned = get_partitions(&service, "db", collection_info())
+                .await
+                .expect("a collection below the threshold is partitioned");
+
+            // A sharded collection should return 1 partition, indicating that we should use sampling.
+            assert_eq!(partitioned.partitions.len(), 1);
+            assert!(
+                partitioned
+                    .partitions
+                    .iter()
+                    .all(|p| p.strategy == SchemaDerivationStrategy::Sample)
+            );
+        }
+
+        #[tokio::test]
+        async fn unsharded_collection_is_not_sampled() {
+            // An unsharded collection returns a single `$collStats` document.
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([(
+                    "db.coll".to_string(),
+                    vec![coll_stats(1, 50 * 1024 * 1024, 1_000)],
+                )]),
+            };
+
+            let partitioned = get_partitions(&service, "db", collection_info())
+                .await
+                .expect("an unsharded collection is partitioned");
+
+            assert_eq!(
+                partitioned.partitions,
+                vec![Partition {
+                    min: Bson::Int32(1),
+                    max: Bson::Int32(1),
+                    is_max_bound_inclusive: true,
+                    strategy: SchemaDerivationStrategy::Range,
+                }]
+            );
+        }
+
+        #[tokio::test]
+        async fn missing_coll_stats_is_an_error() {
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([("db.coll".to_string(), Vec::new())]),
+            };
+
+            let result = get_partitions(&service, "db", collection_info()).await;
+
+            assert!(matches!(result, Err(Error::NoCollectionStats(c)) if c == "coll"));
+        }
+
+        #[tokio::test]
+        async fn empty_collection_is_an_error() {
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([(
+                    "db.coll".to_string(),
+                    coll_stats_documents(ONE_GB_COLLECTION_SIZE, 0),
+                )]),
+            };
+
+            let result = get_partitions(&service, "db", collection_info()).await;
+
+            assert!(matches!(result, Err(Error::EmptyCollection(c)) if c == "coll"));
+        }
     }
 }

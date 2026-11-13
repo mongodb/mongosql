@@ -1,6 +1,6 @@
 use std::{collections::HashMap, convert::Infallible};
 
-use bson::Document;
+use bson::{Document, doc};
 use futures::Stream;
 
 use crate::data_service::{
@@ -34,14 +34,21 @@ impl DataService for MockDataService {
         &self,
         db_name: &str,
         coll_name: &str,
-        _pipeline: Vec<Document>,
+        pipeline: Vec<Document>,
         _options: AggregateOptions,
     ) -> Result<impl Stream<Item = Result<Document, Self::Error>>, Self::Error> {
-        let results = self
+        let mut results = self
             .documents
             .get(&format!("{db_name}.{coll_name}"))
             .cloned()
             .unwrap_or_default();
+
+        let is_coll_stats = pipeline
+            .first()
+            .is_some_and(|stage| stage.contains_key("$collStats"));
+        if is_coll_stats {
+            results = coll_stats_totals(&results).into_iter().collect();
+        }
 
         // The cursor returns results, so we map the infallible documents to a
         // wrapped `Result` here.
@@ -68,6 +75,35 @@ impl DataService for MockDataService {
 
         Ok(futures::stream::iter(results))
     }
+}
+
+/// Folds `$collStats`-shaped documents into the single document `get_size_counts` reads.
+fn coll_stats_totals(shards: &[Document]) -> Option<Document> {
+    if shards.is_empty() {
+        return None;
+    }
+
+    let mut size = 0;
+    let mut count = 0;
+    let mut shards_with_count = 0i64;
+
+    for shard in shards {
+        let Ok(stats) = shard.get_document("storageStats") else {
+            continue;
+        };
+        size += stats.get_i64("size").unwrap_or(0);
+        if let Ok(shard_count) = stats.get_i64("count") {
+            count += shard_count;
+            shards_with_count += 1;
+        }
+    }
+
+    Some(doc! {
+        "totalSizeBytes": size,
+        "totalDocumentCount": count,
+        "shardsWithCount": shards_with_count,
+        "numberOfCollStatsDocuments": shards.len() as i64,
+    })
 }
 
 // CollectionType deserialization tests.

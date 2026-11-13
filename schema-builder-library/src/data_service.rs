@@ -3,7 +3,7 @@ use futures::Stream;
 use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
-mod test;
+pub(crate) mod test;
 
 #[cfg(feature = "native-client")]
 pub mod mongodb;
