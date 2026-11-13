@@ -102,6 +102,7 @@ fn coll_stats_totals(shards: &[Document]) -> Option<Document> {
         "totalSizeBytes": size,
         "totalDocumentCount": count,
         "shardsWithCount": shards_with_count,
+        "numberOfCollStatsDocuments": shards.len() as i64,
     })
 }
 

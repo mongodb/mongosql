@@ -1,6 +1,5 @@
 pub(crate) use crate::partitioning::partition::{
-    PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE, SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
-    ScanStrategy,
+    PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE, SchemaDerivationStrategy,
 };
 use crate::{
     Error, LocalDataService,
@@ -85,14 +84,14 @@ pub async fn get_partitions<S: LocalDataService>(
     let (mut min_bound, max_bound) =
         get_bounds(service, db, &collection_info.name, partition_key.as_str()).await?;
 
-    if size_info.size >= SAMPLE_FALLBACK_THRESHOLD_IN_BYTES {
-        warn_sampling_selected(db, &collection_info.name, size_info.size);
+    if size_info.is_sharded_collection {
+        warn_sampling_selected(db, &collection_info.name);
         return Ok(PartitionedCollection {
             partitions: vec![Partition {
                 min: min_bound,
                 max: max_bound,
                 is_max_bound_inclusive: true,
-                strategy: ScanStrategy::Sample,
+                strategy: SchemaDerivationStrategy::Sample,
             }],
             partition_key,
             hint,
@@ -107,7 +106,7 @@ pub async fn get_partitions<S: LocalDataService>(
                 min: min_bound,
                 max: max_bound,
                 is_max_bound_inclusive: true,
-                strategy: ScanStrategy::Range,
+                strategy: SchemaDerivationStrategy::Range,
             }],
             partition_key,
             hint,
@@ -147,7 +146,7 @@ pub async fn get_partitions<S: LocalDataService>(
                 min: min_bound,
                 max: max_bound,
                 is_max_bound_inclusive: true,
-                strategy: ScanStrategy::Range,
+                strategy: SchemaDerivationStrategy::Range,
             }],
             partition_key,
             hint,
@@ -164,7 +163,7 @@ pub async fn get_partitions<S: LocalDataService>(
             min: min_bound.clone(),
             max: local_max.clone(),
             is_max_bound_inclusive: false,
-            strategy: ScanStrategy::Range,
+            strategy: SchemaDerivationStrategy::Range,
         });
         min_bound = local_max;
     }
@@ -173,7 +172,7 @@ pub async fn get_partitions<S: LocalDataService>(
         min: min_bound,
         max: max_bound,
         is_max_bound_inclusive: true,
-        strategy: ScanStrategy::Range,
+        strategy: SchemaDerivationStrategy::Range,
     });
 
     trace!("partitions: {:?}", partitions);
@@ -185,17 +184,13 @@ pub async fn get_partitions<S: LocalDataService>(
     })
 }
 
-fn warn_sampling_selected(db: &str, collection: &str, size_in_bytes: i64) {
+fn warn_sampling_selected(db: &str, collection: &str) {
     warn!(
         name: "schema.sampling.selected",
         db,
         collection,
-        size_in_bytes,
-        size_readable = %format_size(size_in_bytes),
-        threshold_in_bytes = SAMPLE_FALLBACK_THRESHOLD_IN_BYTES,
-        threshold_readable = %format_size(SAMPLE_FALLBACK_THRESHOLD_IN_BYTES),
         sample_size = SAMPLE_FALLBACK_SIZE,
-        "collection size exceeds the sampling threshold; skipping partitioning and deriving the \
+        "Encountered a sharded collection; skipping partitioning and deriving the \
          schema from a $sample. The schema may not reflect every document in the collection."
     );
 }
@@ -205,6 +200,7 @@ fn warn_sampling_selected(db: &str, collection: &str, size_in_bytes: i64) {
 pub(crate) struct CollectionSizes {
     pub size: i64,
     pub count: Option<i64>,
+    pub is_sharded_collection: bool,
 }
 
 /// Reads a collection's size and document count with `$collStats`.
@@ -235,6 +231,7 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
             "shardsWithCount": {"$sum": {
                 "$cond": [{"$eq": [{"$type": "$storageStats.count"}, "missing"]}, 0, 1]
             }},
+            "numberOfCollStatsDocuments": {"$sum": 1},
         }},
         // Convert size and doc counts to long, so we can translate to i64
         doc! {"$project": {
@@ -242,6 +239,7 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
             "totalSizeBytes": {"$toLong": "$totalSizeBytes"},
             "totalDocumentCount": {"$toLong": "$totalDocumentCount"},
             "shardsWithCount": {"$toLong": "$shardsWithCount"},
+            "numberOfCollStatsDocuments": {"$toLong": "$numberOfCollStatsDocuments"},
         }},
     ];
 
@@ -268,13 +266,23 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
     let shards_with_count = totals
         .get_i64("shardsWithCount")
         .map_err(|_| Error::BsonFailure)?;
+    let number_of_collstats_documents = totals
+        .get_i64("numberOfCollStatsDocuments")
+        .map_err(|_| Error::BsonFailure)?;
     let count = (shards_with_count > 0).then_some(count);
+    // An unsharded collection yields a single `$collStats` document; a sharded one yields one
+    // per shard, per the documentation: https://www.mongodb.com/docs/manual/reference/operator/aggregation/collstats/
+    let is_sharded_collection = number_of_collstats_documents > 1;
 
     if size == 0 || count.is_some_and(|c| c == 0) {
         return Err(Error::EmptyCollection(collection.to_string()));
     }
 
-    let sizes = CollectionSizes { size, count };
+    let sizes = CollectionSizes {
+        size,
+        count,
+        is_sharded_collection,
+    };
     debug!(
         name: "schema.collection.stats",
         db,
@@ -282,6 +290,7 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
         size_in_bytes = sizes.size,
         size_readable = %format_size(sizes.size),
         count = ?sizes.count,
+        is_sharded_collection,
         "collection size and count"
     );
     Ok(sizes)

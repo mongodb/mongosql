@@ -7,7 +7,7 @@ use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
 use crate::data_service::{AggregateOptions, LocalDataService};
-use crate::partitioning::{SAMPLE_FALLBACK_SIZE, ScanStrategy};
+use crate::partitioning::{SAMPLE_FALLBACK_SIZE, SchemaDerivationStrategy};
 use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
 use crate::{PartitionedCollection, get_partitions};
 
@@ -108,7 +108,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     let mut ignored_min_id: Option<Bson> = None;
     let mut partition = single_partition.partition;
 
-    if partition.strategy == ScanStrategy::Sample {
+    if partition.strategy == SchemaDerivationStrategy::Sample {
         if let Some(sampled) = sample_schema_for_collection(service, db, collection).await {
             return Ok(match &initial_schema_doc {
                 Some(initial) => Schema::simplify(initial).union(&sampled),
@@ -124,7 +124,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             "Sampling returned no schema; falling back to scanning the entire collection as a \
              single partition."
         );
-        partition.strategy = ScanStrategy::Range;
+        partition.strategy = SchemaDerivationStrategy::Range;
     }
 
     let partition_key = single_partition.partition_key.as_str();

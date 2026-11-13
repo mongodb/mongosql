@@ -3,13 +3,6 @@ use tracing::instrument;
 
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 
-/// Collection size at or above which the schema is sampled instead of partitioned.
-///
-/// At or above this size, `get_partitions` skips the partitioning pipeline and the schema is
-/// derived from a `$sample` of [`SAMPLE_FALLBACK_SIZE`] documents. 1 GiB is about
-/// ten [`PARTITION_SIZE_IN_BYTES`] partitions.
-pub const SAMPLE_FALLBACK_THRESHOLD_IN_BYTES: i64 = 1024 * 1024 * 1024; // 1 GiB
-
 /// Number of documents sampled for collections at or above [`SAMPLE_FALLBACK_THRESHOLD_IN_BYTES`].
 pub const SAMPLE_FALLBACK_SIZE: i64 = 1000;
 
@@ -30,7 +23,7 @@ fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
 
 /// How [`crate::derive_schema_for_partition`] reads the documents of a [`Partition`].
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum ScanStrategy {
+pub enum SchemaDerivationStrategy {
     /// Walk every document between `min` and `max`.
     Range,
     /// Derive the schema from a sample documents.
@@ -43,7 +36,7 @@ pub struct Partition {
     pub max: Bson,
     pub is_max_bound_inclusive: bool,
 
-    pub strategy: ScanStrategy,
+    pub strategy: SchemaDerivationStrategy,
 }
 
 impl Partition {
