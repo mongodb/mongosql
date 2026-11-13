@@ -1167,10 +1167,7 @@ pub(crate) fn ident_needs_delimiters(s: &str) -> bool {
             return true;
         }
     }
-    if KEYWORDS.is_match(s) {
-        return true;
-    }
-    false
+    KEYWORDS.is_match(s)
 }
 
 impl PrettyPrint for Literal {
