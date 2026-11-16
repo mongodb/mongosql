@@ -31,10 +31,10 @@ lazy_static! {
 }
 
 mod jaccard {
+    use super::*;
+    use crate::schema::SchemaDerivationStrategy;
     use crate::{schema::JaccardIndex, set};
     use std::iter;
-
-    use super::*;
 
     #[test]
     // https://en.wikipedia.org/wiki/Jaccard_index
@@ -51,6 +51,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: false,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
         let right = Document {
             keys: map! {
@@ -64,6 +65,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: false,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         let new_left = left.union(right);
@@ -152,6 +154,7 @@ mod jaccard {
                     stability_limit: 0.8,
                 }),
                 unstable: false,
+                ..Default::default()
             })
         );
     }
@@ -177,6 +180,7 @@ mod jaccard {
                     stability_limit: 0.8,
                 }),
                 unstable: true,
+                schema_derivation_strategy: SchemaDerivationStrategy::Range
             })
         );
     }
@@ -196,6 +200,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: false,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         let unstable_doc = Document {
@@ -216,6 +221,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: true,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         let expected_doc = Document {
@@ -237,6 +243,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: true,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         // When we union a stable document and an unstable document, we want to retain the stable
@@ -290,6 +297,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: true,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         // Assume this document schema is the result of unioning the following 6 documents:
@@ -323,6 +331,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: true,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         let expected_doc = Document {
@@ -363,6 +372,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: true,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         // When we union an unstable document and an unstable document, we want to retain schema
@@ -395,6 +405,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: true,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         let unstable_doc_2 = Document {
@@ -415,6 +426,7 @@ mod jaccard {
                 stability_limit: 0.8,
             }),
             unstable: true,
+            schema_derivation_strategy: SchemaDerivationStrategy::Range,
         };
 
         let new_doc = unstable_doc_1.clone().union(unstable_doc_2.clone());
@@ -709,6 +721,7 @@ mod jaccard {
                                 stability_limit: 0.8,
                             }),
                             unstable: true,
+        schema_derivation_strategy: SchemaDerivationStrategy::Range
                         }),
                     },
                     jaccard_index: JaccardIndex::default().into(),

@@ -1,9 +1,10 @@
 use bson::{Bson, Document, doc};
+pub use mongosql::schema::SchemaDerivationStrategy;
 use tracing::instrument;
 
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 
-/// Number of documents sampled for collections at or above [`SAMPLE_FALLBACK_THRESHOLD_IN_BYTES`].
+/// Number of documents sampled for sharded collections
 pub const SAMPLE_FALLBACK_SIZE: i64 = 1000;
 
 /// Returns true when `min` and `max` can be compared using match-language range operators.
@@ -19,15 +20,6 @@ fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
     (is_numeric(min) && is_numeric(max))
         || min.element_type() == max.element_type()
         || matches!((min, max), (Bson::MinKey, Bson::MaxKey))
-}
-
-/// How [`crate::derive_schema_for_partition`] reads the documents of a [`Partition`].
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum SchemaDerivationStrategy {
-    /// Walk every document between `min` and `max`.
-    Range,
-    /// Derive the schema from a sample documents.
-    Sample,
 }
 
 #[derive(Debug, PartialEq, Clone)]

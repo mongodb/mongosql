@@ -81,7 +81,7 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
 
 /// Derives the schema for a single partition of a collection.
 ///
-/// If the partition has ScanStrategy::Sample, the schema is generated via sampling.
+/// If the partition has SchemaDerivationStrategy::Sample, the schema is generated via sampling.
 ///
 /// # Errors
 ///
@@ -110,10 +110,12 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
 
     if partition.strategy == SchemaDerivationStrategy::Sample {
         if let Some(sampled) = sample_schema_for_collection(service, db, collection).await {
-            return Ok(match &initial_schema_doc {
+            // If used sampling, but an initial_schema_doc exist we want to ensure the new schema
+            // is marked as sampled rather than defaulting to the previous strategy from the initial_schema_doc
+            return Ok(mark_sampled(match &initial_schema_doc {
                 Some(initial) => Schema::simplify(initial).union(&sampled),
                 None => sampled,
-            });
+            }));
         }
         // The partition still spans the collection's full bounds, so the range scan below is the
         // single-partition last resort.
@@ -288,6 +290,19 @@ pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
         "derived schema from sampled documents"
     );
 
+    // `schema_for_document` always yields a document, and unioning documents keeps one, so the
+    // root is a `Document` whenever any document was sampled.
+    schema.map(mark_sampled)
+}
+
+/// Marks the root document of `schema` as derived by sampling.
+///
+/// `Document` equality ignores the strategy, so unioning with a structurally identical
+/// range-derived schema can keep the `Range` side; re-stamp after combining.
+fn mark_sampled(mut schema: Schema) -> Schema {
+    if let Schema::Document(d) = &mut schema {
+        d.schema_derivation_strategy = SchemaDerivationStrategy::Sample;
+    }
     schema
 }
 
@@ -391,6 +406,26 @@ mod tests {
         let expected = schema_for_document(&doc! { "a": 1 })
             .union(&schema_for_document(&doc! { "a": 2, "b": "x" }));
         assert_eq!(result, expected);
+        // `==` ignores the strategy, so check it explicitly.
+        assert_eq!(
+            result.derivation_strategy(),
+            SchemaDerivationStrategy::Sample
+        );
+    }
+
+    #[test]
+    fn mark_sampled_after_union_with_identical_initial_schema() {
+        let initial = schema_for_document(&doc! { "a": 1 });
+        let sampled = mark_sampled(initial.clone());
+
+        // Structurally identical schemas compare equal, so the union will keep the `Range` side.
+        assert_eq!(initial, sampled);
+
+        let result = mark_sampled(Schema::simplify(&initial).union(&sampled));
+        assert_eq!(
+            result.derivation_strategy(),
+            SchemaDerivationStrategy::Sample
+        );
     }
 
     #[tokio::test]

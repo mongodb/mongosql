@@ -24,7 +24,7 @@ pub struct PartitionedCollection {
 /// If a collection is greater than 100MB and has 101 or more documents, it is partitioned into 100MB chunks.
 /// Collections that do not meet this criteria are treated as a single partition.
 ///
-/// Collections of 1 GiB or more skip partitioning entirely and return a single partition marked
+/// Sharded collections skip partitioning entirely and return a single partition marked
 /// for sampling: [`crate::derive_schema_for_partition`] derives its schema from a `$sample` of
 /// 1000 documents, and only scans the full
 /// bounds if that sample fails.
