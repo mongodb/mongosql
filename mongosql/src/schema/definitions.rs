@@ -2520,7 +2520,7 @@ impl Document {
             additional_properties,
             jaccard_index,
             unstable: true,
-            schema_derivation_strategy: schema_derivation_strategy,
+            schema_derivation_strategy,
         }
     }
 
