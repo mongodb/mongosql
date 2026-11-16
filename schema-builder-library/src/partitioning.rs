@@ -288,40 +288,11 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
         db,
         collection,
         size_in_bytes = sizes.size,
-        size_readable = %format_size(sizes.size),
         count = ?sizes.count,
         is_sharded_collection,
         "collection size and count"
     );
     Ok(sizes)
-}
-
-/// Formats a byte count into a human-readable string, e.g. `1.3 GiB`.
-///
-/// Uses integer arithmetic (one decimal place) so the result is stable across platforms and does
-/// not lose precision to floating-point conversion.
-pub(crate) fn format_size(bytes: i64) -> String {
-    const KIB: i64 = 1024;
-    const MIB: i64 = KIB * 1024;
-    const GIB: i64 = MIB * 1024;
-
-    let (divisor, unit) = if bytes >= GIB {
-        (GIB, "GiB")
-    } else if bytes >= MIB {
-        (MIB, "MiB")
-    } else if bytes >= KIB {
-        (KIB, "KiB")
-    } else {
-        (1, "B")
-    };
-
-    if divisor == 1 {
-        format!("{bytes} {unit}")
-    } else {
-        let whole = bytes / divisor;
-        let tenths = (bytes % divisor) * 10 / divisor;
-        format!("{whole}.{tenths} {unit}")
-    }
 }
 
 /// get_num_partitions determines the number of partitions by dividing the collection size by the
