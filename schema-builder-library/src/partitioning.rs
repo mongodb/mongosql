@@ -81,15 +81,12 @@ pub async fn get_partitions<S: LocalDataService>(
         }
     };
 
-    let (mut min_bound, max_bound) =
-        get_bounds(service, db, &collection_info.name, partition_key.as_str()).await?;
-
     if size_info.is_sharded_collection {
         warn_sampling_selected(db, &collection_info.name);
         return Ok(PartitionedCollection {
             partitions: vec![Partition {
-                min: min_bound,
-                max: max_bound,
+                min: Bson::MinKey,
+                max: Bson::MaxKey,
                 is_max_bound_inclusive: true,
                 strategy: SchemaDerivationStrategy::Sample,
             }],
@@ -97,6 +94,9 @@ pub async fn get_partitions<S: LocalDataService>(
             hint,
         });
     }
+
+    let (mut min_bound, max_bound) =
+        get_bounds(service, db, &collection_info.name, partition_key.as_str()).await?;
 
     // If the number of partitions is 1, no need to sample to determine partition boundaries. This
     // usually happens for very small collections.
