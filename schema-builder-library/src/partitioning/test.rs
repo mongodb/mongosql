@@ -454,8 +454,8 @@ mod test {
             assert_eq!(
                 partitioned.partitions,
                 vec![Partition {
-                    min: Bson::Int32(1),
-                    max: Bson::Int32(1),
+                    min: Bson::MinKey,
+                    max: Bson::MaxKey,
                     is_max_bound_inclusive: true,
                     strategy: SchemaDerivationStrategy::Sample,
                 }]
