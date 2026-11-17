@@ -54,11 +54,33 @@ static TEST_TYPES: &[(&str, &str, &str, &str)] = &[
     ),
 ];
 
+// The "latest" version of mongodb-enterprise downloads a nightly build from a private S3
+// bucket;
+static LATEST_VERSION: &str = "latest";
+
+// Assumes the Drivers test-secrets role so that downloading MongoDB
+// "latest"/"latest-build" nightly binaries can resolve presigned S3 URLs from
+// the private bucket.
+fn assume_role_command(version: &str) -> &'static str {
+    if version == LATEST_VERSION {
+        r#"      # Assumes the Drivers test-secrets role so that downloading MongoDB
+      # "latest"/"latest-build" nightly binaries can resolve presigned S3 URLs
+      # from the private bucket. See DRIVERS-3628.
+      - command: ec2.assume_role
+        params:
+          role_arn: ${drivers_test_secrets_role}
+"#
+    } else {
+        ""
+    }
+}
+
 fn main() {
     let test_template = r#"
   - name: test-{{test_name}}_{{version}}-{{topology_name}}
     tags: [{{version}}, {{topology_name}}]
     commands:
+    {{assume_role}}
       - func: "start mongodb"
         vars:
           MONGODB_VERSION: {{version}}
@@ -90,6 +112,7 @@ fn main() {
                     file,
                     "{}",
                     test_template
+                        .replace("{{assume_role}}", assume_role_command(version))
                         .replace("{{test_name}}", test_name)
                         .replace("{{test_data_path}}", test_data_path)
                         .replace("{{description}}", description)
