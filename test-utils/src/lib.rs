@@ -177,7 +177,7 @@ fn check_server_version_for_test(
 ) -> bool {
     // max server version implies there is some version above which the test should not run; hence
     // if the server version is "latest" we skip the test.
-    if server_version == &Some("latest".to_string()) {
+    if server_version == &Some("latest-stable".to_string()) {
         return !max_server_version.is_some();
     }
     // rapid can be a moving target, so for now, we will skip tests that have version constraints on rapid

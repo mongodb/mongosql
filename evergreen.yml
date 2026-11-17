@@ -1517,7 +1517,7 @@ buildvariants:
       - name: test-rust-fuzz
       - name: test-spec-rewrite-and-type-constraints
       - name: test-go
-      - name: .standalone !.7.0 !.8.0 !.rapid !.latest
+      - name: .standalone !.7.0 !.8.0 !.rapid !.latest-stable
 
   - name: rhel89
     display_name: "RHEL 8.9"
