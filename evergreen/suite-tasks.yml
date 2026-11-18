@@ -383,12 +383,12 @@ tasks:
           mongodb_version: rapid
     
 
-  - name: test-spec-query_latest-standalone
-    tags: [latest, standalone]
+  - name: test-spec-query_latest-stable-standalone
+    tags: [latest-stable, standalone]
     commands:
       - func: "start mongodb"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: latest-stable
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -399,15 +399,15 @@ tasks:
         vars:
           description: run spec query tests
           cargo_test_flags: --features=query --package=e2e-tests
-          mongodb_version: latest
+          mongodb_version: latest-stable
     
 
-  - name: test-index-usage_latest-standalone
-    tags: [latest, standalone]
+  - name: test-index-usage_latest-stable-standalone
+    tags: [latest-stable, standalone]
     commands:
       - func: "start mongodb"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: latest-stable
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -418,15 +418,15 @@ tasks:
         vars:
           description: run index usage tests
           cargo_test_flags: --features=index --package=e2e-tests
-          mongodb_version: latest
+          mongodb_version: latest-stable
     
 
-  - name: test-rust-e2e_latest-standalone
-    tags: [latest, standalone]
+  - name: test-rust-e2e_latest-stable-standalone
+    tags: [latest-stable, standalone]
     commands:
       - func: "start mongodb"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: latest-stable
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -437,15 +437,15 @@ tasks:
         vars:
           description: run rust e2e tests
           cargo_test_flags: --features=e2e --package=e2e-tests
-          mongodb_version: latest
+          mongodb_version: latest-stable
     
 
-  - name: test-rust-errors_latest-standalone
-    tags: [latest, standalone]
+  - name: test-rust-errors_latest-stable-standalone
+    tags: [latest-stable, standalone]
     commands:
       - func: "start mongodb"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: latest-stable
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -456,15 +456,15 @@ tasks:
         vars:
           description: run rust error tests
           cargo_test_flags: --features=error --package=e2e-tests
-          mongodb_version: latest
+          mongodb_version: latest-stable
     
 
-  - name: test-schema-derivation_latest-standalone
-    tags: [latest, standalone]
+  - name: test-schema-derivation_latest-stable-standalone
+    tags: [latest-stable, standalone]
     commands:
       - func: "start mongodb"
         vars:
-          MONGODB_VERSION: latest
+          MONGODB_VERSION: latest-stable
           TOPOLOGY: server
       - func: "install rust toolchain"
       - func: "run data loader"
@@ -475,5 +475,5 @@ tasks:
         vars:
           description: run schema derivation tests
           cargo_test_flags: --features=schema_derivation --package=e2e-tests
-          mongodb_version: latest
+          mongodb_version: latest-stable
     
