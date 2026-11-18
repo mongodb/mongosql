@@ -1,0 +1,20 @@
+[package]
+name = "py-schema-builder-library"
+version = "0.1.0"
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "py_schema_builder_library"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.29.0", features = ["auto-initialize"] }
+schema-builder-library = { path = "../schema-builder-library", features = ["sync-client"] }
+schema_derivation = { path = "../agg-ast/schema_derivation" }
+bson = "2.15.0"
+mongodb = { workspace = true, features = ["sync"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }

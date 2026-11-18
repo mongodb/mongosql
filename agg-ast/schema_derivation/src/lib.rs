@@ -501,6 +501,14 @@ pub fn schema_for_bson(b: &Bson) -> Schema {
     }
 }
 
+/// Returns a [Schema] for a given list of BSON documents by unioning the schemas of each individual document.
+pub fn schema_for_documents(docs: &[Document]) -> Schema {
+    docs.iter()
+        .map(schema_for_document)
+        .reduce(|acc, s| acc.union(&s))
+        .unwrap_or(Schema::Any)
+}
+
 /// Returns a [Schema] for a given BSON document.
 pub fn schema_for_document(doc: &Document) -> Schema {
     Schema::Document(mongosql::schema::Document {
