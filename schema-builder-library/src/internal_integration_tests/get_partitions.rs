@@ -15,7 +15,7 @@ macro_rules! test_get_partitions {
         async fn $test_name() {
             use super::create_mdb_service;
             use crate::CollectionInfo;
-            use crate::partitioning::{get_partitions, Partition, SchemaDerivationStrategy};
+            use crate::partitioning::{get_partitions, Partition};
 
             #[allow(unused)]
             use mongodb::bson::Bson;
@@ -73,7 +73,6 @@ test_get_partitions!(
         min: Bson::MinKey,
         max: Bson::MaxKey,
         is_max_bound_inclusive: true,
-        strategy: SchemaDerivationStrategy::Range,
     }],
     input_db = UNIFORM_DB_NAME,
     input_coll = UNITARY_COLL_NAME

@@ -7,7 +7,7 @@ use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
 use crate::data_service::{AggregateOptions, LocalDataService};
-use crate::partitioning::{SAMPLE_FALLBACK_SIZE, SchemaDerivationStrategy};
+use crate::partitioning::SAMPLE_FALLBACK_SIZE;
 use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
 use crate::{PartitionedCollection, get_partitions};
 
@@ -23,6 +23,9 @@ pub struct SinglePartition {
     pub partition_key: String,
     pub hint: Option<Document>,
     pub partition_ix: usize,
+    /// Whether the partition belongs to a sharded collection, in which case its schema is
+    /// derived from a `$sample` rather than a range scan.
+    pub is_sharded_collection: bool,
 }
 
 pub const PARTITION_DOCS_PER_ITERATION: i64 = 20;
@@ -51,6 +54,7 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
         partitions,
         partition_key,
         hint,
+        is_sharded_collection,
     } = get_partitions(service, db, collection_info).await?;
 
     // Note that we operate over all of the partitions linearly here. We could
@@ -69,6 +73,7 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
                 partition_key: partition_key.clone(),
                 hint: hint.clone(),
                 partition_ix: index,
+                is_sharded_collection,
             },
         )
         .await?;
@@ -81,7 +86,8 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
 
 /// Derives the schema for a single partition of a collection.
 ///
-/// If the partition has SchemaDerivationStrategy::Sample, the schema is generated via sampling.
+/// If `is_sharded_collection` is set, the schema is derived from a `$sample` of the collection;
+/// if sampling yields nothing, the full partition is range-scanned instead.
 ///
 /// # Errors
 ///
@@ -108,14 +114,13 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     let mut ignored_min_id: Option<Bson> = None;
     let mut partition = single_partition.partition;
 
-    if partition.strategy == SchemaDerivationStrategy::Sample {
+    if single_partition.is_sharded_collection {
         if let Some(sampled) = sample_schema_for_collection(service, db, collection).await {
-            // If used sampling, but an initial_schema_doc exist we want to ensure the new schema
-            // is marked as sampled rather than defaulting to the previous strategy from the initial_schema_doc
-            return Ok(mark_sampled(match &initial_schema_doc {
+            // Union with the initial schema so a merge run keeps previously seen fields.
+            return Ok(match &initial_schema_doc {
                 Some(initial) => Schema::simplify(initial).union(&sampled),
                 None => sampled,
-            }));
+            });
         }
         // The partition still spans the collection's full bounds, so the range scan below is the
         // single-partition last resort.
@@ -126,7 +131,6 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             "Sampling returned no schema; falling back to scanning the entire collection as a \
              single partition."
         );
-        partition.strategy = SchemaDerivationStrategy::Range;
     }
 
     let partition_key = single_partition.partition_key.as_str();
@@ -289,20 +293,6 @@ pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
         sampled_documents = iterations,
         "derived schema from sampled documents"
     );
-
-    // `schema_for_document` always yields a document, and unioning documents keeps one, so the
-    // root is a `Document` whenever any document was sampled.
-    schema.map(mark_sampled)
-}
-
-/// Marks the root document of `schema` as derived by sampling.
-///
-/// `Document` equality ignores the strategy, so unioning with a structurally identical
-/// range-derived schema can keep the `Range` side; re-stamp after combining.
-fn mark_sampled(mut schema: Schema) -> Schema {
-    if let Schema::Document(d) = &mut schema {
-        d.schema_derivation_strategy = SchemaDerivationStrategy::Sample;
-    }
     schema
 }
 
@@ -406,26 +396,6 @@ mod tests {
         let expected = schema_for_document(&doc! { "a": 1 })
             .union(&schema_for_document(&doc! { "a": 2, "b": "x" }));
         assert_eq!(result, expected);
-        // `==` ignores the strategy, so check it explicitly.
-        assert_eq!(
-            result.derivation_strategy(),
-            SchemaDerivationStrategy::Sample
-        );
-    }
-
-    #[test]
-    fn mark_sampled_after_union_with_identical_initial_schema() {
-        let initial = schema_for_document(&doc! { "a": 1 });
-        let sampled = mark_sampled(initial.clone());
-
-        // Structurally identical schemas compare equal, so the union will keep the `Range` side.
-        assert_eq!(initial, sampled);
-
-        let result = mark_sampled(Schema::simplify(&initial).union(&sampled));
-        assert_eq!(
-            result.derivation_strategy(),
-            SchemaDerivationStrategy::Sample
-        );
     }
 
     #[tokio::test]

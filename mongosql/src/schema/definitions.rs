@@ -547,58 +547,7 @@ impl Ord for JaccardIndex {
 
 pub const MAX_NUM_DOC_UNIONS: u32 = 19;
 
-/// How the schema for a partition is derived from its documents.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Default, Ord, PartialOrd)]
-pub enum SchemaDerivationStrategy {
-    /// Walk every document between `min` and `max`.
-    #[default]
-    Range,
-    /// Derive the schema from a sample of documents.
-    Sample,
-}
-
-impl SchemaDerivationStrategy {
-    /// Returns the lowercase name used when persisting the strategy, e.g. `"sample"`.
-    pub fn as_str(self) -> &'static str {
-        match self {
-            SchemaDerivationStrategy::Range => "range",
-            SchemaDerivationStrategy::Sample => "sample",
-        }
-    }
-}
-
-impl std::fmt::Display for SchemaDerivationStrategy {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Error returned when a string is not a known [`SchemaDerivationStrategy`] name.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseSchemaDerivationStrategyError(String);
-
-impl std::fmt::Display for ParseSchemaDerivationStrategyError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "unknown schema derivation strategy: {:?}", self.0)
-    }
-}
-
-impl std::error::Error for ParseSchemaDerivationStrategyError {}
-
-impl std::str::FromStr for SchemaDerivationStrategy {
-    type Err = ParseSchemaDerivationStrategyError;
-
-    /// Parses the lowercase name produced by [`SchemaDerivationStrategy::as_str`].
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "range" => Ok(SchemaDerivationStrategy::Range),
-            "sample" => Ok(SchemaDerivationStrategy::Sample),
-            other => Err(ParseSchemaDerivationStrategyError(other.to_string())),
-        }
-    }
-}
-
-#[derive(Eq, Clone, Default)]
+#[derive(Eq, PartialOrd, Ord, Clone, Default)]
 pub struct Document {
     pub keys: BTreeMap<String, Schema>,
     pub required: BTreeSet<String>,
@@ -606,35 +555,14 @@ pub struct Document {
     // JaccardIndex is an optional field that is used to track the stability of the schema
     pub jaccard_index: Option<JaccardIndex>,
     pub unstable: bool,
-    pub schema_derivation_strategy: SchemaDerivationStrategy,
 }
 
 impl PartialEq for Document {
-    // `jaccard_index` and `schema_derivation_strategy` are metadata and are intentionally
-    // excluded so that equality is structural. `Ord` below must stay consistent with this.
     fn eq(&self, other: &Self) -> bool {
         self.keys == other.keys
             && self.required == other.required
             && self.additional_properties == other.additional_properties
             && self.unstable == other.unstable
-    }
-}
-
-impl PartialOrd for Document {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Document {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // `jaccard_index` and `schema_derivation_strategy` are intentionally excluded, matching
-        // the manual `PartialEq` above, so that `Ord` and `Eq` stay consistent.
-        self.keys
-            .cmp(&other.keys)
-            .then_with(|| self.required.cmp(&other.required))
-            .then_with(|| self.additional_properties.cmp(&other.additional_properties))
-            .then_with(|| self.unstable.cmp(&other.unstable))
     }
 }
 
@@ -895,7 +823,6 @@ lazy_static! {
             additional_properties: false,
             jaccard_index: None,
             unstable: false,
-            schema_derivation_strategy: SchemaDerivationStrategy::Range
         }),
         Schema::Array(Box::new(NUMERIC.clone())),
     ]);
@@ -959,7 +886,6 @@ lazy_static! {
             additional_properties: false,
             jaccard_index: None,
             unstable: false,
-            schema_derivation_strategy: SchemaDerivationStrategy::Range
         }),
         Schema::Array(Box::new(NUMERIC.clone())),
         Schema::Atomic(Atomic::Null),
@@ -1071,21 +997,6 @@ impl Schema {
             Schema::Document(d) => d.unstable,
             Schema::AnyOf(a) => a.iter().any(|s| s.is_unstable()),
             _ => false,
-        }
-    }
-
-    /// Returns how this schema was derived.
-    ///
-    /// `Sample` wins if any root document was sampled; non-document schemas report `Range`.
-    pub fn derivation_strategy(&self) -> SchemaDerivationStrategy {
-        match self {
-            Schema::Document(d) => d.schema_derivation_strategy,
-            Schema::AnyOf(a) => a
-                .iter()
-                .map(Schema::derivation_strategy)
-                .max()
-                .unwrap_or_default(),
-            _ => SchemaDerivationStrategy::Range,
         }
     }
 
@@ -2429,14 +2340,8 @@ impl Document {
                 additional_properties: self.additional_properties || other.additional_properties,
                 jaccard_index: Some(jaccard_index),
                 unstable,
-                schema_derivation_strategy: self
-                    .schema_derivation_strategy
-                    .max(other.schema_derivation_strategy),
             }
         } else {
-            let strategy = self
-                .schema_derivation_strategy
-                .max(other.schema_derivation_strategy);
             Document {
                 keys: Document::combine_keys(self.keys, other.keys, Schema::union),
                 required: self
@@ -2445,7 +2350,6 @@ impl Document {
                     .cloned()
                     .collect(),
                 additional_properties: self.additional_properties || other.additional_properties,
-                schema_derivation_strategy: strategy,
                 ..Default::default()
             }
         }
@@ -2454,9 +2358,6 @@ impl Document {
     /// Performs an unstable union. See the `union` doc comment for further details, as that method
     /// is public and therefore contains all relevant information.
     fn unstable_union(self, other: Document) -> Document {
-        let schema_derivation_strategy = self
-            .schema_derivation_strategy
-            .max(other.schema_derivation_strategy);
         let (pref_doc, other_doc) = if self.unstable && other.unstable {
             match (self.jaccard_index, other.jaccard_index) {
                 // If neither has a JaccardIndex or only self has one, prefer self.
@@ -2520,7 +2421,6 @@ impl Document {
             additional_properties,
             jaccard_index,
             unstable: true,
-            schema_derivation_strategy,
         }
     }
 
@@ -2563,9 +2463,6 @@ impl Document {
             additional_properties: self.additional_properties || other.additional_properties,
             jaccard_index,
             unstable: self.unstable || other.unstable,
-            schema_derivation_strategy: self
-                .schema_derivation_strategy
-                .max(other.schema_derivation_strategy),
         }
     }
 

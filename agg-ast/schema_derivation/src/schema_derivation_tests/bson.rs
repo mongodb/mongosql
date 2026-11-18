@@ -1,6 +1,5 @@
 use crate::schema_for_bson;
 use bson::{Bson, bson, doc};
-use mongosql::schema::SchemaDerivationStrategy;
 use mongosql::{
     map,
     schema::{Atomic, Document, JaccardIndex, Schema},
@@ -34,7 +33,6 @@ test_schema_for_bson!(
         additional_properties: false,
         jaccard_index: JaccardIndex::default().into(),
         unstable: false,
-        schema_derivation_strategy: SchemaDerivationStrategy::Range
     })
 );
 
@@ -47,7 +45,6 @@ test_schema_for_bson!(
         additional_properties: false,
         jaccard_index: JaccardIndex::default().into(),
         unstable: false,
-        schema_derivation_strategy: SchemaDerivationStrategy::Range
     })
 );
 
@@ -72,21 +69,18 @@ test_schema_for_bson!(
                         additional_properties: false,
                         jaccard_index: JaccardIndex::default().into(),
                         unstable: false,
-        schema_derivation_strategy: SchemaDerivationStrategy::Range
                     }),
                 ),
                 required: set!("inner".into()),
                 additional_properties: false,
                 jaccard_index: JaccardIndex::default().into(),
                 unstable: false,
-        schema_derivation_strategy: SchemaDerivationStrategy::Range
             })
         ),
         required: set!("middle".into()),
         additional_properties: false,
         jaccard_index: JaccardIndex::default().into(),
         unstable: false,
-        schema_derivation_strategy: SchemaDerivationStrategy::Range
     })
 );
 
@@ -213,6 +207,5 @@ test_schema_for_bson!(
         additional_properties: false,
         jaccard_index: JaccardIndex::default().into(),
         unstable: false,
-        schema_derivation_strategy: SchemaDerivationStrategy::Range
     })
 );

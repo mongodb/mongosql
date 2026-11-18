@@ -1,5 +1,4 @@
 use bson::{Bson, Document, doc};
-pub use mongosql::schema::SchemaDerivationStrategy;
 use tracing::instrument;
 
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
@@ -27,8 +26,6 @@ pub struct Partition {
     pub min: Bson,
     pub max: Bson,
     pub is_max_bound_inclusive: bool,
-
-    pub strategy: SchemaDerivationStrategy,
 }
 
 impl Partition {

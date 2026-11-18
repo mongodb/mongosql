@@ -1,5 +1,5 @@
 pub(crate) use crate::partitioning::partition::{
-    PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE, SchemaDerivationStrategy,
+    PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE,
 };
 use crate::{
     Error, LocalDataService,
@@ -17,6 +17,7 @@ pub struct PartitionedCollection {
     pub partitions: Vec<Partition>,
     pub partition_key: String,
     pub hint: Option<Document>,
+    pub is_sharded_collection: bool,
 }
 
 /// A utility function for determining the partitions of a collection.
@@ -24,9 +25,9 @@ pub struct PartitionedCollection {
 /// If a collection is greater than 100MB and has 101 or more documents, it is partitioned into 100MB chunks.
 /// Collections that do not meet this criteria are treated as a single partition.
 ///
-/// Sharded collections skip partitioning entirely and return a single partition marked
-/// for sampling: [`crate::derive_schema_for_partition`] derives its schema from a `$sample` of
-/// 1000 documents, and only scans the full
+/// Sharded collections skip partitioning entirely and return a single `MinKey..=MaxKey`
+/// partition with `is_sharded_collection: true`: [`crate::derive_schema_for_partition`] derives
+/// its schema from a `$sample` of `SAMPLE_FALLBACK_SIZE` documents, and only scans the full
 /// bounds if that sample fails.
 ///
 /// If the partitioning query fails to open, the collection is returned as a single partition
@@ -88,10 +89,10 @@ pub async fn get_partitions<S: LocalDataService>(
                 min: Bson::MinKey,
                 max: Bson::MaxKey,
                 is_max_bound_inclusive: true,
-                strategy: SchemaDerivationStrategy::Sample,
             }],
             partition_key,
             hint,
+            is_sharded_collection: size_info.is_sharded_collection,
         });
     }
 
@@ -106,10 +107,10 @@ pub async fn get_partitions<S: LocalDataService>(
                 min: min_bound,
                 max: max_bound,
                 is_max_bound_inclusive: true,
-                strategy: SchemaDerivationStrategy::Range,
             }],
             partition_key,
             hint,
+            is_sharded_collection: size_info.is_sharded_collection,
         });
     }
 
@@ -146,10 +147,10 @@ pub async fn get_partitions<S: LocalDataService>(
                 min: min_bound,
                 max: max_bound,
                 is_max_bound_inclusive: true,
-                strategy: SchemaDerivationStrategy::Range,
             }],
             partition_key,
             hint,
+            is_sharded_collection: size_info.is_sharded_collection,
         });
     };
 
@@ -163,7 +164,6 @@ pub async fn get_partitions<S: LocalDataService>(
             min: min_bound.clone(),
             max: local_max.clone(),
             is_max_bound_inclusive: false,
-            strategy: SchemaDerivationStrategy::Range,
         });
         min_bound = local_max;
     }
@@ -172,7 +172,6 @@ pub async fn get_partitions<S: LocalDataService>(
         min: min_bound,
         max: max_bound,
         is_max_bound_inclusive: true,
-        strategy: SchemaDerivationStrategy::Range,
     });
 
     trace!("partitions: {:?}", partitions);
@@ -181,6 +180,7 @@ pub async fn get_partitions<S: LocalDataService>(
         partitions,
         partition_key,
         hint,
+        is_sharded_collection: size_info.is_sharded_collection,
     })
 }
 

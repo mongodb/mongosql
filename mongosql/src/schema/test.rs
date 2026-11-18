@@ -48,18 +48,6 @@ mod schema_ord {
         assert!(Document(Document::empty()) < AnyOf(set! {}));
         assert!(AnyOf(set! {}) < Any);
     }
-
-    #[test]
-    fn documents_differing_only_by_strategy_are_equal() {
-        use crate::schema::{Document, SchemaDerivationStrategy};
-        let range = Document::empty();
-        let sample = Document {
-            schema_derivation_strategy: SchemaDerivationStrategy::Sample,
-            ..Document::empty()
-        };
-        assert_eq!(range, sample);
-        assert_eq!(range.cmp(&sample), std::cmp::Ordering::Equal);
-    }
 }
 
 mod union_schemata {
@@ -1908,7 +1896,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -1918,7 +1905,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: false,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -1928,7 +1914,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -1941,7 +1926,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -1951,7 +1935,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -1961,7 +1944,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: false,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -1977,7 +1959,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -1987,7 +1968,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: false,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -1998,7 +1978,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -2014,7 +1993,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -2024,7 +2002,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -2034,7 +2011,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: None,
                 unstable: false,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -2047,7 +2023,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -2057,7 +2032,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -2067,7 +2041,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -2080,7 +2053,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: Some(JaccardIndex::default()),
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -2090,7 +2062,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: Some(JaccardIndex::default()),
                 unstable: true,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -2100,7 +2071,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -2113,7 +2083,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: Some(JaccardIndex::default()),
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -2123,7 +2092,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: None,
                 unstable: true,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -2133,7 +2101,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: Some(JaccardIndex::default()),
                 unstable: true,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -2152,7 +2119,6 @@ mod document_union {
                     stability_limit: 0.8,
                 }),
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -2166,7 +2132,6 @@ mod document_union {
                     stability_limit: 0.8,
                 }),
                 unstable: true,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -2180,7 +2145,6 @@ mod document_union {
                     stability_limit: 0.8,
                 }),
                 unstable: true,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -2199,7 +2163,6 @@ mod document_union {
                     stability_limit: 0.8,
                 }),
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -2213,7 +2176,6 @@ mod document_union {
                     stability_limit: 0.8,
                 }),
                 unstable: true,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -2227,7 +2189,6 @@ mod document_union {
                     stability_limit: 0.8,
                 }),
                 unstable: true,
-                ..Default::default()
             }),
         );
         test_document_union!(
@@ -2240,7 +2201,6 @@ mod document_union {
                 additional_properties: true,
                 jaccard_index: Some(JaccardIndex::default()),
                 unstable: true,
-                ..Default::default()
             }),
             schema1 = Schema::Document(Document {
                 keys: map! {
@@ -2250,7 +2210,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: Some(JaccardIndex::default()),
                 unstable: true,
-                ..Default::default()
             }),
             schema2 = Schema::Document(Document {
                 keys: map! {
@@ -2260,7 +2219,6 @@ mod document_union {
                 additional_properties: false,
                 jaccard_index: Some(JaccardIndex::default()),
                 unstable: true,
-                ..Default::default()
             }),
         );
     }
