@@ -12,7 +12,7 @@ use std::{
 static FILE_NAME: &str = "suite-tasks.yml";
 
 // Add new versions to this list
-static VERSIONS: &[&str] = &["6.0", "7.0", "8.0", "rapid", "latest"];
+static VERSIONS: &[&str] = &["6.0", "7.0", "8.0", "rapid", "latest-stable"];
 
 // The three topologies available in driver tools are server, replica_set, and sharded_cluster.
 // We only use server here, but tag it as standalone to make it clear that it's not a replica set or sharded cluster.
