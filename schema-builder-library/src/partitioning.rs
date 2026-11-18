@@ -38,10 +38,6 @@ pub struct PartitionedCollection {
 /// Returns an error if the collection's size or bounds cannot be read, if a timeseries collection
 /// has no `timeField`, or if a non-timeseries collection reports no `count`.
 #[instrument(level = "trace", skip(service))]
-#[expect(
-    clippy::too_many_lines,
-    reason = "Keeping all the cases explicit rather than extracting to helper functions."
-)]
 pub async fn get_partitions<S: LocalDataService>(
     service: &S,
     db: &str,

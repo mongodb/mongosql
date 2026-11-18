@@ -23,8 +23,6 @@ pub struct SinglePartition {
     pub partition_key: String,
     pub hint: Option<Document>,
     pub partition_ix: usize,
-    /// Whether the partition belongs to a sharded collection, in which case its schema is
-    /// derived from a `$sample` rather than a range scan.
     pub is_sharded_collection: bool,
 }
 
