@@ -146,7 +146,7 @@ pub async fn get_partitions<S: LocalDataService>(
             }],
             partition_key,
             hint,
-            is_sharded_collection,
+            is_sharded_collection: true,
         });
     };
 
@@ -265,30 +265,27 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
     let number_of_collstats_documents = totals
         .get_i64("numberOfCollStatsDocuments")
         .map_err(|_| Error::BsonFailure)?;
+    debug!(
+        name: "schema.collection.stats",
+        db,
+        collection,
+        total_size_bytes = size,
+        total_document_count = count,
+        shards_with_count,
+        number_of_collstats_documents,
+        "collection stats totals"
+    );
     let count = (shards_with_count > 0).then_some(count);
-    // An unsharded collection yields a single `$collStats` document; a sharded one yields one
-    // per shard, per the documentation: https://www.mongodb.com/docs/manual/reference/operator/aggregation/collstats/
-    let is_sharded_collection = number_of_collstats_documents > 1;
 
     if size == 0 || count.is_some_and(|c| c == 0) {
         return Err(Error::EmptyCollection(collection.to_string()));
     }
 
-    let sizes = CollectionSizes {
+    Ok(CollectionSizes {
         size,
         count,
         shard_count: number_of_collstats_documents,
-    };
-    debug!(
-        name: "schema.collection.stats",
-        db,
-        collection,
-        size_in_bytes = sizes.size,
-        count = ?sizes.count,
-        is_sharded_collection,
-        "collection size and count"
-    );
-    Ok(sizes)
+    })
 }
 
 /// get_num_partitions determines the number of partitions by dividing the collection size by the

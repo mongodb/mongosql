@@ -388,12 +388,12 @@ mod test {
     mod get_partitions {
         use std::collections::HashMap;
 
-        use bson::{Bson, Document, doc};
+        use bson::{Document, doc};
 
         use crate::{
             Error,
             data_service::{CollectionInfo, test::MockDataService},
-            partitioning::{Partition, get_partitions},
+            partitioning::get_partitions,
         };
 
         /// One shard's `$collStats` document, as the server returns it for a sharded collection.
@@ -402,13 +402,17 @@ mod test {
                 "_id": id,
                 "ns": "db.coll",
                 "shard": format!("shard{id}"),
-                "storageStats": { "size": 100, "count": docs_per_shard, "storageSize": 100 },
+                "storageStats": { "size": 100_i64, "count": docs_per_shard, "storageSize": 100 },
             }
         }
 
-        /// Three shards whose sizes sum to `total_size`, each reporting `count_per_shard`.
+        /// Three shards, each reporting `documents_per_shard` documents.
         fn coll_stats_documents(documents_per_shard: i64) -> Vec<Document> {
-            vec![coll_stats(1, 10), coll_stats(2, 10), coll_stats(3, 10)]
+            vec![
+                coll_stats(1, documents_per_shard),
+                coll_stats(2, documents_per_shard),
+                coll_stats(3, documents_per_shard),
+            ]
         }
 
         fn collection_info() -> CollectionInfo {
@@ -470,7 +474,7 @@ mod test {
             let service = MockDataService {
                 databases: Vec::new(),
                 collections: HashMap::new(),
-                documents: HashMap::from([("db.coll".to_string(), coll_stats_documents(100))]),
+                documents: HashMap::from([("db.coll".to_string(), coll_stats_documents(0))]),
             };
 
             let result = get_partitions(&service, "db", collection_info()).await;
