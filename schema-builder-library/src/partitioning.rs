@@ -146,7 +146,7 @@ pub async fn get_partitions<S: LocalDataService>(
             }],
             partition_key,
             hint,
-            is_sharded_collection: true,
+            is_sharded_collection: false,
         });
     };
 
