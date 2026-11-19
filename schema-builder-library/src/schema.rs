@@ -110,7 +110,8 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     let mut partition = single_partition.partition;
 
     if single_partition.is_sharded_collection {
-        if let Some(sampled) = sample_schema_for_collection(service, db, collection).await {
+        if let Some(sampled) = derive_schema_from_sampled_collection(service, db, collection).await
+        {
             // Union with the initial schema so a merge run keeps previously seen fields.
             return Ok(match &initial_schema_doc {
                 Some(initial) => Schema::simplify(initial).union(&sampled),
@@ -245,7 +246,7 @@ pub(crate) async fn sample_schema<S: LocalDataService>(
         .await
         .inspect_err(|e| {
             warn!(
-                name: "schema.sampling.open_failed",
+                name: "schema sampling failed",
                 db,
                 collection_name,
                 view_name,
@@ -269,7 +270,7 @@ pub(crate) async fn sample_schema<S: LocalDataService>(
                 view_name,
                 iteration = iterations,
                 error.message = %e,
-                "collection sampling failed mid-stream; the sampled schema may be incomplete"
+               "sampling failed mid-stream; the sampled schema may be incomplete"
             );
         })
         .transpose()
@@ -309,7 +310,7 @@ pub(crate) async fn sample_schema<S: LocalDataService>(
 ///
 /// Returns `None` if the query fails to open or returns no documents, so the caller can choose a
 /// fallback.
-pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
+pub(crate) async fn derive_schema_from_sampled_collection<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
@@ -362,7 +363,7 @@ mod tests {
             vec![doc! { "a": 1 }, doc! { "a": 2, "b": "x" }],
         );
 
-        let result = sample_schema_for_collection(&service, "db", "coll")
+        let result = derive_schema_from_sampled_collection(&service, "db", "coll")
             .await
             .expect("a non-empty sample returns Some");
 
@@ -375,7 +376,7 @@ mod tests {
     async fn sample_returns_none_when_empty() {
         let service = mock_service("db", "coll", Vec::new());
 
-        let result = sample_schema_for_collection(&service, "db", "coll").await;
+        let result = derive_schema_from_sampled_collection(&service, "db", "coll").await;
 
         assert_eq!(result, None);
     }
