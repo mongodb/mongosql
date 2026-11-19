@@ -508,7 +508,7 @@ pub fn schema_for_document(doc: &Document) -> Schema {
             .iter()
             .map(|(k, v)| (k.to_string(), schema_for_bson(v)))
             .collect(),
-        required: doc.iter().map(|(k, _)| k.to_string()).collect(),
+        required: doc.keys().map(|k| k.to_string()).collect(),
         jaccard_index: JaccardIndex::default().into(),
         ..Default::default()
     })
@@ -523,7 +523,7 @@ fn schema_for_bson_array_elements(bs: &[Bson]) -> Schema {
     }
     bs.iter()
         .map(schema_for_bson)
-        .reduce(|acc, s| acc.union_simplified(s).0)
+        .reduce(|acc, s| acc.union_simplified(s))
         .unwrap_or(Schema::Any)
 }
 
