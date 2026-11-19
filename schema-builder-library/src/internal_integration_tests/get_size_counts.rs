@@ -35,7 +35,7 @@ test_get_size_counts!(
     expected_coll_sizes = CollectionSizes {
         size: *SMALL_COLL_SIZE_IN_BYTES,
         count: Some(*NUM_DOCS_IN_SMALL_COLLECTION),
-        shard_count: 0
+        shard_count: 1
     },
     input_db = UNIFORM_DB_NAME,
     input_coll = SMALL_COLL_NAME
@@ -46,7 +46,7 @@ test_get_size_counts!(
     expected_coll_sizes = CollectionSizes {
         size: *LARGE_COLL_SIZE_IN_BYTES,
         count: Some(*NUM_DOCS_IN_LARGE_COLLECTION),
-        shard_count: 0
+        shard_count: 1
     },
     input_db = UNIFORM_DB_NAME,
     input_coll = LARGE_COLL_NAME
@@ -57,7 +57,7 @@ test_get_size_counts!(
     expected_coll_sizes = CollectionSizes {
         size: *SMALL_COLL_SIZE_IN_BYTES,
         count: Some(*NUM_DOCS_IN_SMALL_COLLECTION),
-        shard_count: 0
+        shard_count: 1
     },
     input_db = NONUNIFORM_DB_NAME,
     input_coll = SMALL_COLL_NAME
@@ -68,7 +68,7 @@ test_get_size_counts!(
     expected_coll_sizes = CollectionSizes {
         size: *LARGE_COLL_SIZE_IN_BYTES,
         count: Some(*NUM_DOCS_IN_LARGE_COLLECTION),
-        shard_count: 0
+        shard_count: 1
     },
     input_db = NONUNIFORM_DB_NAME,
     input_coll = LARGE_COLL_NAME
