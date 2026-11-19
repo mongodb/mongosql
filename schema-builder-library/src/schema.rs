@@ -7,12 +7,9 @@ use schema_derivation::schema_for_document;
 use tracing::{info, instrument, warn};
 
 use crate::data_service::{AggregateOptions, LocalDataService};
-use crate::partitioning::SAMPLE_FALLBACK_SIZE;
+use crate::partitioning::SAMPLING_SIZE;
 use crate::{Error, data_service::CollectionInfo, partitioning::Partition};
 use crate::{PartitionedCollection, get_partitions};
-
-/// The amount of samples to fetch for view schema derivation
-const VIEW_SAMPLE_SIZE: i64 = 1000;
 
 /// How many sampled documents to process between progress log lines.
 const SAMPLE_PROGRESS_LOG_INTERVAL: u64 = 100;
@@ -223,26 +220,35 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     Ok(schema)
 }
 
-/// Derive a schema for a collection by sampling a bounded number of documents.
+/// Derive a schema for a collection or view by sampling.
+///
+/// For a view, pass its `viewOn` collection as `collection_name`, its pipeline as `pipeline`
+/// (appended after `$sample`), and its name as `view_name` for logging.
 ///
 /// Returns `None` if the query fails to open or returns no documents, so the caller can choose a
 /// fallback.
 #[instrument(level = "trace", skip_all)]
-pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
+pub(crate) async fn sample_schema<S: LocalDataService>(
     service: &S,
     db: &str,
-    collection: &str,
+    collection_name: &str,
+    pipeline: Option<Vec<Document>>,
+    view_name: Option<&str>,
 ) -> Option<Schema> {
-    let pipeline = vec![doc! { "$sample": { "size": SAMPLE_FALLBACK_SIZE } }];
+    let pipeline = vec![doc! { "$sample": { "size": SAMPLING_SIZE } }]
+        .into_iter()
+        .chain(pipeline.unwrap_or_default())
+        .collect::<Vec<Document>>();
 
     let cursor = service
-        .aggregate(db, collection, pipeline, AggregateOptions::default())
+        .aggregate(db, collection_name, pipeline, AggregateOptions::default())
         .await
         .inspect_err(|e| {
             warn!(
                 name: "schema.sampling.open_failed",
                 db,
-                collection,
+                collection_name,
+                view_name,
                 error.message = %e,
                 "collection sampling failed to open"
             );
@@ -259,7 +265,8 @@ pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
             warn!(
                 name: "schema.sampling.stream_failed",
                 db,
-                collection,
+                collection_name,
+                view_name,
                 iteration = iterations,
                 error.message = %e,
                 "collection sampling failed mid-stream; the sampled schema may be incomplete"
@@ -271,7 +278,8 @@ pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
             info!(
                 name: "schema.sampling.progress",
                 db,
-                collection,
+                collection_name,
+                view_name,
                 iteration = iterations,
                 "calculating schema for sampled collection"
             );
@@ -287,77 +295,42 @@ pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
     info!(
         name: "schema.sampling.complete",
         db,
-        collection,
+        collection_name,
+        view_name,
         sampled_documents = iterations,
         "derived schema from sampled documents"
     );
     schema
 }
 
+/// Derive a schema for a collection by sampling a bounded number of documents.
+///
+/// Returns `None` if the query fails to open or returns no documents, so the caller can choose a
+/// fallback.
+pub(crate) async fn sample_schema_for_collection<S: LocalDataService>(
+    service: &S,
+    db: &str,
+    collection: &str,
+) -> Option<Schema> {
+    sample_schema(service, db, collection, None, None).await
+}
+
 /// derive_schema_for_view takes a CollectionInfo and executes the pipeline
 /// against the viewOn collection to generate a schema for the view.
 /// It does this by first prepending $sample to the pipeline
-#[instrument(level = "trace", skip_all)]
 pub async fn derive_schema_for_view<S: LocalDataService>(
     service: &S,
     db: &str,
     view: &CollectionInfo,
 ) -> Option<Schema> {
-    let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]
-        .into_iter()
-        .chain(view.options.pipeline.clone().into_iter())
-        .collect::<Vec<Document>>();
-
-    let cursor = service
-        .aggregate(
-            db,
-            &view.options.view_on,
-            pipeline,
-            AggregateOptions::default(),
-        )
-        .await
-        .inspect_err(|e| {
-            warn!(
-                db,
-                view_name = view.name,
-                "view sampling encountered an error: {e}"
-            )
-        })
-        .ok()?;
-
-    let mut schema = None;
-    let mut iterations = 0u64;
-    let mut cursor = Box::pin(cursor);
-    while let Some(Ok(doc)) = cursor
-        .try_next()
-        .await
-        .inspect_err(|e| {
-            warn!(
-                db,
-                view_name = view.name,
-                iteration = iterations,
-                "view sampling encountered an error: {e}"
-            )
-        })
-        .transpose()
-    {
-        if iterations.is_multiple_of(SAMPLE_PROGRESS_LOG_INTERVAL) {
-            info!(
-                db,
-                view_name = view.name,
-                iteration = iterations,
-                "Calculating schema for sampled view"
-            );
-        }
-
-        schema = schema.map_or(Some(schema_for_document(&doc)), |s: Schema| {
-            Some(s.union(&schema_for_document(&doc)))
-        });
-
-        iterations += 1;
-    }
-
-    schema
+    sample_schema(
+        service,
+        db,
+        &view.options.view_on,
+        Some(view.options.pipeline.clone()),
+        Some(&view.name),
+    )
+    .await
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 pub(crate) use crate::partitioning::partition::{
-    PARTITION_SIZE_IN_BYTES, Partition, SAMPLE_FALLBACK_SIZE,
+    PARTITION_SIZE_IN_BYTES, Partition, SAMPLING_SIZE,
 };
 use crate::{
     Error, LocalDataService,
@@ -185,7 +185,7 @@ fn warn_sampling_selected(db: &str, collection: &str) {
         name: "schema.sampling.selected",
         db,
         collection,
-        sample_size = SAMPLE_FALLBACK_SIZE,
+        sample_size = SAMPLING_SIZE,
         "Encountered a sharded collection; skipping partitioning and deriving the \
          schema from a $sample. The schema may not reflect every document in the collection."
     );
