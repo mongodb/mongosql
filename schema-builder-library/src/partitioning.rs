@@ -78,7 +78,7 @@ pub async fn get_partitions<S: LocalDataService>(
         }
     };
 
-    if size_info.is_sharded_collection {
+    if size_info.shard_count > 1 {
         warn_sampling_selected(db, &collection_info.name);
         return Ok(PartitionedCollection {
             partitions: vec![Partition {
@@ -88,7 +88,7 @@ pub async fn get_partitions<S: LocalDataService>(
             }],
             partition_key,
             hint,
-            is_sharded_collection: size_info.is_sharded_collection,
+            is_sharded_collection: true,
         });
     }
 
@@ -106,7 +106,7 @@ pub async fn get_partitions<S: LocalDataService>(
             }],
             partition_key,
             hint,
-            is_sharded_collection: size_info.is_sharded_collection,
+            is_sharded_collection: false,
         });
     }
 
@@ -146,7 +146,7 @@ pub async fn get_partitions<S: LocalDataService>(
             }],
             partition_key,
             hint,
-            is_sharded_collection: size_info.is_sharded_collection,
+            is_sharded_collection,
         });
     };
 
@@ -176,7 +176,7 @@ pub async fn get_partitions<S: LocalDataService>(
         partitions,
         partition_key,
         hint,
-        is_sharded_collection: size_info.is_sharded_collection,
+        is_sharded_collection: false,
     })
 }
 
@@ -196,7 +196,7 @@ fn warn_sampling_selected(db: &str, collection: &str) {
 pub(crate) struct CollectionSizes {
     pub size: i64,
     pub count: Option<i64>,
-    pub is_sharded_collection: bool,
+    pub shard_count: i64,
 }
 
 /// Reads a collection's size and document count with `$collStats`.
@@ -277,7 +277,7 @@ pub(crate) async fn get_size_counts<S: LocalDataService>(
     let sizes = CollectionSizes {
         size,
         count,
-        is_sharded_collection,
+        shard_count: number_of_collstats_documents,
     };
     debug!(
         name: "schema.collection.stats",

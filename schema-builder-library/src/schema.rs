@@ -250,12 +250,12 @@ pub(crate) async fn sample_schema<S: LocalDataService>(
                 collection_name,
                 view_name,
                 error.message = %e,
-                "collection sampling failed to open"
+                "encountered an error"
             );
         })
         .ok()?;
 
-    let mut schema = None;
+    let mut schema: Option<Schema> = None;
     let mut iterations = 0u64;
     let mut cursor = Box::pin(cursor);
     while let Some(Ok(doc)) = cursor
@@ -285,8 +285,10 @@ pub(crate) async fn sample_schema<S: LocalDataService>(
             );
         }
 
-        schema = schema.map_or(Some(schema_for_document(&doc)), |s: Schema| {
-            Some(s.union(&schema_for_document(&doc)))
+        let doc_schema = schema_for_document(&doc);
+        schema = Some(match schema {
+            Some(s) => s.union(&doc_schema),
+            None => doc_schema,
         });
 
         iterations += 1;

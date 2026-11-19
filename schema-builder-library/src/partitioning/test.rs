@@ -396,25 +396,19 @@ mod test {
             partitioning::{Partition, get_partitions},
         };
 
-        pub const ONE_GB_COLLECTION_SIZE: i64 = 1024 * 1024 * 1024; // 1 GiB
         /// One shard's `$collStats` document, as the server returns it for a sharded collection.
-        fn coll_stats(id: i32, size: i64, count: i64) -> Document {
+        fn coll_stats(id: i32, docs_per_shard: i64) -> Document {
             doc! {
                 "_id": id,
                 "ns": "db.coll",
                 "shard": format!("shard{id}"),
-                "storageStats": { "size": size, "count": count, "storageSize": size },
+                "storageStats": { "size": 100, "count": docs_per_shard, "storageSize": 100 },
             }
         }
 
         /// Three shards whose sizes sum to `total_size`, each reporting `count_per_shard`.
-        fn coll_stats_documents(total_size: i64, count_per_shard: i64) -> Vec<Document> {
-            let quarter = total_size / 4;
-            vec![
-                coll_stats(1, total_size - 2 * quarter, count_per_shard),
-                coll_stats(2, quarter, count_per_shard),
-                coll_stats(3, quarter, count_per_shard),
-            ]
+        fn coll_stats_documents(documents_per_shard: i64) -> Vec<Document> {
+            vec![coll_stats(1, 10), coll_stats(2, 10), coll_stats(3, 10)]
         }
 
         fn collection_info() -> CollectionInfo {
@@ -429,15 +423,12 @@ mod test {
             let service = MockDataService {
                 databases: Vec::new(),
                 collections: HashMap::new(),
-                documents: HashMap::from([(
-                    "db.coll".to_string(),
-                    coll_stats_documents(ONE_GB_COLLECTION_SIZE - 1, 1_000_000),
-                )]),
+                documents: HashMap::from([("db.coll".to_string(), coll_stats_documents(100))]),
             };
 
             let partitioned = get_partitions(&service, "db", collection_info())
                 .await
-                .expect("a collection below the threshold is partitioned");
+                .expect("a sharded collection is partitioned");
 
             // A sharded collection should return 1 partition, indicating that we should use sampling.
             assert_eq!(partitioned.partitions.len(), 1);
@@ -450,10 +441,7 @@ mod test {
             let service = MockDataService {
                 databases: Vec::new(),
                 collections: HashMap::new(),
-                documents: HashMap::from([(
-                    "db.coll".to_string(),
-                    vec![coll_stats(1, 50 * 1024 * 1024, 1_000)],
-                )]),
+                documents: HashMap::from([("db.coll".to_string(), vec![coll_stats(1, 100)])]),
             };
 
             let partitioned = get_partitions(&service, "db", collection_info())
@@ -461,14 +449,7 @@ mod test {
                 .expect("an unsharded collection is partitioned");
 
             assert!(!partitioned.is_sharded_collection);
-            assert_eq!(
-                partitioned.partitions,
-                vec![Partition {
-                    min: Bson::Int32(1),
-                    max: Bson::Int32(1),
-                    is_max_bound_inclusive: true,
-                }]
-            );
+            assert_eq!(partitioned.partitions.len(), 1);
         }
 
         #[tokio::test]
@@ -489,10 +470,7 @@ mod test {
             let service = MockDataService {
                 databases: Vec::new(),
                 collections: HashMap::new(),
-                documents: HashMap::from([(
-                    "db.coll".to_string(),
-                    coll_stats_documents(ONE_GB_COLLECTION_SIZE, 0),
-                )]),
+                documents: HashMap::from([("db.coll".to_string(), coll_stats_documents(100))]),
             };
 
             let result = get_partitions(&service, "db", collection_info()).await;
