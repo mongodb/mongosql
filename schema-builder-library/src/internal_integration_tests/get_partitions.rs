@@ -72,7 +72,7 @@ test_get_partitions!(
     expected = [Partition {
         min: Bson::MinKey,
         max: Bson::MaxKey,
-        is_max_bound_inclusive: true
+        is_max_bound_inclusive: true,
     }],
     input_db = UNIFORM_DB_NAME,
     input_coll = UNITARY_COLL_NAME

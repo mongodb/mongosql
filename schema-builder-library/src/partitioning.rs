@@ -1,11 +1,13 @@
-pub(crate) use crate::partitioning::partition::{PARTITION_SIZE_IN_BYTES, Partition};
+pub(crate) use crate::partitioning::partition::{
+    PARTITION_SIZE_IN_BYTES, Partition, SAMPLING_SIZE,
+};
 use crate::{
     Error, LocalDataService,
     data_service::{AggregateOptions, CollectionInfo, CollectionType},
 };
 use bson::{Bson, Document, doc};
 use futures::{StreamExt as _, TryStreamExt as _};
-use tracing::{instrument, trace};
+use tracing::{debug, instrument, trace, warn};
 
 mod partition;
 mod test;
@@ -15,6 +17,7 @@ pub struct PartitionedCollection {
     pub partitions: Vec<Partition>,
     pub partition_key: String,
     pub hint: Option<Document>,
+    pub is_sharded_collection: bool,
 }
 
 /// A utility function for determining the partitions of a collection.
@@ -22,11 +25,18 @@ pub struct PartitionedCollection {
 /// If a collection is greater than 100MB and has 101 or more documents, it is partitioned into 100MB chunks.
 /// Collections that do not meet this criteria are treated as a single partition.
 ///
-/// The minimum bound within each chunk is found
-/// by using a $bucketAuto stage that groups on the _id field.
+/// Sharded collections skip partitioning entirely and return a single `MinKey..=MaxKey`
+/// partition with `is_sharded_collection: true`: [`crate::derive_schema_for_partition`] derives
+/// its schema from a `$sample` of `SAMPLE_FALLBACK_SIZE` documents, and only scans the full
+/// bounds if that sample fails.
 ///
-/// Note that the 100MB limit comes from the server, as noted in
-/// [$bucketAuto docs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions).
+/// If the partitioning query fails to open, the collection is returned as a single partition
+/// covering its full bounds.
+///
+/// # Errors
+///
+/// Returns an error if the collection's size or bounds cannot be read, if a timeseries collection
+/// has no `timeField`, or if a non-timeseries collection reports no `count`.
 #[instrument(level = "trace", skip(service))]
 pub async fn get_partitions<S: LocalDataService>(
     service: &S,
@@ -68,6 +78,20 @@ pub async fn get_partitions<S: LocalDataService>(
         }
     };
 
+    if size_info.shard_count > 1 {
+        warn_sampling_selected(db, &collection_info.name);
+        return Ok(PartitionedCollection {
+            partitions: vec![Partition {
+                min: Bson::MinKey,
+                max: Bson::MaxKey,
+                is_max_bound_inclusive: true,
+            }],
+            partition_key,
+            hint,
+            is_sharded_collection: true,
+        });
+    }
+
     let (mut min_bound, max_bound) =
         get_bounds(service, db, &collection_info.name, partition_key.as_str()).await?;
 
@@ -82,6 +106,7 @@ pub async fn get_partitions<S: LocalDataService>(
             }],
             partition_key,
             hint,
+            is_sharded_collection: false,
         });
     }
 
@@ -106,11 +131,11 @@ pub async fn get_partitions<S: LocalDataService>(
         )
         .await
         .inspect_err(|e| {
-            tracing::warn!(
+            warn!(
                 db,
                 collection = %collection_info.name,
                 "partition sampling failed; falling back to a single partition: {e}"
-            )
+            );
         })
     else {
         return Ok(PartitionedCollection {
@@ -121,6 +146,7 @@ pub async fn get_partitions<S: LocalDataService>(
             }],
             partition_key,
             hint,
+            is_sharded_collection: false,
         });
     };
 
@@ -150,7 +176,19 @@ pub async fn get_partitions<S: LocalDataService>(
         partitions,
         partition_key,
         hint,
+        is_sharded_collection: false,
     })
+}
+
+fn warn_sampling_selected(db: &str, collection: &str) {
+    warn!(
+        name: "schema.sampling.selected",
+        db,
+        collection,
+        sample_size = SAMPLING_SIZE,
+        "Encountered a sharded collection; skipping partitioning and deriving the \
+         schema from a $sample. The schema may not reflect every document in the collection."
+    );
 }
 
 /// Utility struct for collection size and count information.
@@ -158,58 +196,96 @@ pub async fn get_partitions<S: LocalDataService>(
 pub(crate) struct CollectionSizes {
     pub size: i64,
     pub count: Option<i64>,
+    pub shard_count: i64,
 }
 
-/// get_size_counts uses the $collStats aggregation stage to get size and count information for the
-/// argued collection.
+/// Reads a collection's size and document count with `$collStats`.
+///
+/// Sharded collections return one
+/// [`$collStats`](https://www.mongodb.com/docs/manual/reference/operator/aggregation/collStats/)
+/// document per shard, so the server sums them with `$group` and returns a single document.
+///
+/// # Errors
+///
+/// Returns an error if the query fails, if the returned document is malformed, if no document is
+/// returned, or if the collection is empty.
 #[instrument(level = "trace", skip(service))]
 pub(crate) async fn get_size_counts<S: LocalDataService>(
     service: &S,
     db: &str,
     collection: &str,
 ) -> Result<CollectionSizes, Error<S::Error>> {
+    let pipeline = vec![
+        // Run $collStats to get storage stats.
+        // On sharded collections, returns document per shard.
+        doc! {"$collStats": {"storageStats": {}}},
+        // Group the totalSize, totalDocuments, and # of shards
+        doc! {"$group": {
+            "_id": null,
+            "totalSizeBytes": {"$sum": "$storageStats.size"},
+            "totalDocumentCount": {"$sum": "$storageStats.count"},
+            "shardsWithCount": {"$sum": {
+                "$cond": [{"$eq": [{"$type": "$storageStats.count"}, "missing"]}, 0, 1]
+            }},
+            "numberOfCollStatsDocuments": {"$sum": 1},
+        }},
+        // Convert size and doc counts to long, so we can translate to i64
+        doc! {"$project": {
+            "_id": 0,
+            "totalSizeBytes": {"$toLong": "$totalSizeBytes"},
+            "totalDocumentCount": {"$toLong": "$totalDocumentCount"},
+            "shardsWithCount": {"$toLong": "$shardsWithCount"},
+            "numberOfCollStatsDocuments": {"$toLong": "$numberOfCollStatsDocuments"},
+        }},
+    ];
+
     let cursor = service
-        .aggregate(
-            db,
-            collection,
-            vec![doc! {"$collStats": {"storageStats": {}}}],
-            AggregateOptions::default(),
-        )
+        .aggregate(db, collection, pipeline, AggregateOptions::default())
         .await
         .map_err(Error::DataServiceError)?;
     let mut cursor = Box::pin(cursor);
 
-    let stats = cursor
-        .next()
+    // `$group` yields no document at all when its input is empty, so a missing document means
+    // there were no stats to report.
+    let totals = cursor
+        .try_next()
         .await
-        .transpose()
         .map_err(Error::DataServiceError)?
         .ok_or_else(|| Error::NoCollectionStats(collection.to_string()))?;
 
-    let stats = stats
-        .get_document("storageStats")
+    let size = totals
+        .get_i64("totalSizeBytes")
         .map_err(|_| Error::BsonFailure)?;
-    let size = stats.get("size").cloned().ok_or(Error::BsonFailure)?;
-    // For timeseries collections, there is no `count` field reported, so we ignore it.
-    let count = stats.get("count").cloned();
-
-    let (size, count) = match (size, count) {
-        (Bson::Int32(size), Some(Bson::Int32(count))) => (size as i64, Some(count as i64)),
-        (Bson::Int32(size), Some(Bson::Int64(count))) => (size as i64, Some(count)),
-        (Bson::Int64(size), Some(Bson::Int32(count))) => (size, Some(count as i64)),
-        (Bson::Int64(size), Some(Bson::Int64(count))) => (size, Some(count)),
-        (Bson::Int32(size), None) => (size as i64, None),
-        (Bson::Int64(size), None) => (size, None),
-        _ => {
-            return Err(Error::BsonFailure);
-        }
-    };
+    let count = totals
+        .get_i64("totalDocumentCount")
+        .map_err(|_| Error::BsonFailure)?;
+    let shards_with_count = totals
+        .get_i64("shardsWithCount")
+        .map_err(|_| Error::BsonFailure)?;
+    let number_of_collstats_documents = totals
+        .get_i64("numberOfCollStatsDocuments")
+        .map_err(|_| Error::BsonFailure)?;
+    debug!(
+        name: "schema.collection.stats",
+        db,
+        collection,
+        total_size_bytes = size,
+        total_document_count = count,
+        shards_with_count,
+        number_of_collstats_documents,
+        "collection stats totals"
+    );
+    let count = (shards_with_count > 0).then_some(count);
 
     if size == 0 || count.is_some_and(|c| c == 0) {
-        Err(Error::EmptyCollection(collection.to_string()))
-    } else {
-        Ok(CollectionSizes { size, count })
+        return Err(Error::EmptyCollection(collection.to_string()));
     }
+
+    Ok(CollectionSizes {
+        size,
+        count,
+        shard_count: number_of_collstats_documents,
+    })
 }
 
 /// get_num_partitions determines the number of partitions by dividing the collection size by the

@@ -384,4 +384,102 @@ mod test {
             11
         );
     }
+
+    mod get_partitions {
+        use std::collections::HashMap;
+
+        use bson::{Document, doc};
+
+        use crate::{
+            Error,
+            data_service::{CollectionInfo, test::MockDataService},
+            partitioning::get_partitions,
+        };
+
+        /// One shard's `$collStats` document, as the server returns it for a sharded collection.
+        fn coll_stats(id: i32, docs_per_shard: i64) -> Document {
+            doc! {
+                "_id": id,
+                "ns": "db.coll",
+                "shard": format!("shard{id}"),
+                "storageStats": { "size": 100_i64, "count": docs_per_shard, "storageSize": 100 },
+            }
+        }
+
+        /// Three shards, each reporting `documents_per_shard` documents.
+        fn coll_stats_documents(documents_per_shard: i64) -> Vec<Document> {
+            vec![
+                coll_stats(1, documents_per_shard),
+                coll_stats(2, documents_per_shard),
+                coll_stats(3, documents_per_shard),
+            ]
+        }
+
+        fn collection_info() -> CollectionInfo {
+            CollectionInfo {
+                name: "coll".to_string(),
+                ..Default::default()
+            }
+        }
+
+        #[tokio::test]
+        async fn sharded_collection_sampled() {
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([("db.coll".to_string(), coll_stats_documents(100))]),
+            };
+
+            let partitioned = get_partitions(&service, "db", collection_info())
+                .await
+                .expect("a sharded collection is partitioned");
+
+            // A sharded collection should return 1 partition, indicating that we should use sampling.
+            assert_eq!(partitioned.partitions.len(), 1);
+            assert!(partitioned.is_sharded_collection);
+        }
+
+        #[tokio::test]
+        async fn unsharded_collection_is_not_sampled() {
+            // An unsharded collection returns a single `$collStats` document.
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([("db.coll".to_string(), vec![coll_stats(1, 100)])]),
+            };
+
+            let partitioned = get_partitions(&service, "db", collection_info())
+                .await
+                .expect("an unsharded collection is partitioned");
+
+            assert!(!partitioned.is_sharded_collection);
+            assert_eq!(partitioned.partitions.len(), 1);
+        }
+
+        #[tokio::test]
+        async fn missing_coll_stats_is_an_error() {
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([("db.coll".to_string(), Vec::new())]),
+            };
+
+            let result = get_partitions(&service, "db", collection_info()).await;
+
+            assert!(matches!(result, Err(Error::NoCollectionStats(c)) if c == "coll"));
+        }
+
+        #[tokio::test]
+        async fn empty_collection_is_an_error() {
+            let service = MockDataService {
+                databases: Vec::new(),
+                collections: HashMap::new(),
+                documents: HashMap::from([("db.coll".to_string(), coll_stats_documents(0))]),
+            };
+
+            let result = get_partitions(&service, "db", collection_info()).await;
+
+            assert!(matches!(result, Err(Error::EmptyCollection(c)) if c == "coll"));
+        }
+    }
 }

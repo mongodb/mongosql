@@ -3,8 +3,11 @@ use tracing::instrument;
 
 pub const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 
+/// Number of documents sampled for sharded collections
+pub const SAMPLING_SIZE: i64 = 1000;
+
 /// Returns true when `min` and `max` can be compared using match-language range operators.
-/// They can be compared if they are both numeric types, if they are the same type, or if one is MinKey and the other is MaxKey
+/// They can be compared if they are both numeric types, if they are the same type, or if one is `MinKey` and the other is `MaxKey`
 fn bounds_are_comparable(min: &Bson, max: &Bson) -> bool {
     fn is_numeric(bound: &Bson) -> bool {
         matches!(
