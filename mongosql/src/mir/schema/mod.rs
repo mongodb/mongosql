@@ -747,19 +747,17 @@ impl CachedSchema for Stage {
                         // We call simplify since the lift() and add_missing() functions
                         // may create schemas with duplicate information in an AnyOf, or
                         // an AnyOf with just one member.
-                        Schema::simplify(
-                            &(if !is_path_not_array && u.outer {
-                                match temp_path_schema {
-                                    Schema::AnyOf(mut ao) => {
-                                        ao.insert(Schema::Missing);
-                                        Schema::AnyOf(ao)
-                                    }
-                                    _ => Schema::AnyOf(set![temp_path_schema, Schema::Missing]),
+                        Schema::simplify(if !is_path_not_array && u.outer {
+                            match temp_path_schema {
+                                Schema::AnyOf(mut ao) => {
+                                    ao.insert(Schema::Missing);
+                                    Schema::AnyOf(ao)
                                 }
-                            } else {
-                                temp_path_schema
-                            }),
-                        ),
+                                _ => Schema::AnyOf(set![temp_path_schema, Schema::Missing]),
+                            }
+                        } else {
+                            temp_path_schema
+                        }),
                         !u.outer,
                     )
                 };
@@ -1116,7 +1114,7 @@ impl Expression {
 
     fn array_schema(state: &SchemaInferenceState, a: &[Expression]) -> Result<Schema, Error> {
         let items_schema = Expression::array_items_schema(a, state)?;
-        let items_schema_simplified = Schema::simplify(&items_schema);
+        let items_schema_simplified = Schema::simplify(items_schema);
         Ok(Schema::Array(Box::new(items_schema_simplified)))
     }
 
@@ -1395,7 +1393,7 @@ pub(crate) fn retain(schemas: &BTreeSet<Schema>) -> Result<Schema, Error> {
         if !anyof.is_empty() {
             retained.insert(atomic.clone());
         }
-        Schema::simplify(&AnyOf(retained))
+        Schema::simplify(AnyOf(retained))
     }
 
     if schemas.is_empty() {
@@ -1424,7 +1422,7 @@ pub(crate) fn retain(schemas: &BTreeSet<Schema>) -> Result<Schema, Error> {
                         current_result.insert(retain_aux(&Schema::Atomic(*at), ao2));
                     }
                 }
-                result = Schema::simplify(&AnyOf(current_result));
+                result = Schema::simplify(AnyOf(current_result));
             }
             _ => unreachable!(),
         }
@@ -1461,7 +1459,7 @@ trait SqlFunction {
         fn get_arithmetic_schema_aux(schemas: &[(&Expression, Schema)]) -> Result<Schema, Error> {
             let schemas_collected: BTreeSet<_> = schemas
                 .iter()
-                .map(|(_, s)| s)
+                .map(|(_, s)| s.clone())
                 .map(Schema::simplify)
                 // Remove Missing and Null from the schemas since the inclusion of Null
                 // in the output is handled by schema_check_variadic_args below.
@@ -1483,7 +1481,7 @@ trait SqlFunction {
         match self.schema_check_variadic_args(state, arg_schemas, NUMERIC_OR_NULLISH.clone())? {
             Satisfaction::Must => Ok(Atomic(Null)),
             Satisfaction::Not => get_arithmetic_schema_aux(arg_schemas),
-            Satisfaction::May => Ok(Schema::simplify(&AnyOf(set![
+            Satisfaction::May => Ok(Schema::simplify(AnyOf(set![
                 get_arithmetic_schema_aux(arg_schemas)?,
                 Atomic(Null),
             ]))),
@@ -2158,7 +2156,7 @@ impl ScalarFunction {
         } else {
             Schema::AnyOf(arg_schemas.iter().map(|(_, s)| s).cloned().collect())
         };
-        let schema = Schema::simplify(&schema.upconvert_missing_to_null());
+        let schema = Schema::simplify(schema.upconvert_missing_to_null());
         Ok(schema)
     }
 

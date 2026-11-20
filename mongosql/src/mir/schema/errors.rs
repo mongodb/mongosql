@@ -120,8 +120,8 @@ impl UserError for Error {
                 found,
                 ..
             } => {
-                let simplified_required = Schema::simplify(required);
-                let simplified_found = Schema::simplify(found);
+                let simplified_required = Schema::simplify(*required.clone());
+                let simplified_found = Schema::simplify(*found.clone());
 
                 if let Some(message) =
                     unsat_check(vec![simplified_required.clone(), simplified_found.clone()])
@@ -139,7 +139,7 @@ impl UserError for Error {
                 }
             }
             Error::AggregationArgumentMustBeSelfComparable(agg, schema) => {
-                let simplified_schema = Schema::simplify(schema);
+                let simplified_schema = Schema::simplify(*schema.clone());
 
                 if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
                     Some(message)
@@ -157,8 +157,8 @@ impl UserError for Error {
             Error::InvalidComparison {
                 name, left, right, ..
             } => {
-                let simplified_s1 = Schema::simplify(left);
-                let simplified_s2 = Schema::simplify(right);
+                let simplified_s1 = Schema::simplify(*left.clone());
+                let simplified_s2 = Schema::simplify(*right.clone());
 
                 if let Some(message) =
                     unsat_check(vec![simplified_s1.clone(), simplified_s2.clone()])
@@ -219,7 +219,7 @@ impl UserError for Error {
             }
             Error::InvalidSubqueryCardinality => None,
             Error::SortKeyNotSelfComparable(_, schema) => {
-                let simplified_schema = Schema::simplify(schema);
+                let simplified_schema = Schema::simplify(*schema.clone());
 
                 if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
                     Some(message)
@@ -235,7 +235,7 @@ impl UserError for Error {
                 }
             }
             Error::GroupKeyNotSelfComparable(_, schema) => {
-                let simplified_schema = Schema::simplify(schema);
+                let simplified_schema = Schema::simplify(*schema.clone());
 
                 if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
                     Some(message)

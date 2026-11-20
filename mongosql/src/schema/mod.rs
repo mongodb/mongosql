@@ -6,4 +6,6 @@ pub use definitions::*;
 mod test;
 
 #[cfg(test)]
+mod fuzz_test;
+#[cfg(test)]
 mod jaccard_test;

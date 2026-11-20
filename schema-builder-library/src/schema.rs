@@ -73,7 +73,7 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
         )
         .await?;
 
-        result = result.union(&schema);
+        result = result.union_simplified(schema);
     }
 
     Ok(result)
@@ -113,8 +113,10 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         if let Some(sampled) = derive_schema_from_sampled_collection(service, db, collection).await
         {
             // Union with the initial schema so a merge run keeps previously seen fields.
-            return Ok(match &initial_schema_doc {
-                Some(initial) => Schema::simplify(initial).union(&sampled),
+            return Ok(match initial_schema_doc {
+                Some(initial) => {
+                    Schema::simplify(Arc::unwrap_or_clone(initial)).union_simplified(sampled)
+                }
                 None => sampled,
             });
         }
@@ -136,7 +138,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     // The initial schema might be empty, in which case we
     // default to `Unsat` if there are also no refinement entries for the DB
     let mut schema = initial_schema_doc
-        .map(|s| Schema::simplify(&s))
+        .map(|s| Schema::simplify(Arc::unwrap_or_clone(s)))
         .unwrap_or(Schema::Unsat);
 
     let mut saw_unstable = false;
@@ -167,6 +169,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             .await
             .map_err(Error::DataServiceError)?;
 
+        let previous_min = partition.min.clone();
         let mut no_result = true;
         let mut iter_schema = Schema::Unsat;
         let mut cursor = Box::pin(cursor);
@@ -174,7 +177,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             info!(db, collection, "processing partition {partition_ix}");
             if let Some(id) = doc.get(partition_key) {
                 partition.min = id.clone();
-                iter_schema = iter_schema.union(&schema_for_document(&doc));
+                iter_schema = iter_schema.union_simplified(schema_for_document(&doc));
                 no_result = false;
             } else {
                 warn!(
@@ -188,7 +191,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             break;
         }
 
-        let new_schema = schema.union(&iter_schema);
+        let new_schema = schema.union_simplified(iter_schema);
 
         // A batch that widened nothing means `schema` already covers what came back, yet
         // `$nor: [$jsonSchema]` returned it anyway -- so the document at `partition.min`
@@ -200,7 +203,11 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         // already folded into `schema`, so excluding it from here on loses nothing.
         //
         // Otherwise, `min` has advanced past any previous blocker and `$gte` excludes it.
-        ignored_min_id = (new_schema == schema).then(|| partition.min.clone());
+        if partition.min == previous_min {
+            ignored_min_id = Some(partition.min.clone());
+        } else {
+            ignored_min_id = None;
+        }
 
         schema = new_schema;
 
@@ -288,7 +295,7 @@ pub(crate) async fn sample_schema<S: LocalDataService>(
 
         let doc_schema = schema_for_document(&doc);
         schema = Some(match schema {
-            Some(s) => s.union(&doc_schema),
+            Some(s) => s.union_simplified(doc_schema),
             None => doc_schema,
         });
 
