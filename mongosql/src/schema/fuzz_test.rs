@@ -1,5 +1,9 @@
 use quickcheck::*;
 
+/// This test asserts the property: "Given simplified inputs, the result of
+/// `union_simplified` is equal to itself when simplified." This property
+/// guarantees that the results of `union_simplified` are always in simplified
+/// form.
 #[test]
 fn prop_union_simplified_returns_simplified_schema() {
     use crate::schema::*;
@@ -18,6 +22,10 @@ fn prop_union_simplified_returns_simplified_schema() {
         .quickcheck(union_simplified_schemas as fn(Schema, Schema) -> TestResult);
 }
 
+/// This test asserts the property: "Given simplified inputs, the result of
+/// `merge_simplified` is equal to itself when simplified." This property
+/// guarantees that the results of `merge_simplified` are always in simplified
+/// form.
 #[test]
 fn prop_merge_simplified_returns_simplified_schema() {
     use crate::schema::*;
