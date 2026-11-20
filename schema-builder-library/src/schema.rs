@@ -113,8 +113,10 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         if let Some(sampled) = derive_schema_from_sampled_collection(service, db, collection).await
         {
             // Union with the initial schema so a merge run keeps previously seen fields.
-            return Ok(match &initial_schema_doc {
-                Some(initial) => Schema::simplify(initial).union(&sampled),
+            return Ok(match initial_schema_doc {
+                Some(initial) => {
+                    Schema::simplify(Arc::unwrap_or_clone(initial)).union_simplified(sampled)
+                }
                 None => sampled,
             });
         }
