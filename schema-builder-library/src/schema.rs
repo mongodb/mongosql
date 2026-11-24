@@ -4,7 +4,7 @@ use bson::{Bson, Document, doc};
 use futures::TryStreamExt as _;
 use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
-use tracing::{info, instrument, warn};
+use tracing::{info, instrument, warn, debug};
 
 use crate::data_service::{AggregateOptions, LocalDataService};
 use crate::partitioning::SAMPLING_SIZE;
@@ -276,12 +276,12 @@ pub(crate) async fn sample_schema<S: LocalDataService>(
         .transpose()
     {
         if iterations.is_multiple_of(SAMPLE_PROGRESS_LOG_INTERVAL) {
-            info!(
+            debug!(
                 name: "schema.sampling.progress",
                 db,
                 collection_name,
                 view_name,
-                iteration = iterations,
+                sampled_documents = iterations,
                 "calculating schema for sampled collection"
             );
         }
