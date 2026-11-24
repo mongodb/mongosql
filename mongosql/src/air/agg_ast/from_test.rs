@@ -1716,20 +1716,6 @@ mod expression {
         );
 
         test_from_expr!(
-            coalesce,
-            expected = air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
-                op: air::SqlOperator::Coalesce,
-                args: vec![air::Expression::Literal(air::LiteralValue::Integer(1))]
-            }),
-            input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
-                op: agg_ast::UntaggedOperatorName::Coalesce,
-                args: vec![agg_ast::Expression::Literal(agg_ast::LiteralValue::Int32(
-                    1
-                ))]
-            })
-        );
-
-        test_from_expr!(
             sql_between,
             expected = air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
                 op: air::SqlOperator::Between,

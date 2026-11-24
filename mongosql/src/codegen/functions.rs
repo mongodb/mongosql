@@ -181,7 +181,6 @@ impl MqlCodeGenerator {
 
             // Conditional scalar functions
             NullIf => "$nullIf",
-            Coalesce => "$coalesce",
 
             // Array scalar functions
             Slice => "$sqlSlice",

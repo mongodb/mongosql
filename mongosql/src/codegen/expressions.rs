@@ -107,7 +107,6 @@ impl MqlCodeGenerator {
             SqlOperator::And
             | SqlOperator::Between
             | SqlOperator::BitLength
-            | SqlOperator::Coalesce
             | SqlOperator::Cos
             | SqlOperator::Eq
             | SqlOperator::Gt

@@ -920,8 +920,6 @@ pub enum UntaggedOperatorName {
     Ceil,
     #[serde(rename = "$cmp")]
     Cmp,
-    #[serde(rename = "$coalesce")]
-    Coalesce,
     #[serde(rename = "$concat")]
     Concat,
     #[serde(rename = "$concatArrays")]
