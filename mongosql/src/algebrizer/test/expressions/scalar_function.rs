@@ -917,16 +917,20 @@ test_algebrize!(
         mir::ScalarFunctionApplication::new(
             mir::ScalarFunction::Coalesce,
             vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                mir::Expression::Literal(mir::LiteralValue::String(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+                mir::Expression::Literal(mir::LiteralValue::String(
+                    "{\"$numberInt\": \"2\"}".to_string()
+                )),
             ],
         )
     ),),
     input = ast::Expression::Function(ast::FunctionExpr {
         function: ast::FunctionName::Coalesce,
         args: ast::FunctionArguments::Args(vec![
-            ast::Expression::StringConstructor("{\"$numberInt\":\"1\"}".to_string()),
-            ast::Expression::StringConstructor("{\"$numberInt\":\"2\"}".to_string()),
+            ast::Expression::StringConstructor("{\"$numberInt\": \"1\"}".to_string()),
+            ast::Expression::StringConstructor("{\"$numberInt\": \"2\"}".to_string()),
         ]),
         set_quantifier: None,
     }),

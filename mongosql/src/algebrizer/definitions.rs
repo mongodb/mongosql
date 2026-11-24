@@ -1851,7 +1851,6 @@ impl<'a> Algebrizer<'a> {
             (ast::FunctionName::CurrentTimestamp, 1) => Vec::new(),
             (ast::FunctionName::Abs, _)
             | (ast::FunctionName::Ceil, _)
-            | (ast::FunctionName::Coalesce, _)
             | (ast::FunctionName::Cos, _)
             | (ast::FunctionName::CurrentTimestamp, _)
             | (ast::FunctionName::Degrees, _)
@@ -1907,7 +1906,8 @@ impl<'a> Algebrizer<'a> {
                 let (expr1, expr2) = self.algebrize_binary_comparison_operands(v1, v2)?;
                 vec![expr1, expr2]
             }
-            (ast::FunctionName::Split, _)
+            (ast::FunctionName::Coalesce, _)
+            | (ast::FunctionName::Split, _)
             | (ast::FunctionName::Substring, _)
             | (ast::FunctionName::NullIf, _)
             | (ast::FunctionName::BitLength, _)
