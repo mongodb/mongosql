@@ -550,6 +550,17 @@ mod identifier {
     expression_printer_test!(empty, expected = "``", input = "``");
     expression_printer_test!(is_keyword, expected = "`is`", input = "`is`");
     expression_printer_test!(
+        keyword_suffix_is_not_keyword,
+        expected = "orbit",
+        input = "orbit"
+    );
+    expression_printer_test!(
+        keyword_prefix_is_not_keyword,
+        expected = "bitter",
+        input = "bitter"
+    );
+    expression_printer_test!(keyword_exact_match, expected = "`bit`", input = "`bit`");
+    expression_printer_test!(
         delimited_non_keyword_retains_delimiters,
         expected = "`foo`",
         input = "`foo`"
