@@ -4,7 +4,7 @@ use bson::{Bson, Document, doc};
 use futures::TryStreamExt as _;
 use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
-use tracing::{info, instrument, warn, debug};
+use tracing::{debug, info, instrument, warn};
 
 use crate::data_service::{AggregateOptions, LocalDataService};
 use crate::partitioning::SAMPLING_SIZE;
