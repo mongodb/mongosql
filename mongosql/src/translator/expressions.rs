@@ -367,7 +367,7 @@ impl MqlTranslator {
             .collect::<Result<Vec<air::Expression>>>()?;
 
         // COALESCE is translated to an MQL $ifNull operator, which returns the first non-nullish
-        // argument, or the final argument if non are non-null. This is almost equivalent to SQL
+        // argument, or the final argument if none are non-null. This is almost equivalent to SQL
         // COALESCE. The key difference is that $ifNull does not upconvert missing to null, so if
         // all arguments to $ifNull are nullish and the final one happens to be missing, the result
         // will be missing rather than null. Therefore, for COALESCE we manually append a null
