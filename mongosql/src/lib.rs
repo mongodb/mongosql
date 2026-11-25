@@ -245,7 +245,7 @@ fn mql_schema_env_to_json_schema(
             exclude_namespace_in_result_set_schema_keys(schema_env, mapping_registry)?
         };
 
-    json_schema::Schema::try_from(Schema::simplify(&Schema::Document(schema::Document {
+    json_schema::Schema::try_from(Schema::simplify(Schema::Document(schema::Document {
         required: keys.keys().cloned().collect(),
         keys,
         additional_properties: false,

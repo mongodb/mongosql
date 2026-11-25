@@ -16,6 +16,7 @@
 
 use crate::{derive_schema_for_collection, internal_integration_tests::create_mdb_client};
 use bson::{Document, doc};
+use mongodb::options::TimeseriesOptions;
 use mongosql::schema::Schema;
 use schema_derivation::schema_for_document;
 use std::time::Duration;
@@ -32,15 +33,21 @@ const TIMEOUT: Duration = Duration::from_secs(30);
 /// only *after* its contribution has been folded in, so a fix that bailed out of the
 /// loop, or skipped such documents up front, would terminate but lose information.
 #[allow(clippy::unwrap_used)]
-async fn assert_derivation_terminates(coll_name: &str, docs: Vec<Document>) {
+async fn assert_derivation_terminates(coll_name: &str, is_timeseries: bool, docs: Vec<Document>) {
     let expected = docs.iter().fold(Schema::Unsat, |acc, doc| {
         acc.union(&schema_for_document(doc))
     });
 
     let client = create_mdb_client().await;
     let db = client.database(DB_NAME);
+    db.collection::<Document>(coll_name).drop().await.unwrap();
+    if is_timeseries {
+        db.create_collection(coll_name)
+            .timeseries(TimeseriesOptions::builder().time_field("ts").build())
+            .await
+            .unwrap();
+    }
     let coll = db.collection::<Document>(coll_name);
-    coll.drop().await.unwrap();
     coll.insert_many(docs).await.unwrap();
 
     let service = crate::data_service::MongoDbDataService::new(client);
@@ -65,15 +72,11 @@ async fn assert_derivation_terminates(coll_name: &str, docs: Vec<Document>) {
 }
 
 macro_rules! test_derivation_terminates {
-    ($test_name:ident, docs = $docs:expr) => {
+    ($test_name:ident, is_timeseries = $is_timeseries:expr, docs = $docs:expr) => {
         #[cfg(feature = "integration")]
         #[tokio::test]
         async fn $test_name() {
-            super::derive_schema_unmatchable_documents::assert_derivation_terminates(
-                stringify!($test_name),
-                $docs,
-            )
-            .await
+            assert_derivation_terminates(stringify!($test_name), $is_timeseries, $docs).await
         }
     };
 }
@@ -83,16 +86,19 @@ macro_rules! test_derivation_terminates {
 // inclusive `$gte` bound can exclude it.
 test_derivation_terminates!(
     single_dotted_document,
+    is_timeseries = false,
     docs = vec![doc! {"_id": 0, "a.b": 1}]
 );
 
 test_derivation_terminates!(
     single_nested_dotted_document,
+    is_timeseries = false,
     docs = vec![doc! {"_id": 0, "a": {"b.c": 1}}]
 );
 
 test_derivation_terminates!(
     single_dotted_document_in_array,
+    is_timeseries = false,
     docs = vec![doc! {"_id": 0, "a": [{"b.c": 1}]}]
 );
 
@@ -108,11 +114,13 @@ test_derivation_terminates!(
 // count congruent to 1 modulo PARTITION_DOCS_PER_ITERATION.
 test_derivation_terminates!(
     dotted_documents_one_over_a_full_batch,
+    is_timeseries = false,
     docs = (0..21).map(|i| doc! {"_id": i, "a.b": i}).collect()
 );
 
 test_derivation_terminates!(
     dotted_documents_two_over_a_full_batch,
+    is_timeseries = false,
     docs = (0..41).map(|i| doc! {"_id": i, "a.b": i}).collect()
 );
 
@@ -122,6 +130,7 @@ test_derivation_terminates!(
 // A count of two, nowhere near 1 modulo PARTITION_DOCS_PER_ITERATION.
 test_derivation_terminates!(
     shared_dotted_key_with_differing_shapes,
+    is_timeseries = false,
     docs = vec![
         doc! {"_id": 0, "a.b": 0, "u0": 0},
         doc! {"_id": 1, "a.b": 1, "u1": 1},
@@ -136,6 +145,7 @@ test_derivation_terminates!(
 // reintroduce the hang, and this pins that it does not.
 test_derivation_terminates!(
     nonrequired_dotted_documents_multiple_batches,
+    is_timeseries = false,
     docs = (0..10)
         .map(|i| doc! {"_id": i, "a.b": i})
         .chain((10..21).map(|i| doc! {"_id": i, "c.d": i}))
@@ -146,10 +156,86 @@ test_derivation_terminates!(
 // means the fix broke ordinary derivation rather than that the bug is unfixed.
 test_derivation_terminates!(
     dotted_documents_filling_whole_batches,
+    is_timeseries = false,
     docs = (0..40).map(|i| doc! {"_id": i, "a.b": i}).collect()
 );
 
 test_derivation_terminates!(
     single_document_without_dotted_fields,
+    is_timeseries = false,
     docs = vec![doc! {"_id": 0, "a": 1}]
 );
+
+// Ensure timeseries collections are also handled correctly.
+mod timeseries {
+    use super::*;
+    use bson::{Bson, DateTime};
+
+    test_derivation_terminates!(
+        ts_single_dotted_document,
+        is_timeseries = true,
+        docs = vec![doc! {"_id": 0, "ts": Bson::DateTime(DateTime::now()), "a.b": 1}]
+    );
+
+    test_derivation_terminates!(
+        ts_dotted_documents_one_over_a_full_batch,
+        is_timeseries = true,
+        docs = {
+            let now = DateTime::now();
+            (0..21)
+                .map(|i| doc! {"_id": i, "ts": Bson::DateTime(now), "a.b": i})
+                .collect()
+        }
+    );
+
+    test_derivation_terminates!(
+        ts_dotted_documents_two_over_a_full_batch,
+        is_timeseries = true,
+        docs = {
+            let now = DateTime::now();
+            (0..41)
+                .map(|i| doc! {"_id": i, "ts": Bson::DateTime(now), "a.b": i})
+                .collect()
+        }
+    );
+
+    test_derivation_terminates!(
+        ts_shared_dotted_key_with_differing_shapes,
+        is_timeseries = true,
+        docs = {
+            let now = DateTime::now();
+            vec![
+                doc! {"_id": 0, "ts": Bson::DateTime(now), "a.b": 0, "u0": 0},
+                doc! {"_id": 1, "ts": Bson::DateTime(now), "a.b": 1, "u1": 1},
+            ]
+        }
+    );
+
+    // Timeseries collections use the "time field" as the key instead of "_id". Since "time field"
+    // is not guaranteed to be unique, we must ensure we do not ignore additional documents with
+    // extra schema information when avoiding the infinite loop situation. This test sets up a ts
+    // collection with 25 documents with the same timestamp and a unique field each. This should
+    // not even risk entering the infinite loop since there are no characteristics in the schema
+    // that would cause the issue; however, it is possible for the implementation to simply be
+    // incorrect by being based on the assumption the partition key is unique.
+    //
+    // Note that 25 documents with a unique field each would typically cause a schema to be unstable
+    // so the test needs to account for that. Since unstable schemas may include arbitrary fields
+    // in the final output, we insert 150 common fields per document to ensure the schema is stable.
+    test_derivation_terminates!(
+        ts_many_documents_with_same_timestamp,
+        is_timeseries = true,
+        docs = {
+            let now = DateTime::now();
+            (0..25)
+                .map(|i| {
+                    let mut doc = doc! {"_id": i, "ts": Bson::DateTime(now), format!("u{i}"): i};
+                    for j in 0..150 {
+                        doc.insert(format!("c{}", j), j);
+                    }
+                    doc
+                })
+                .collect()
+        }
+    );
+}

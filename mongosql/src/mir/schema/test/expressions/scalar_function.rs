@@ -4090,7 +4090,7 @@ mod coalesce {
 
     test_schema!(
         coalesce_with_any_schema_and_nullish_args_yields_non_nullish_with_null,
-        expected = Ok(Schema::simplify(&Schema::AnyOf(set![
+        expected = Ok(Schema::simplify(Schema::AnyOf(set![
             NON_NULLISH.clone(),
             Schema::Atomic(Atomic::Null),
         ]))),

@@ -14,6 +14,9 @@ use crate::{PartitionedCollection, get_partitions};
 /// How many sampled documents to process between progress log lines.
 const SAMPLE_PROGRESS_LOG_INTERVAL: u64 = 100;
 
+// Default non-timeseries collection partition key
+const DEFAULT_COLLECTION_PARTITION_KEY: &str = "_id";
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct SinglePartition {
     pub partition: Partition,
@@ -73,7 +76,7 @@ pub async fn derive_schema_for_collection<S: LocalDataService>(
         )
         .await?;
 
-        result = result.union(&schema);
+        result = result.union_simplified(schema);
     }
 
     Ok(result)
@@ -113,8 +116,10 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         if let Some(sampled) = derive_schema_from_sampled_collection(service, db, collection).await
         {
             // Union with the initial schema so a merge run keeps previously seen fields.
-            return Ok(match &initial_schema_doc {
-                Some(initial) => Schema::simplify(initial).union(&sampled),
+            return Ok(match initial_schema_doc {
+                Some(initial) => {
+                    Schema::simplify(Arc::unwrap_or_clone(initial)).union_simplified(sampled)
+                }
                 None => sampled,
             });
         }
@@ -136,7 +141,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
     // The initial schema might be empty, in which case we
     // default to `Unsat` if there are also no refinement entries for the DB
     let mut schema = initial_schema_doc
-        .map(|s| Schema::simplify(&s))
+        .map(|s| Schema::simplify(Arc::unwrap_or_clone(s)))
         .unwrap_or(Schema::Unsat);
 
     let mut saw_unstable = false;
@@ -167,6 +172,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             .await
             .map_err(Error::DataServiceError)?;
 
+        let previous_min = partition.min.clone();
         let mut no_result = true;
         let mut iter_schema = Schema::Unsat;
         let mut cursor = Box::pin(cursor);
@@ -174,7 +180,7 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             info!(db, collection, "processing partition {partition_ix}");
             if let Some(id) = doc.get(partition_key) {
                 partition.min = id.clone();
-                iter_schema = iter_schema.union(&schema_for_document(&doc));
+                iter_schema = iter_schema.union_simplified(schema_for_document(&doc));
                 no_result = false;
             } else {
                 warn!(
@@ -188,8 +194,6 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             break;
         }
 
-        let new_schema = schema.union(&iter_schema);
-
         // A batch that widened nothing means `schema` already covers what came back, yet
         // `$nor: [$jsonSchema]` returned it anyway -- so the document at `partition.min`
         // cannot match the `$jsonSchema` rendering of the very schema it contributed to.
@@ -200,15 +204,38 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         // already folded into `schema`, so excluding it from here on loses nothing.
         //
         // Otherwise, `min` has advanced past any previous blocker and `$gte` excludes it.
-        ignored_min_id = (new_schema == schema).then(|| partition.min.clone());
+        //
+        // For non-timeseries collections, the partition key is _id which is unique. This allows us
+        // to simply track the previous_min id we've seen. If it matches the current min for this
+        // iteration, then we know we've seen this document before and should ignore it.
+        //
+        // For timeseries collections, the partition key is the time field which is not unique. In
+        // that case, we need to compare the new_schema to the old schema: if they are equal, then
+        // we've seen this document before and should ignore it. That comparison is also valid for
+        // non-timeseries collections, but is more expensive since it requires cloning the old
+        // schema before unioning. Therefore, we branch here based on the partition key.
+        if partition_key == DEFAULT_COLLECTION_PARTITION_KEY {
+            let new_schema = schema.union_simplified(iter_schema);
 
-        schema = new_schema;
+            if partition.min == previous_min {
+                ignored_min_id = Some(partition.min.clone());
+            } else {
+                ignored_min_id = None;
+            }
+
+            schema = new_schema;
+        } else {
+            let new_schema = schema.clone().union_simplified(iter_schema);
+
+            ignored_min_id = (new_schema == schema).then(|| partition.min.clone());
+
+            schema = new_schema;
+        }
 
         // If the schema for this partition becomes unstable, we should do at most one more
         // iteration to see if we detect any additional properties. After two iterations with an
         // unstable schema, we should stop deriving schema for this partition since it is unlikely
         // new information will be added.
-
         if schema.is_unstable() {
             if saw_unstable {
                 break;
@@ -288,7 +315,7 @@ pub(crate) async fn sample_schema<S: LocalDataService>(
 
         let doc_schema = schema_for_document(&doc);
         schema = Some(match schema {
-            Some(s) => s.union(&doc_schema),
+            Some(s) => s.union_simplified(doc_schema),
             None => doc_schema,
         });
 
