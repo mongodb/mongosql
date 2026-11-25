@@ -223,7 +223,7 @@ mod timeseries {
     // so the test needs to account for that. Since unstable schemas may include arbitrary fields
     // in the final output, we insert 150 common fields per document to ensure the schema is stable.
     test_derivation_terminates!(
-        many_documents_with_same_timestamp,
+        ts_many_documents_with_same_timestamp,
         is_timeseries = true,
         docs = {
             let now = DateTime::now();
