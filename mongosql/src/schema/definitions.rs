@@ -2228,6 +2228,7 @@ impl Document {
     fn union_keys_with_jaccard_intersection_size(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
+        schema_combine_fn: impl Fn(Schema, Schema) -> Schema,
     ) -> (BTreeMap<String, Schema>, usize) {
         let m1_len = m1.len();
         let m2_len = m2.len();
@@ -2235,7 +2236,7 @@ impl Document {
         for (key2, schema2) in m2.into_iter() {
             if let Some(old_schema) = m1.get_mut(&key2) {
                 overlap += 1;
-                *old_schema = old_schema.union(&schema2);
+                *old_schema = schema_combine_fn(std::mem::take(old_schema), schema2);
             } else {
                 m1.insert(key2, schema2);
             }
@@ -2411,8 +2412,11 @@ impl Document {
         // If both are stable, attempt to union using Jaccard Index information, or union "normally"
         // if no JaccardIndex info is present.
         if let Some(jaccard_index) = Document::get_jaccard_index(&self, &other) {
-            let (union, intersection_size) =
-                Document::union_keys_with_jaccard_intersection_size(self.keys, other.keys);
+            let (union, intersection_size) = Document::union_keys_with_jaccard_intersection_size(
+                self.keys,
+                other.keys,
+                schema_combine_fn,
+            );
 
             let jaccard_index =
                 Document::update_jaccard_index(jaccard_index, union.len(), intersection_size);
