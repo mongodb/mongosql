@@ -14,6 +14,9 @@ use crate::{PartitionedCollection, get_partitions};
 /// How many sampled documents to process between progress log lines.
 const SAMPLE_PROGRESS_LOG_INTERVAL: u64 = 100;
 
+// Default non-timeseries collection partition key
+const DEFAULT_COLLECTION_PARTITION_KEY: &str = "_id";
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct SinglePartition {
     pub partition: Partition,
@@ -191,8 +194,6 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
             break;
         }
 
-        let new_schema = schema.union_simplified(iter_schema);
-
         // A batch that widened nothing means `schema` already covers what came back, yet
         // `$nor: [$jsonSchema]` returned it anyway -- so the document at `partition.min`
         // cannot match the `$jsonSchema` rendering of the very schema it contributed to.
@@ -203,19 +204,38 @@ pub async fn derive_schema_for_partition<S: LocalDataService>(
         // already folded into `schema`, so excluding it from here on loses nothing.
         //
         // Otherwise, `min` has advanced past any previous blocker and `$gte` excludes it.
-        if partition.min == previous_min {
-            ignored_min_id = Some(partition.min.clone());
-        } else {
-            ignored_min_id = None;
-        }
+        //
+        // For non-timeseries collections, the partition key is _id which is unique. This allows us
+        // to simply track the previous_min id we've seen. If it matches the current min for this
+        // iteration, then we know we've seen this document before and should ignore it.
+        //
+        // For timeseries collections, the partition key is the time field which is not unique. In
+        // that case, we need to compare the new_schema to the old schema: if they are equal, then
+        // we've seen this document before and should ignore it. That comparison is also valid for
+        // non-timeseries collections, but is more expensive since it requires cloning the old
+        // schema before unioning. Therefore, we branch here based on the partition key.
+        if partition_key == DEFAULT_COLLECTION_PARTITION_KEY {
+            let new_schema = schema.union_simplified(iter_schema);
 
-        schema = new_schema;
+            if partition.min == previous_min {
+                ignored_min_id = Some(partition.min.clone());
+            } else {
+                ignored_min_id = None;
+            }
+
+            schema = new_schema;
+        } else {
+            let new_schema = schema.clone().union_simplified(iter_schema);
+
+            ignored_min_id = (new_schema == schema).then(|| partition.min.clone());
+
+            schema = new_schema;
+        }
 
         // If the schema for this partition becomes unstable, we should do at most one more
         // iteration to see if we detect any additional properties. After two iterations with an
         // unstable schema, we should stop deriving schema for this partition since it is unlikely
         // new information will be added.
-
         if schema.is_unstable() {
             if saw_unstable {
                 break;
