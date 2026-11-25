@@ -201,7 +201,7 @@ mod timeseries {
 
     test_derivation_terminates!(
         ts_shared_dotted_key_with_differing_shapes,
-        is_timeseries = false,
+        is_timeseries = true,
         docs = {
             let now = DateTime::now();
             vec![
