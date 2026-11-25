@@ -2384,7 +2384,13 @@ impl Document {
     //       base value.
     ///   5. `unstable` - Unconditionally set to `true`.
     pub fn union(self, other: Document) -> Document {
-        self.union_aux(other, |s1, s2| Schema::union(&s1, &s2))
+        let Schema::Document(left) = Schema::simplify(Schema::Document(self)) else {
+            unreachable!("Document simplification resulted in non-Document schema (left)")
+        };
+        let Schema::Document(right) = Schema::simplify(Schema::Document(other)) else {
+            unreachable!("Document simplification resulted in non-Document schema (right)")
+        };
+        left.union_aux(right, Schema::union_simplified)
     }
 
     /// Unions Documents following the same rules described above, but this
@@ -2555,7 +2561,13 @@ impl Document {
     /// satisfy one of the input schemas will not satisfy the resulting schema unless one is a
     /// subset of the other.
     pub fn merge(self, other: Document) -> Document {
-        self.merge_aux(other, |s1, s2| Schema::merge(&s1, &s2))
+        let Schema::Document(left) = Schema::simplify(Schema::Document(self)) else {
+            unreachable!("Document simplification resulted in non-Document schema (left)")
+        };
+        let Schema::Document(right) = Schema::simplify(Schema::Document(other)) else {
+            unreachable!("Document simplification resulted in non-Document schema (right)")
+        };
+        left.merge_aux(right, Schema::merge_simplified)
     }
 
     /// Merges Documents following the same rules described above, but this
