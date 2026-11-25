@@ -314,9 +314,9 @@ impl NegativeNormalize<Expression> for Expression {
                     }
                     // The following operators may evaluate to the falsy values missing, null, 0, or
                     // false, so the negation asserts equality to any of those values.
-                    UntaggedOperatorName::Coalesce | UntaggedOperatorName::NullIf
-                    | UntaggedOperatorName::First | UntaggedOperatorName::IfNull
-                    | UntaggedOperatorName::Last | UntaggedOperatorName::Literal
+                    UntaggedOperatorName::Literal
+                    | UntaggedOperatorName::NullIf | UntaggedOperatorName::IfNull
+                    | UntaggedOperatorName::First | UntaggedOperatorName::Last
                     | UntaggedOperatorName::Max | UntaggedOperatorName::Min => {
                         let null_check = wrap_in_null_or_missing_check!(self.clone());
                         let zero_check = wrap_in_zero_check!(self.clone());

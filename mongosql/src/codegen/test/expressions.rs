@@ -1175,19 +1175,6 @@ mod sql_semantic_operator {
     );
 
     test_codegen_expression!(
-        coalesce_expr,
-        expected = Ok(bson!({ "$coalesce": [{ "$literal": 1}, { "$literal": 2}, {"$literal": 3}]})),
-        input = SqlSemanticOperator(SqlSemanticOperator {
-            op: Coalesce,
-            args: vec![
-                Literal(Integer(1)),
-                Literal(Integer(2)),
-                Literal(Integer(3))
-            ],
-        })
-    );
-
-    test_codegen_expression!(
         not,
         expected = Ok(bson!({ "$sqlNot": [{ "$literal": false}]})),
         input = SqlSemanticOperator(SqlSemanticOperator {

@@ -1323,29 +1323,31 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         coalesce_no_nullish,
-        expected = Ok(air::Expression::SqlSemanticOperator(
-            air::SqlSemanticOperator {
-                op: air::SqlOperator::Coalesce,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::IfNull,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Boolean(false)),
+                    air::Expression::Literal(air::LiteralValue::Null),
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
-            mir::ScalarFunction::Coalesce,
-            vec![
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Coalesce,
+            args: vec![
                 mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
             ],
-        )),
+            is_nullable: false,
+        }),
     );
 
     test_translate_expression_with_schema_info!(
         coalesce_nullish,
-        expected = Ok(air::Expression::SqlSemanticOperator(
-            air::SqlSemanticOperator {
-                op: air::SqlOperator::Coalesce,
+        expected = Ok(air::Expression::MqlSemanticOperator(
+            air::MqlSemanticOperator {
+                op: air::MqlOperator::IfNull,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Boolean(true)),
                     air::Expression::Literal(air::LiteralValue::Null),

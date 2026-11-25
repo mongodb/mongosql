@@ -360,7 +360,6 @@ pub enum SqlOperator {
 
     // Conditional scalar functions
     NullIf,
-    Coalesce,
 
     // Boolean operators
     Not,

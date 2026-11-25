@@ -334,7 +334,7 @@ impl From<mir::ScalarFunction> for ScalarFunctionType {
 
             // Conditional scalar functions
             NullIf => ScalarFunctionType::Sql(SqlOperator::NullIf),
-            Coalesce => ScalarFunctionType::Sql(SqlOperator::Coalesce),
+            Coalesce => ScalarFunctionType::Mql(MqlOperator::IfNull),
 
             // Array scalar functions
             Slice => ScalarFunctionType::Sql(SqlOperator::Slice),

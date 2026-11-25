@@ -647,7 +647,7 @@ impl From<UntaggedOperator> for air::Expression {
         // Special cases:
         //   - $literal becomes a Literal or Document
         //   - $is/$sqlIs become an Is
-        //   - $nullIf and $coalesce are Sql operators but don't start with $sql
+        //   - $nullIf is a SQL operator but don't start with $sql
         use agg_ast::definitions::UntaggedOperatorName;
         match ast_op.op {
             UntaggedOperatorName::Literal => {
@@ -672,12 +672,6 @@ impl From<UntaggedOperator> for air::Expression {
             UntaggedOperatorName::NullIf => {
                 return air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
                     op: air::SqlOperator::NullIf,
-                    args,
-                });
-            }
-            UntaggedOperatorName::Coalesce => {
-                return air::Expression::SqlSemanticOperator(air::SqlSemanticOperator {
-                    op: air::SqlOperator::Coalesce,
                     args,
                 });
             }

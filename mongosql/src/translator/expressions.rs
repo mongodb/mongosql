@@ -360,12 +360,23 @@ impl MqlTranslator {
         &self,
         scalar_func: mir::ScalarFunctionApplication,
     ) -> Result<air::Expression> {
-        let args: Vec<air::Expression> = scalar_func
+        let mut args: Vec<air::Expression> = scalar_func
             .args
-            .clone()
             .into_iter()
             .map(|x| self.translate_expression(x))
             .collect::<Result<Vec<air::Expression>>>()?;
+
+        // COALESCE is translated to an MQL $ifNull operator, which returns the first non-nullish
+        // argument, or the final argument if none are non-null. This is almost equivalent to SQL
+        // COALESCE. The key difference is that $ifNull does not upconvert missing to null, so if
+        // all arguments to $ifNull are nullish and the final one happens to be missing, the result
+        // will be missing rather than null. Therefore, for COALESCE we manually append a null
+        // literal to the end of the argument list.
+        if scalar_func.function == mir::ScalarFunction::Coalesce
+            && args.last() != Some(&air::Expression::Literal(air::LiteralValue::Null))
+        {
+            args.push(air::Expression::Literal(air::LiteralValue::Null));
+        }
 
         let op =
             scalar_function_to_scalar_function_type(scalar_func.is_nullable, scalar_func.function);

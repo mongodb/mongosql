@@ -216,24 +216,6 @@ impl UnsupportedOperatorsDesugarerVisitor {
         })
     }
 
-    fn desugar_sql_coalesce(&self, coalesce: SqlSemanticOperator) -> Expression {
-        let cases = coalesce
-            .args
-            .iter()
-            .map(|branch| SwitchCase {
-                case: Box::new(Expression::MqlSemanticOperator(MqlSemanticOperator {
-                    op: MqlOperator::Gt,
-                    args: vec![branch.clone(), NULL_LITERAL],
-                })),
-                then: Box::new(branch.clone()),
-            })
-            .collect();
-        Expression::Switch(Switch {
-            branches: cases,
-            default: Box::new(NULL_LITERAL),
-        })
-    }
-
     fn desugar_sql_convert(&self, convert: SqlConvert) -> Expression {
         let input_var_name = "sqlConvert_input";
         let input_var_ref = Expression::Variable(input_var_name.to_string().into());
@@ -629,7 +611,6 @@ impl Visitor for UnsupportedOperatorsDesugarerVisitor {
             SqlSemanticOperator(s) => match s.op {
                 SqlOperator::Between => self.desugar_sql_between(s),
                 SqlOperator::BitLength => self.desugar_sql_bit_length(s),
-                SqlOperator::Coalesce => self.desugar_sql_coalesce(s),
                 SqlOperator::Cos | SqlOperator::Sin | SqlOperator::Tan => {
                     self.desugar_trig_function(s)
                 }
